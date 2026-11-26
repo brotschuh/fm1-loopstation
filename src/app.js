@@ -469,7 +469,7 @@ function toggleDrums() { send({ t: 'stop', i: 3 }); }
 function toggleClick() { const on = !(st && st.clickOn); send({ t: 'set', k: 'clickOn', v: on }); toast(T(on ? 'Klick an' : 'Klick aus')); }
 function clearSel() { send({ t: 'clear', i: sel }); toast(sel === 3 ? T('Drum-Muster geloescht') : T('SPUR') + ' ' + (sel + 1) + ' ' + T('geloescht')); }
 function stutter(on) { send({ t: 'set', k: 'stut', v: on }); $('#stut').classList.toggle('on', on); }
-function select(i) { sel = i; lastSig = ''; wave = null; send({ t: 'set', k: 'monCh', v: i < 3 ? i : 4 }); send({ t: 'wave', i: i < 3 ? i : -1, bins: 400 }); renderTracks(); renderParams(); drawScreen(); updateLeds(); }
+function select(i) { sel = i; lastSig = ''; wave = null; send({ t: 'wave', i: i < 3 ? i : -1, bins: 400 }); renderTracks(); renderParams(); drawScreen(); updateLeds(); }
 function setPage(k) { page = k; renderParams(); drawScreen(); updateLeds(); }
 
 // ---- phone UI --------------------------------------------------------------------------------
@@ -569,7 +569,7 @@ $('#start').onclick = async () => {
   $('#start').disabled = true; $('#start').textContent = T('Startet …');
   try {
     await startAudio();
-    send({ t: 'wave', i: sel, bins: 400 }); send({ t: 'set', k: 'monCh', v: sel < 3 ? sel : 4 });
+    send({ t: 'wave', i: sel, bins: 400 });
     $('#intro').hidden = true; $('#app').hidden = false;
     try { await link.open(); } catch (e) { $('#fm1').textContent = e.message; }
   } catch (e) { $('#start').disabled = false; $('#start').textContent = T('Starten'); $('#err').textContent = T('Fehler: ') + e.message; }
