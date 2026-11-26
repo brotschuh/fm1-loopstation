@@ -67,7 +67,8 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .big.rec.on{background:var(--rec);color:#fff;border-color:var(--rec)}
 #bPlay{color:var(--play);background:#10261a;border-color:#1d5a35}
 #bPlay.on{background:var(--play);color:#062;}
-.row2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.row2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
+#bClick.on{background:var(--dub);color:#1a0f00;border-color:var(--dub)}
 #bClear.arm{background:var(--rec);color:#fff}
 .meters{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;font-size:12px;color:var(--dim);margin-top:12px}
 .meter{height:8px;background:#0008;border-radius:4px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--play);transition:width .05s}
@@ -138,6 +139,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     </div>
     <div class="row2">
       <button id="bStop">SPUR STUMM</button>
+      <button id="bClick" data-t>KLICK</button>
       <button id="bClear" data-t>LOESCHEN (halten)</button>
       <button id="bClearAll" data-t>Alles loeschen</button>
     </div>
@@ -174,7 +176,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td>SCL</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
       <tr><td>HOME</td><td data-t>Gewaehlte Spur stumm / an</td></tr>
       <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
-      <tr><td>ARP</td><td data-t>Drums an / aus</td></tr>
+      <tr><td>ARP</td><td data-t>Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)</td></tr>
       <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
       <tr><td>PRESETS</td><td data-t>Drum-Muster waehlen</td></tr>
       <tr><td>ALGORITHM</td><td data-t>Drum-Instrument fuer die Schritt-Tasten waehlen</td></tr>
@@ -184,7 +186,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
       <tr><td data-t>Tastenlicht</td><td data-t>Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Loop-Station-Firmware).</td></tr>
     </table>
-    <p data-t>Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter.</p>
+    <p data-t>Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter, K = Klick.</p>
   </section>
 </main>
 </div>
@@ -231,6 +233,10 @@ class LoopEngine {
     this.kit = 0;
     this.playing = [];        // {s: Float32Array, i, g}
     this.lastStep = -1; this.skip = new Uint8Array(NVOICES * NSTEPS);
+    // metronome: only in the output, never in a recording (the loops record the microphone only)
+    this.clickOn = false; this.clickVol = 0.5; this.lastBeat = -1;
+    const blip = (f, n) => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = Math.sin(2 * Math.PI * f * i / sr) * Math.exp(-i / (n / 5)); return a; };
+    this.clickHi = blip(2000, Math.round(sr * 0.03)); this.clickLo = blip(1200, Math.round(sr * 0.025));
     // fx on the sum
     this.bits = 16; this.down = 1; this.holdL = 0; this.holdR = 0; this.holdN = 0;
     this.ringLen = Math.floor(sr * 2); this.ringL = new Float32Array(this.ringLen); this.ringR = new Float32Array(this.ringLen); this.ringW = 0;
@@ -263,7 +269,7 @@ class LoopEngine {
 
   startRec(i) {
     const t = this.tracks[i];
-    const grid = this.master === 0 && this.drumOn;   // the rhythm is on: the loop starts on a bar line
+    const grid = this.master === 0 && (this.drumOn || this.clickOn);   // rhythm or click on: the loop starts on a bar line
     if (this.master === 0 && !grid) {
       if (!this.running) { this.running = true; this.p = 0; this.lastStep = -1; }
       // a running transport without a loop (drums off): the loop starts now
@@ -272,8 +278,12 @@ class LoopEngine {
       return;
     }
     if (grid) {
-      if (!this.running) { this.running = true; this.p = 0; this.lastStep = -1; }
       const bl = this.barLen();
+      if (!this.running) {   // from standstill: one bar to count in
+        this.running = true; this.p = 0; this.lastStep = -1; this.lastBeat = -1;
+        this.armed = i; this.armAt = Math.round(bl); this.armGrid = true;
+        return;
+      }
       this.armed = i; this.armAt = Math.ceil(this.p / bl - 1e-9) * bl; this.armGrid = true;
       if (this.armAt - this.p < 1) this.armAt = this.p;
       return;
@@ -422,7 +432,7 @@ class LoopEngine {
       });
       this.armed = -1; this.running = false; this.stut = false;
     } else {
-      this.running = true; this.p = 0; this.lastStep = -1;
+      this.running = true; this.p = 0; this.lastStep = -1; this.lastBeat = -1;
     }
     this.dirty = true;
   }
@@ -529,6 +539,11 @@ class LoopEngine {
             if (t.tail > 0) t.tail--;
           }
         }
+        // metronome
+        if (this.clickOn) {
+          const bt = Math.floor(mod(this.p, bl) / (bl / 4)) % 4;
+          if (bt !== this.lastBeat) { this.lastBeat = bt; this.trigger(bt === 0 ? this.clickHi : this.clickLo, this.clickVol / Math.max(0.05, this.drumVol)); }
+        }
         // drum sequencer
         if (this.drumOn) {
           const st = Math.floor(mod(this.p, bl) / sl) % NSTEPS;
@@ -587,7 +602,7 @@ class LoopEngine {
       wave,
       running: this.running, p: this.p, master: this.master, bars: this.masterBars, bpm: this.bpm,
       armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1,
-      drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit,
+      drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit, clickOn: this.clickOn,
       canDrumUndo: !!this.drumUndo, canDrumRedo: !!this.drumRedo,
       pattern: Array.from(this.pattern), latency: Math.round(this.latency * 1000 / this.sr),
       meterIn: this.meterIn, meterOut: this.meterOut,
@@ -669,7 +684,8 @@ const EN = {
   'Undo / Redo der letzten Aufnahme': 'Undo / redo the last take',
   'Gewaehlte Spur stumm / an': 'Mute / unmute the selected track',
   'SAVE halten': 'Hold SAVE', 'Gewaehlte Spur loeschen': 'Clear the selected track',
-  'Drums an / aus': 'Drums on / off', 'Spur waehlen (1, 2, 3, Drums)': 'Choose the track (1, 2, 3, drums)',
+  'Drums an / aus': 'Drums on / off', 'KLICK': 'CLICK', 'Klick an': 'Click on', 'Klick aus': 'Click off',
+  'Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)': 'Tap: drums on / off. Hold: click on / off (only in the headphones, never in a recording)', 'Spur waehlen (1, 2, 3, Drums)': 'Choose the track (1, 2, 3, drums)',
   'Drum-Muster waehlen': 'Choose the drum pattern', 'Drum-Instrument fuer die Schritt-Tasten waehlen': 'Choose the drum sound shown on the step keys',
   'Seiten DELAY+HALL · FILTER+BITCRUSH · SPUR · MIKRO · DRUMS. K1–K4 stellen die vier Werte. Bitcrusher: ENV, dann K3 (Bits) und K4 (Samplerate).':
     'Pages DELAY+REVERB · FILTER+BITCRUSH · TRACK · MIC · DRUMS. K1–K4 set the four values. Bitcrusher: ENV, then K3 (bits) and K4 (sample rate).',
@@ -681,8 +697,8 @@ const EN = {
   'Tastenlicht': 'Button lights',
   'Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Loop-Station-Firmware).':
     'Page MIC (GLO), K4: base brightness of the buttons from OFF to 8; the active button is fully lit (needs the loop station firmware).',
-  'Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter.':
-    'On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter.',
+  'Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter, K = Klick.':
+    'On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter, K = click.',
   'ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).': 'ROCK kit: Big Rusty Drums by Karoryfer Samples, CC0 (public domain).',
   // states and buttons
   'LEER': 'EMPTY', 'WARTET AUF TAKT': 'WAITING FOR BAR', 'REC BIS TAKTENDE': 'REC TO BAR END', 'AUFNAHME': 'RECORDING',
@@ -1169,7 +1185,7 @@ function onStatus(s) {
   const prev = st; st = s;
   if (s.wave) { wave = s.wave; fmWaveDirty = true; }
   for (const ev of s.events) if (ev.t === 'loop') { toast(`Loop: ${ev.bars} ${T(ev.bars > 1 ? 'Takte' : 'Takt')}, ${Math.round(ev.bpm)} BPM`); applyParam('dlyDiv'); }
-  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo]), s.running, s.armed, s.drumOn, s.drumRec, sel, page, Math.round(s.bpm), s.master > 0]);
+  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0]);
   if (sig !== lastSig) { lastSig = sig; renderTracks(); drawScreen(); renderParams(); }
   const pat = s.pattern.join('');
   if (pat !== lastPat) { lastPat = pat; renderGrid(); }
@@ -1347,7 +1363,10 @@ link.onButton = (b, on) => {
     case B.PLAY: if (on) send({ t: 'play' }); break;
     case B.SCL: if (on) send({ t: 'undo', i: sel }); break;
     case B.HOME: if (on) send({ t: 'stop', i: sel }); break;
-    case B.ARP: if (on) toggleDrums(); break;
+    case B.ARP:   // tap: drums on / off, hold: click on / off
+      if (on) held.arpTimer = setTimeout(() => { held.arpTimer = 0; toggleClick(); }, 450);
+      else if (held.arpTimer) { clearTimeout(held.arpTimer); held.arpTimer = 0; toggleDrums(); }
+      break;
     case B.SAVE:
       if (on) held.saveTimer = setTimeout(() => { clearSel(); held.saveTimer = 0; }, 800);
       else if (held.saveTimer) { clearTimeout(held.saveTimer); toast(T('SAVE halten = Spur loeschen')); }
@@ -1384,6 +1403,7 @@ link.onState = (ok, name, outs) => {
 // ---- actions ---------------------------------------------------------------------------------
 function recPress() { if (sel === 3) send({ t: 'drumRec' }); else send({ t: 'rec', i: sel }); }
 function toggleDrums() { send({ t: 'stop', i: 3 }); }
+function toggleClick() { const on = !(st && st.clickOn); send({ t: 'set', k: 'clickOn', v: on }); toast(T(on ? 'Klick an' : 'Klick aus')); }
 function clearSel() { send({ t: 'clear', i: sel }); toast(sel === 3 ? T('Drum-Muster geloescht') : T('SPUR') + ' ' + (sel + 1) + ' ' + T('geloescht')); }
 function stutter(on) { send({ t: 'set', k: 'stut', v: on }); $('#stut').classList.toggle('on', on); }
 function select(i) { sel = i; lastSig = ''; wave = null; send({ t: 'wave', i: i < 3 ? i : -1, bins: 400 }); renderTracks(); renderParams(); drawScreen(); updateLeds(); }
@@ -1418,6 +1438,7 @@ function renderTracks() {
   $('#bUndo').textContent = sel === 3 ? (st.canDrumRedo ? 'REDO' : 'UNDO') : (t.canRedo ? 'REDO' : 'UNDO');
   $('#bUndo').disabled = sel === 3 ? !(st.canDrumUndo || st.canDrumRedo) : !(t.canUndo || t.canRedo || t.state === 'rec' || st.armed === sel);
   $('#bStop').textContent = T(sel === 3 ? (st.drumOn ? 'DRUMS AUS' : 'DRUMS AN') : (t.state === 'stop' ? 'SPUR AN' : 'SPUR STUMM'));
+  $('#bClick').classList.toggle('on', !!st.clickOn);
   $('#bpm').textContent = Math.round(st.bpm) + ' BPM' + (st.master ? ' · ' + st.bars + ' ' + T(st.bars > 1 ? 'Takte' : 'Takt') : '');
 }
 
@@ -1484,6 +1505,7 @@ $('#bRec').onclick = recPress;
 $('#bPlay').onclick = () => send({ t: 'play' });
 $('#bUndo').onclick = () => send({ t: 'undo', i: sel });
 $('#bStop').onclick = () => send({ t: 'stop', i: sel });
+$('#bClick').onclick = toggleClick;
 let clrT = 0;
 $('#bClear').onpointerdown = () => { $('#bClear').classList.add('arm'); clrT = setTimeout(() => { clearSel(); clrT = 0; $('#bClear').classList.remove('arm'); }, 800); };
 $('#bClear').onpointerup = $('#bClear').onpointerleave = () => { if (clrT) { clearTimeout(clrT); toast(T('Halten = loeschen')); } clrT = 0; $('#bClear').classList.remove('arm'); };
@@ -1515,6 +1537,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'z') send({ t: 'undo', i: sel });
   else if (k >= '1' && k <= '4') select(+k - 1);
   else if (k === 's') stutter(true);
+  else if (k === 'k') toggleClick();
 });
 document.addEventListener('keyup', e => { if (e.key.toLowerCase() === 's') stutter(false); });
 }

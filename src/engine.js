@@ -39,6 +39,10 @@ class LoopEngine {
     this.kit = 0;
     this.playing = [];        // {s: Float32Array, i, g}
     this.lastStep = -1; this.skip = new Uint8Array(NVOICES * NSTEPS);
+    // metronome: only in the output, never in a recording (the loops record the microphone only)
+    this.clickOn = false; this.clickVol = 0.5; this.lastBeat = -1;
+    const blip = (f, n) => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = Math.sin(2 * Math.PI * f * i / sr) * Math.exp(-i / (n / 5)); return a; };
+    this.clickHi = blip(2000, Math.round(sr * 0.03)); this.clickLo = blip(1200, Math.round(sr * 0.025));
     // fx on the sum
     this.bits = 16; this.down = 1; this.holdL = 0; this.holdR = 0; this.holdN = 0;
     this.ringLen = Math.floor(sr * 2); this.ringL = new Float32Array(this.ringLen); this.ringR = new Float32Array(this.ringLen); this.ringW = 0;
@@ -71,7 +75,7 @@ class LoopEngine {
 
   startRec(i) {
     const t = this.tracks[i];
-    const grid = this.master === 0 && this.drumOn;   // the rhythm is on: the loop starts on a bar line
+    const grid = this.master === 0 && (this.drumOn || this.clickOn);   // rhythm or click on: the loop starts on a bar line
     if (this.master === 0 && !grid) {
       if (!this.running) { this.running = true; this.p = 0; this.lastStep = -1; }
       // a running transport without a loop (drums off): the loop starts now
@@ -80,8 +84,12 @@ class LoopEngine {
       return;
     }
     if (grid) {
-      if (!this.running) { this.running = true; this.p = 0; this.lastStep = -1; }
       const bl = this.barLen();
+      if (!this.running) {   // from standstill: one bar to count in
+        this.running = true; this.p = 0; this.lastStep = -1; this.lastBeat = -1;
+        this.armed = i; this.armAt = Math.round(bl); this.armGrid = true;
+        return;
+      }
       this.armed = i; this.armAt = Math.ceil(this.p / bl - 1e-9) * bl; this.armGrid = true;
       if (this.armAt - this.p < 1) this.armAt = this.p;
       return;
@@ -230,7 +238,7 @@ class LoopEngine {
       });
       this.armed = -1; this.running = false; this.stut = false;
     } else {
-      this.running = true; this.p = 0; this.lastStep = -1;
+      this.running = true; this.p = 0; this.lastStep = -1; this.lastBeat = -1;
     }
     this.dirty = true;
   }
@@ -337,6 +345,11 @@ class LoopEngine {
             if (t.tail > 0) t.tail--;
           }
         }
+        // metronome
+        if (this.clickOn) {
+          const bt = Math.floor(mod(this.p, bl) / (bl / 4)) % 4;
+          if (bt !== this.lastBeat) { this.lastBeat = bt; this.trigger(bt === 0 ? this.clickHi : this.clickLo, this.clickVol / Math.max(0.05, this.drumVol)); }
+        }
         // drum sequencer
         if (this.drumOn) {
           const st = Math.floor(mod(this.p, bl) / sl) % NSTEPS;
@@ -395,7 +408,7 @@ class LoopEngine {
       wave,
       running: this.running, p: this.p, master: this.master, bars: this.masterBars, bpm: this.bpm,
       armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1,
-      drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit,
+      drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit, clickOn: this.clickOn,
       canDrumUndo: !!this.drumUndo, canDrumRedo: !!this.drumRedo,
       pattern: Array.from(this.pattern), latency: Math.round(this.latency * 1000 / this.sr),
       meterIn: this.meterIn, meterOut: this.meterOut,

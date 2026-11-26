@@ -67,7 +67,8 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .big.rec.on{background:var(--rec);color:#fff;border-color:var(--rec)}
 #bPlay{color:var(--play);background:#10261a;border-color:#1d5a35}
 #bPlay.on{background:var(--play);color:#062;}
-.row2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.row2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
+#bClick.on{background:var(--dub);color:#1a0f00;border-color:var(--dub)}
 #bClear.arm{background:var(--rec);color:#fff}
 .meters{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;font-size:12px;color:var(--dim);margin-top:12px}
 .meter{height:8px;background:#0008;border-radius:4px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--play);transition:width .05s}
@@ -138,6 +139,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     </div>
     <div class="row2">
       <button id="bStop">SPUR STUMM</button>
+      <button id="bClick" data-t>KLICK</button>
       <button id="bClear" data-t>LOESCHEN (halten)</button>
       <button id="bClearAll" data-t>Alles loeschen</button>
     </div>
@@ -174,7 +176,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td>SCL</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
       <tr><td>HOME</td><td data-t>Gewaehlte Spur stumm / an</td></tr>
       <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
-      <tr><td>ARP</td><td data-t>Drums an / aus</td></tr>
+      <tr><td>ARP</td><td data-t>Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)</td></tr>
       <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
       <tr><td>PRESETS</td><td data-t>Drum-Muster waehlen</td></tr>
       <tr><td>ALGORITHM</td><td data-t>Drum-Instrument fuer die Schritt-Tasten waehlen</td></tr>
@@ -184,7 +186,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
       <tr><td data-t>Tastenlicht</td><td data-t>Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Loop-Station-Firmware).</td></tr>
     </table>
-    <p data-t>Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter.</p>
+    <p data-t>Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter, K = Klick.</p>
   </section>
 </main>
 </div>

@@ -27,7 +27,8 @@ const EN = {
   'Undo / Redo der letzten Aufnahme': 'Undo / redo the last take',
   'Gewaehlte Spur stumm / an': 'Mute / unmute the selected track',
   'SAVE halten': 'Hold SAVE', 'Gewaehlte Spur loeschen': 'Clear the selected track',
-  'Drums an / aus': 'Drums on / off', 'Spur waehlen (1, 2, 3, Drums)': 'Choose the track (1, 2, 3, drums)',
+  'Drums an / aus': 'Drums on / off', 'KLICK': 'CLICK', 'Klick an': 'Click on', 'Klick aus': 'Click off',
+  'Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)': 'Tap: drums on / off. Hold: click on / off (only in the headphones, never in a recording)', 'Spur waehlen (1, 2, 3, Drums)': 'Choose the track (1, 2, 3, drums)',
   'Drum-Muster waehlen': 'Choose the drum pattern', 'Drum-Instrument fuer die Schritt-Tasten waehlen': 'Choose the drum sound shown on the step keys',
   'Seiten DELAY+HALL · FILTER+BITCRUSH · SPUR · MIKRO · DRUMS. K1–K4 stellen die vier Werte. Bitcrusher: ENV, dann K3 (Bits) und K4 (Samplerate).':
     'Pages DELAY+REVERB · FILTER+BITCRUSH · TRACK · MIC · DRUMS. K1–K4 set the four values. Bitcrusher: ENV, then K3 (bits) and K4 (sample rate).',
@@ -39,8 +40,8 @@ const EN = {
   'Tastenlicht': 'Button lights',
   'Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Loop-Station-Firmware).':
     'Page MIC (GLO), K4: base brightness of the buttons from OFF to 8; the active button is fully lit (needs the loop station firmware).',
-  'Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter.':
-    'On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter.',
+  'Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter, K = Klick.':
+    'On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter, K = click.',
   'ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).': 'ROCK kit: Big Rusty Drums by Karoryfer Samples, CC0 (public domain).',
   // states and buttons
   'LEER': 'EMPTY', 'WARTET AUF TAKT': 'WAITING FOR BAR', 'REC BIS TAKTENDE': 'REC TO BAR END', 'AUFNAHME': 'RECORDING',

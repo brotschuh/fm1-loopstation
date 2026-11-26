@@ -178,4 +178,19 @@ test('waveform overview follows the recording and marks the overdub layer', () =
   assert.ok(ov.pk[9] < 0.01 && ov.dk[9] === 0, 'undo takes the overdub out of the picture');
 });
 
+test('click: one bar count-in, heard in the output, never in the recording', () => {
+  const e = mk(); e.recToDub = false; e.bpm = 120; e.clickOn = true; e.monitor = 0;
+  e.recButton(0);
+  assert.equal(e.armed, 0); assert.equal(e.armAt, 2 * SR);          // one bar of 120 BPM to count in
+  const out = []; run(e, 1.0, () => 0, out);
+  assert.ok(Math.max(...out.slice(0, 2000).map(Math.abs)) > 0.1, 'the click sounds');
+  run(e, 1.1);
+  assert.equal(e.tracks[0].state, 'rec');
+  run(e, 2.0, () => 0);                                              // silence at the mic, clicks in the output
+  e.recButton(0); run(e, 0.1);
+  let mx = 0; for (let i = 0; i < e.tracks[0].len; i++) mx = Math.max(mx, Math.abs(e.tracks[0].buf[i]));
+  assert.equal(mx, 0, 'nothing of the click in the loop');
+  assert.equal(e.tracks[0].len, 2 * SR);
+});
+
 if (failures) { console.log(failures + ' failed'); process.exit(1); } else console.log('all passed');

@@ -197,7 +197,7 @@ function onStatus(s) {
   const prev = st; st = s;
   if (s.wave) { wave = s.wave; fmWaveDirty = true; }
   for (const ev of s.events) if (ev.t === 'loop') { toast(`Loop: ${ev.bars} ${T(ev.bars > 1 ? 'Takte' : 'Takt')}, ${Math.round(ev.bpm)} BPM`); applyParam('dlyDiv'); }
-  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo]), s.running, s.armed, s.drumOn, s.drumRec, sel, page, Math.round(s.bpm), s.master > 0]);
+  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0]);
   if (sig !== lastSig) { lastSig = sig; renderTracks(); drawScreen(); renderParams(); }
   const pat = s.pattern.join('');
   if (pat !== lastPat) { lastPat = pat; renderGrid(); }
@@ -375,7 +375,10 @@ link.onButton = (b, on) => {
     case B.PLAY: if (on) send({ t: 'play' }); break;
     case B.SCL: if (on) send({ t: 'undo', i: sel }); break;
     case B.HOME: if (on) send({ t: 'stop', i: sel }); break;
-    case B.ARP: if (on) toggleDrums(); break;
+    case B.ARP:   // tap: drums on / off, hold: click on / off
+      if (on) held.arpTimer = setTimeout(() => { held.arpTimer = 0; toggleClick(); }, 450);
+      else if (held.arpTimer) { clearTimeout(held.arpTimer); held.arpTimer = 0; toggleDrums(); }
+      break;
     case B.SAVE:
       if (on) held.saveTimer = setTimeout(() => { clearSel(); held.saveTimer = 0; }, 800);
       else if (held.saveTimer) { clearTimeout(held.saveTimer); toast(T('SAVE halten = Spur loeschen')); }
@@ -412,6 +415,7 @@ link.onState = (ok, name, outs) => {
 // ---- actions ---------------------------------------------------------------------------------
 function recPress() { if (sel === 3) send({ t: 'drumRec' }); else send({ t: 'rec', i: sel }); }
 function toggleDrums() { send({ t: 'stop', i: 3 }); }
+function toggleClick() { const on = !(st && st.clickOn); send({ t: 'set', k: 'clickOn', v: on }); toast(T(on ? 'Klick an' : 'Klick aus')); }
 function clearSel() { send({ t: 'clear', i: sel }); toast(sel === 3 ? T('Drum-Muster geloescht') : T('SPUR') + ' ' + (sel + 1) + ' ' + T('geloescht')); }
 function stutter(on) { send({ t: 'set', k: 'stut', v: on }); $('#stut').classList.toggle('on', on); }
 function select(i) { sel = i; lastSig = ''; wave = null; send({ t: 'wave', i: i < 3 ? i : -1, bins: 400 }); renderTracks(); renderParams(); drawScreen(); updateLeds(); }
@@ -446,6 +450,7 @@ function renderTracks() {
   $('#bUndo').textContent = sel === 3 ? (st.canDrumRedo ? 'REDO' : 'UNDO') : (t.canRedo ? 'REDO' : 'UNDO');
   $('#bUndo').disabled = sel === 3 ? !(st.canDrumUndo || st.canDrumRedo) : !(t.canUndo || t.canRedo || t.state === 'rec' || st.armed === sel);
   $('#bStop').textContent = T(sel === 3 ? (st.drumOn ? 'DRUMS AUS' : 'DRUMS AN') : (t.state === 'stop' ? 'SPUR AN' : 'SPUR STUMM'));
+  $('#bClick').classList.toggle('on', !!st.clickOn);
   $('#bpm').textContent = Math.round(st.bpm) + ' BPM' + (st.master ? ' · ' + st.bars + ' ' + T(st.bars > 1 ? 'Takte' : 'Takt') : '');
 }
 
@@ -512,6 +517,7 @@ $('#bRec').onclick = recPress;
 $('#bPlay').onclick = () => send({ t: 'play' });
 $('#bUndo').onclick = () => send({ t: 'undo', i: sel });
 $('#bStop').onclick = () => send({ t: 'stop', i: sel });
+$('#bClick').onclick = toggleClick;
 let clrT = 0;
 $('#bClear').onpointerdown = () => { $('#bClear').classList.add('arm'); clrT = setTimeout(() => { clearSel(); clrT = 0; $('#bClear').classList.remove('arm'); }, 800); };
 $('#bClear').onpointerup = $('#bClear').onpointerleave = () => { if (clrT) { clearTimeout(clrT); toast(T('Halten = loeschen')); } clrT = 0; $('#bClear').classList.remove('arm'); };
@@ -543,6 +549,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'z') send({ t: 'undo', i: sel });
   else if (k >= '1' && k <= '4') select(+k - 1);
   else if (k === 's') stutter(true);
+  else if (k === 'k') toggleClick();
 });
 document.addEventListener('keyup', e => { if (e.key.toLowerCase() === 's') stutter(false); });
 }
