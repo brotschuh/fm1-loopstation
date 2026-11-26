@@ -17,7 +17,8 @@ const FM1 = (() => {
   const op = {
     clear: c => [CMD.CLEAR, ...col(c)],
     rect: (x, y, w, h, c) => [CMD.RECT, ...n14(x), ...n14(y), ...n14(w), ...n14(h), ...col(c)],
-    text: (x, y, s, fg, bg, t) => [CMD.TEXT, ...n14(x), ...n14(y), s, ...col(fg), ...col(bg), ...ascii(t)],
+    // s: 1-4, or 1.5 (only when Link.features & 1)
+    text: (x, y, s, fg, bg, t) => [CMD.TEXT, ...n14(x), ...n14(y), s % 1 ? 0x40 | Math.round(s * 2) : s, ...col(fg), ...col(bg), ...ascii(t)],
   };
 
   // pack drawing commands into as few BATCH frames as fit (<= 300 bytes each)
@@ -42,7 +43,7 @@ const FM1 = (() => {
     constructor() {
       this.access = null; this.out = null; this.inp = null; this.q = []; this.timer = null;
       this.onKey = null; this.onButton = null; this.onEncoder = null; this.onRedraw = null; this.onState = null;
-      this.connected = false; this.name = ''; this.dropped = -1; this.pinger = 0; this.onDropped = null; this.pace = 28;
+      this.connected = false; this.name = ''; this.dropped = -1; this.features = 0; this.pinger = 0; this.onDropped = null; this.pace = 28;
     }
     async open() {
       if (!navigator.requestMIDIAccess) throw new Error('Dieser Browser kann kein Web MIDI (Chrome oder Edge nehmen).');
@@ -92,6 +93,8 @@ const FM1 = (() => {
           const dropped = v(24);
           if (this.dropped >= 0 && dropped > this.dropped && this.onDropped) this.onDropped(dropped - this.dropped);
           this.dropped = dropped;
+          const feat = d.length >= 31 ? d[29] : 0;   // our firmware: bit 0 = 1.5x text
+          if (feat !== this.features) { this.features = feat; if (this.onFeatures) this.onFeatures(feat); }
         }
         return;
       }

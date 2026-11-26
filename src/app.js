@@ -282,8 +282,12 @@ function drawScreen() {
 // one knob in the 2 x 2 grid: "1 DELAY" over its value, both 2x (12 x 16 px a character)
 function paramOps(p, i) {
   const o = FM1.op, x = 6 + (i % 2) * 118, y = Y.rows + Math.floor(i / 2) * Y.rowH;
-  const label = ((i + 1) + ' ' + T(p.short).slice(0, 7)).padEnd(9);
   const val = TV(p.fmt(getP(p.id))).slice(0, 9).padEnd(9);
+  if (link.features & 1) {   // our firmware: the label in 12 px above the value in 16 px
+    const label = ('K' + (i + 1) + ' ' + T(p.short)).slice(0, 12).padEnd(12);
+    return [o.text(x, y, 1.5, C.dim, C.bg, label), o.text(x, y + 15, 2, C.fg, C.bg, val)];
+  }
+  const label = ('K' + (i + 1) + ' ' + T(p.short).slice(0, 6)).padEnd(9);
   return [o.text(x, y, 2, C.dim, C.bg, label), o.text(x, y + 18, 2, C.fg, C.bg, val)];
 }
 function drawParam(id) {
@@ -440,6 +444,7 @@ link.onEncoder = (e, d) => {
 };
 link.onRedraw = () => { lastLed = -1n; drawScreen(); updateLeds(); sendGlow(); };
 let dropFixAt = 0;
+link.onFeatures = () => { lastSig = ''; if (st) drawScreen(); };
 link.onDropped = () => {   // the FM-1 lost frames: slow down, and draw it all again (not more often than every 4 s)
   link.pace = Math.min(60, link.pace + 8);
   const now = performance.now(); if (now - dropFixAt < 4000) return; dropFixAt = now;

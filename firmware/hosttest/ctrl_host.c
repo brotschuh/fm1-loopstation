@@ -88,6 +88,19 @@ int main(void) {
         groove_screen_init();
         CHECK(!glow_on[2] && glow_lvl == 0, "init clears the glow");
     }
+    {   /* Ouroloops: PONG tells the features, CMD_TEXT 0x43 draws 'K' 9x12 */
+        int n0 = sx_n;
+        uint8_t ping[] = {0xf0, 0x7d, 'D', 'A', 'W', 1, 5, 0, 1, 0xf7};
+        ctrl_sysex(ping, sizeof ping); groove_screen_control();
+        CHECK(sx_n == n0 + 1 && sx_len[n0] == 31 && sx_log[n0][29] == 3, "PONG with features byte %d (len %d)", sx_log[n0][29], sx_len[n0]);
+        memset(fb, 0, sizeof fb);
+        uint8_t t[] = {0xf0, 0x7d, 'D', 'A', 'W', 1, 4, 0, 10, 0, 100, 0x43, 3, 127, 127, 0, 0, 0, 'K', 'K', 0xf7};
+        ctrl_sysex(t, sizeof t); groove_screen_control();
+        int lit = 0, maxx = 0, maxy = 0;
+        for (int y = 0; y < 240; y++) for (int x = 0; x < 240; x++) if (fb[y * 240 + x] == 0xffff) { lit++; if (x > maxx) maxx = x; if (y > maxy) maxy = y; }
+        CHECK(lit > 0 && maxy < 112 && maxy >= 108 && maxx < 28 && maxx >= 24, "1.5x text: 2 chars end at x %d y %d (9x12 cells)", maxx, maxy);
+        ppm("half_text.ppm");
+    }
 
     return fails != 0;
 }

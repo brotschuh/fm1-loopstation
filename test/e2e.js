@@ -107,7 +107,7 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.evaluate(() => { window.__fm1.st.texts.length = 0; window.__fm1.tap(7); });
   await page.waitForTimeout(1500);
   s = await S();
-  check(s.texts.some(t => t.startsWith('4 LICHT')), 'K4 row drawn on the FM-1 (GLO page): ' + s.texts.filter(t => /^\d /.test(t)).join(' | '));
+  check(s.texts.some(t => t.startsWith('K4 LICHT')), 'K4 row drawn on the FM-1 (GLO page): ' + s.texts.filter(t => /^K\d /.test(t)).join(' | '));
   check(s.dropped === 0, 'FM-1 dropped no frames: ' + s.dropped);
   check(s.glowLevel === 3 && (s.glow >> 13n & 1n) === 1n && (s.glow >> 2n & 1n) === 1n, 'buttons glow at level ' + s.glowLevel);
   await page.evaluate(() => { for (let i = 0; i < 2; i++) window.__fm1.enc(5, 1); });

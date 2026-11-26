@@ -79,20 +79,22 @@ static const uint8_t *glyph(unsigned c)
     return blank;
 }
 
-static void draw_char(unsigned x, unsigned y, unsigned scale, unsigned c, uint16_t fg, uint16_t bg)
+/* size in half steps: 2 = the 6x8 cell, 3 = 9x12, 4 = 12x16 ... (nearest-neighbour) */
+static void draw_char_h(unsigned x, unsigned y, unsigned half, unsigned c, uint16_t fg, uint16_t bg)
 {
-    unsigned w = 6 * scale, h = 8 * scale;
+    unsigned w = 3 * half, h = 4 * half;
     if (x + w > FM1_SCREEN_WIDTH || y + h > FM1_SCREEN_HEIGHT) return;
     const uint8_t *g = glyph(c);
     for (unsigned py = 0; py < h; ++py) {
-        unsigned row = py / scale;
+        unsigned row = py * 2 / half;
         for (unsigned px = 0; px < w; ++px) {
-            unsigned col = px / scale;
+            unsigned col = px * 2 / half;
             cell[py * w + px] = col < 5 && row < 7 && (g[col] >> row & 1U) ? fg : bg;
         }
     }
     (void)fm1_screen_blit(x, y, w, h, cell, w * h);
 }
+static void draw_char(unsigned x, unsigned y, unsigned scale, unsigned c, uint16_t fg, uint16_t bg) { draw_char_h(x, y, 2 * scale, c, fg, bg); }
 
 static unsigned n14(const uint8_t *p) { return (unsigned)(p[0] & 127U) << 7 | (p[1] & 127U); }
 static uint16_t color(const uint8_t *p) { return (uint16_t)((p[0] & 3U) << 14 | (p[1] & 127U) << 7 | (p[2] & 127U)); }
@@ -257,19 +259,20 @@ static void screen_cmd(unsigned cmd, const uint8_t *p, unsigned len)
                 fm1_screen_fill(x, y, w, h, color(p + 8));
         }
         break;
-    case CMD_TEXT:   /* x14 y14 scale fg(3) bg(3) text... */
+    case CMD_TEXT:   /* x14 y14 scale fg(3) bg(3) text...  scale 1-4, or 0x40|h = h half steps (3 = 1.5x) */
         if (len >= 11) {
-            unsigned x = n14(p), y = n14(p + 2), scale = p[4];
+            unsigned x = n14(p), y = n14(p + 2), half = p[4] & 0x40 ? p[4] & 0x3fU : 2U * p[4];
             uint16_t fg = color(p + 5), bg = color(p + 8);
-            if (scale < 1 || scale > MAX_SCALE) break;
-            for (unsigned i = 11; i < len; ++i, x += 6 * scale) draw_char(x, y, scale, p[i], fg, bg);
+            if (half < 2 || half > 2 * MAX_SCALE) break;
+            for (unsigned i = 11; i < len; ++i, x += 3 * half) draw_char_h(x, y, half, p[i], fg, bg);
         }
         break;
-    case CMD_PING:   /* id14 -> PONG id14 millis32 rx_frames rx_bytes rx_dropped */
+    case CMD_PING:   /* id14 -> PONG id14 millis32 rx_frames rx_bytes rx_dropped features (bit 0: half-step text, bit 1: glow) */
         if (len >= 2) {
-            uint8_t r[2 + 2 + 5 + 5 + 5 + 5] = {0x40, p[0], p[1]};
+            uint8_t r[2 + 2 + 5 + 5 + 5 + 5 + 1] = {0x40, p[0], p[1]};
             put32(r + 3, fm1_millis()); put32(r + 8, rx_frames); put32(r + 13, rx_bytes); put32(r + 18, rx_dropped);
-            sysex_reply(r, 23);
+            r[23] = 3;
+            sysex_reply(r, 24);
         }
         break;
     case CMD_PAL:    /* 16 colours x color(3): the palette of CMD_BLIT */

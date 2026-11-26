@@ -18,7 +18,7 @@ window.__fm1 = (() => {
       case 2: fill(0, 0, W, W, color(p)); break;
       case 3: fill(n14(p), n14(p.slice(2)), n14(p.slice(4)), n14(p.slice(6)), color(p.slice(8))); break;
       case 4: {
-        let x = n14(p), y = n14(p.slice(2)); const s = p[4], fg = color(p.slice(5)), bg = color(p.slice(8));
+        let x = n14(p), y = n14(p.slice(2)); const s = p[4] & 0x40 ? (p[4] & 63) / 2 : p[4], fg = color(p.slice(5)), bg = color(p.slice(8));
         const t = String.fromCharCode(...p.slice(11));
         if (x + t.length * 6 * s > W || y + 8 * s > W) st.errors.push(`text off screen "${t}" at ${x},${y} s${s}`);
         g.fillStyle = css(bg); g.fillRect(x, y, Math.min(W - x, t.length * 6 * s), 8 * s);
@@ -43,7 +43,7 @@ window.__fm1 = (() => {
       if (d[1] !== 0x7d || d[2] !== 68 || d[3] !== 65 || d[4] !== 87) return;
       const c = d[6], p = d.slice(7, d.length - 1);
       const put32 = v => [v >>> 28 & 15, v >>> 21 & 127, v >>> 14 & 127, v >>> 7 & 127, v & 127];
-      if (c === 5) { reply([0xf0, 0x7d, 68, 65, 87, 1, 0x40, p[0], p[1], ...put32(0), ...put32(st.frames), ...put32(0), ...put32(st.dropped), 0xf7]); return; }
+      if (c === 5) { reply([0xf0, 0x7d, 68, 65, 87, 1, 0x40, p[0], p[1], ...put32(0), ...put32(st.frames), ...put32(0), ...put32(st.dropped), ...(st.oldFw ? [] : [3]), 0xf7]); return; }
       if (q.length >= 4) { st.dropped++; return; }
       q.push([c, p]);
     },
