@@ -11,5 +11,8 @@ for key, name in parts.items():
     html = html.replace(f'/*{key}*/', code)
 for out in (root / 'dist' / 'ouroloops.html', root / 'docs' / 'index.html'):   # docs/ = the GitHub Pages site
     out.parent.mkdir(exist_ok=True)
-    out.write_text(html)
-    print('built', out, len(html), 'bytes')
+    page = html
+    if out.parent.name == 'dist':   # the single file has no manifest and icons next to it
+        page = '\n'.join(l for l in html.split('\n') if not (l.startswith('<link rel="manifest"') or l.startswith('<link rel="icon"') or l.startswith('<link rel="apple-touch-icon"')))
+    out.write_text(page)
+    print('built', out, len(page), 'bytes')
