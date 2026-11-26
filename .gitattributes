@@ -1,0 +1,2 @@
+# keep the firmware byte-exact on every OS: its SDK files are checked against sdk/manifest.json
+firmware/** -text

@@ -10,9 +10,9 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, rev: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
   stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
-  recToDub: 1, micId: '', outId: '', ledAll: 1, lang: '', v: 3 };
+  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', v: 3 };
 let S = { ...DEF };
-try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0, ledAll: 1 }); } catch (e) { }
+try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0 }); } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
 LANG = S.lang || ((navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en');
 function applyLang() {
@@ -38,7 +38,7 @@ const PAGES = {
   MOD: { name: 'CHORUS + STUTTER', btn: 5, p: [P('choMix', 'CHORUS', 0, 100, 1), P('choDepth', 'TIEFE', 0, 100, 1), P('stutDiv', 'STUTTER', 0, 3, 1, v => '1/' + STUT_DIV[v]), P('revSize', 'HALLRAUM', 0, 100, 2, null, 'RAUM')] },
   SPUR: { name: 'SPUR', btn: 6, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
   DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1, null, 'DRUMS')] },
-  MIKRO: { name: 'MIKRO + AUSGANG', btn: 7, p: [P('inGain', 'EINGANG', 0, 200, 2), P('mon', 'MITHOEREN', 0, 100, 2, null, 'MONITOR'), P('lat', 'LATENZ', 0, 400, 1, v => v + 'ms'), P('ledAll', 'TASTENLICHT', 0, 1, 1, v => v ? 'IMMER AN' : 'STATUS', 'LICHT')] },
+  MIKRO: { name: 'MIKRO + AUSGANG', btn: 7, p: [P('inGain', 'EINGANG', 0, 200, 2), P('mon', 'MITHOEREN', 0, 100, 2, null, 'MONITOR'), P('lat', 'LATENZ', 0, 400, 1, v => v + 'ms'), P('glow', 'TASTENLICHT', 0, 8, 1, v => v ? String(v) : 'AUS', 'LICHT')] },
 };
 const PAGE_KEYS = Object.keys(PAGES);
 
@@ -132,7 +132,7 @@ function applyParam(k) {
     case 'stutDiv': send({ t: 'set', k: 'stutDiv', v: STUT_DIV[v] }); break;
     case 'pat': send({ t: 'set', k: 'pattern', v: patternArray(v) }); break;
     case 'kit': send({ t: 'set', k: 'kit', v }); $('#grid').innerHTML = ''; renderGrid(); break;
-    case 'ledAll': lastLed = -1n; updateLeds(); break;
+    case 'glow': sendGlow(); break;
     case 'drumVol': send({ t: 'set', k: 'drumVol', v: v / 100 }); break;
     case 'inGain': send({ t: 'set', k: 'inGain', v: v / 100 }); break;
     case 'mon': send({ t: 'set', k: 'monitor', v: v / 100 }); break;
@@ -325,26 +325,23 @@ function drawWave() {
   g.fillStyle = '#fff'; g.fillRect(Math.min(W - 2, f * W), 0, 2, H);
 }
 const USED_BTNS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+// every button we use glows at the level of K4 on the MIKRO page; what is active lights fully (the firmware
+// lights a glowing LED fully when it is also on in the LED frame)
+function sendGlow() {
+  if (!link.connected) return;
+  let m = 0n; for (const b of USED_BTNS) m |= 1n << BigInt(b);
+  link.glow(m, S.glow);
+}
 function updateLeds() {
   if (!link.connected || !st) return;
   let m = 0n; const bit = k => { m |= 1n << BigInt(k); };
   const t = sel < 3 ? st.tracks[sel] : null;
   const recOn = (t && (t.state === 'rec' || t.state === 'dub')) || (sel === 3 && st.drumRec) || st.armed === sel;
-  if (S.ledAll) {
-    // every button lit, so it can be found in daylight; what is active blinks
-    const blink = Math.floor(performance.now() / 250) % 2 === 0;
-    for (const b of USED_BTNS) bit(b);
-    const off = k => { m &= ~(1n << BigInt(k)); };
-    if (recOn && blink) off(FM1.BTN.REC);
-    if (st.running && st.step >= 0 ? st.step % 4 === 0 : (st.running && blink)) off(FM1.BTN.PLAY);
-    if (st.drumOn && !blink) off(FM1.BTN.ARP);
-  } else {
-    if (recOn) bit(FM1.BTN.REC);
-    if (st.running) bit(FM1.BTN.PLAY);
-    if (st.drumOn) bit(FM1.BTN.ARP);
-    if (t && (t.canUndo || t.canRedo)) bit(FM1.BTN.SCL);
-    bit(PAGES[page].btn);
-  }
+  const blink = Math.floor(performance.now() / 250) % 2 === 0;
+  if (recOn && (blink || (t && t.state === 'dub'))) bit(FM1.BTN.REC);   // recording blinks, overdub stays lit
+  if (st.running) bit(FM1.BTN.PLAY);
+  if (st.drumOn) bit(FM1.BTN.ARP);
+  bit(PAGES[page].btn);
   for (let k = 0; k < 16; k++) { let on = !!st.pattern[voice * 16 + k]; if (k === st.step) on = !on; if (on) bit(14 + k); }
   bit(14 + 16 + voice);
   if (m !== lastLed) { lastLed = m; link.leds(m); }
@@ -402,9 +399,10 @@ link.onEncoder = (e, d) => {
   const acc = Math.abs(d) > 2 ? 3 : 1;
   setP(p.id, getP(p.id) + Math.sign(d) * p.step * acc);
 };
-link.onRedraw = () => { lastLed = -1n; drawScreen(); updateLeds(); };
+link.onRedraw = () => { lastLed = -1n; drawScreen(); updateLeds(); sendGlow(); };
 link.onDropped = () => { lastLed = -1n; drawScreen(); updateLeds(); };   // the FM-1 lost frames: draw it all again
 link.onState = (ok, name, outs) => {
+  if (ok) setTimeout(sendGlow, 150);
   $('#fm1').textContent = T(ok ? 'FM-1 verbunden' : (outs.length ? 'FM-1 nicht gefunden' : 'kein MIDI-Geraet'));
   $('#fm1').className = 'chip ' + (ok ? 'ok' : 'bad');
   $('#fm1hint').hidden = ok;

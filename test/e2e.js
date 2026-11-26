@@ -84,6 +84,11 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   s = await S();
   check(s.texts.some(t => t.startsWith('4 LICHT')), 'K4 row drawn on the FM-1 (GLO page): ' + s.texts.filter(t => /^\d /.test(t)).join(' | '));
   check(s.dropped === 0, 'FM-1 dropped no frames: ' + s.dropped);
+  check(s.glowLevel === 3 && (s.glow >> 13n & 1n) === 1n && (s.glow >> 2n & 1n) === 1n, 'buttons glow at level ' + s.glowLevel);
+  await page.evaluate(() => { for (let i = 0; i < 2; i++) window.__fm1.enc(5, 1); });
+  await page.waitForTimeout(400);
+  s = await S();
+  check(s.glowLevel === 5, 'K4 on the MIKRO page sets the glow: ' + s.glowLevel);
   // language switch
   await page.selectOption('#selLang', 'en');
   await page.waitForTimeout(800);

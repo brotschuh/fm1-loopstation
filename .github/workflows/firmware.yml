@@ -1,0 +1,90 @@
+# Builds the FM-1 Loop Station firmware with M-VAVE's build script and JieLi's Windows toolchain 2.5.3,
+# then publishes its flash page at docs/firmware/ (GitHub Pages).
+name: firmware
+
+on:
+  push:
+    branches: [main]
+    paths: ['firmware/**', 'tools/make_flash_page.py', '.github/workflows/firmware.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: firmware
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JieLi toolchain 2.5.3
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $want = 'd4bc97cf421c1ccc373dd8924ce88720ff7457b3f1478d15df4aeda6ae923bce'   # pi32/bin/clang.exe (firmware/README.md)
+          curl.exe -fL --retry 4 --retry-delay 10 -o jl-2.5.3.exe https://jl-update.oss-cn-shenzhen.aliyuncs.com/2.5.3.exe
+          Write-Host ('installer sha256 ' + (Get-FileHash jl-2.5.3.exe).Hash + ', ' + (Get-Item jl-2.5.3.exe).Length + ' bytes')
+          function Find-Pi32($dirs) {
+            foreach ($d in $dirs) {
+              if (!(Test-Path $d)) { continue }
+              foreach ($c in Get-ChildItem $d -Recurse -Filter clang.exe -ErrorAction SilentlyContinue) {
+                if ((Get-FileHash $c.FullName).Hash.ToLower() -eq $want) { return (Split-Path (Split-Path $c.FullName)) }
+              }
+            }
+            return $null
+          }
+          # 1) unpack the installer; 2) run it silently (Inno Setup / NSIS switches)
+          7z x jl-2.5.3.exe -ojl -y | Out-Null
+          $pi32 = Find-Pi32 @("$PWD\jl")
+          if (!$pi32) {
+            foreach ($inner in Get-ChildItem jl -Recurse -Include *.7z,*.zip,*.exe -ErrorAction SilentlyContinue | Where-Object Length -gt 10MB) {
+              7z x $inner.FullName "-ojl\$($inner.BaseName)" -y | Out-Null
+            }
+            $pi32 = Find-Pi32 @("$PWD\jl")
+          }
+          if (!$pi32) {
+            foreach ($args in @('/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /DIR=C:\JL', '/S /D=C:\JL', '/quiet')) {
+              Write-Host "installer $args"
+              $p = Start-Process .\jl-2.5.3.exe -ArgumentList $args -PassThru
+              if (!$p.WaitForExit(600000)) { $p.Kill() }
+              $pi32 = Find-Pi32 @('C:\JL', "$env:ProgramFiles", "${env:ProgramFiles(x86)}", "$env:LOCALAPPDATA")
+              if ($pi32) { break }
+            }
+          }
+          if (!$pi32) {
+            Write-Host 'unpacked:'; Get-ChildItem jl -Recurse -Depth 3 | Select-Object -First 80 | ForEach-Object { $_.FullName }
+            throw 'pi32 toolchain with the expected clang.exe not found'
+          }
+          Write-Host "toolchain: $pi32"
+          "FM1_PI32_TOOLCHAIN=$pi32" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Build the firmware (M-VAVE's sdk/Build.ps1)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File firmware\sdk\Build.ps1 -FirmwareOnly -Toolchain $env:FM1_PI32_TOOLCHAIN
+
+      - name: Flash page
+        run: python tools/make_flash_page.py firmware docs/firmware/index.html https://github.com/brotschuh/fm1-loopstation
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            firmware/build/dx7/generated/FM1_OFFICIAL_OPEN.fwsc
+            firmware/build/dx7/firmware-report.json
+            firmware/build/dx7/package-report.json
+            docs/firmware/index.html
+
+      - name: Publish the flash page
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/firmware/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Firmware flash page for ${GITHUB_SHA::7} (built by the firmware workflow)"
+          git pull --rebase origin main
+          git push origin HEAD:main

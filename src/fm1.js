@@ -4,7 +4,7 @@
 
 const FM1 = (() => {
   const HDR = [0xf0, 0x7d, 0x44, 0x41, 0x57, 0x01];
-  const CMD = { LED: 1, CLEAR: 2, RECT: 3, TEXT: 4, PING: 5, SCALE: 6, BATCH: 10 };
+  const CMD = { LED: 1, CLEAR: 2, RECT: 3, TEXT: 4, PING: 5, SCALE: 6, BATCH: 10, GLOW: 11 };
   const BTN = { OCTM: 0, OCTP: 1, FX: 2, SCL: 3, ENV: 4, LFO: 5, EDIT: 6, GLO: 7, HOME: 8, SAVE: 9, ARP: 10, SEQ: 11, PLAY: 12, REC: 13 };
   const KEY_BASE = 53, NKEYS = 27, MAX_FRAME = 280;
 
@@ -33,6 +33,8 @@ const FM1 = (() => {
     return out;
   }
   const ledFrame = mask => { const b = []; for (let i = 0; i < 6; i++) b.push(Number((mask >> BigInt(7 * i)) & 127n)); return [...HDR, CMD.LED, ...b, 0xf7]; };
+  // which LEDs glow and how bright (0 = off .. 8): needs the Loop Station firmware, older firmware ignores it
+  const glowFrame = (mask, level) => { const b = []; for (let i = 0; i < 6; i++) b.push(Number((mask >> BigInt(7 * i)) & 127n)); return [...HDR, CMD.GLOW, ...b, level & 127, 0xf7]; };
   const scaleFrame = () => [...HDR, CMD.SCALE, 7, 0, 3, 0, 0xf7];   // scale OFF: plain keyboard, key k = note 53 + k
   const pingFrame = id => [...HDR, CMD.PING, ...n14(id), 0xf7];
 
@@ -124,6 +126,7 @@ const FM1 = (() => {
       if (!this.timer) this.pump();
     }
     leds(mask) { this.send(ledFrame(mask), 'led'); }
+    glow(mask, level) { this.send(glowFrame(mask, level), 'glow'); }
     backlog() { return this.q.length; }
   }
 

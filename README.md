@@ -20,14 +20,13 @@ The user interface is in German for now.
   sample-rate reduction, stutter, reverse per track.
 - **On the FM-1:** keys 1–16 show the steps of the selected drum sound (with a running light),
   keys 17–27 are the drum pads; the display shows the tracks, their state, the loop position and the
-  values of the four knobs. Button lights: all buttons lit with the active ones blinking, or status only.
+  values of the four knobs. The buttons glow at an adjustable level, the active ones light fully.
 
 ## Setup
 
-1. **Firmware on the FM-1:** the loop station needs the control-surface firmware of
-   [fm1-sampler](https://github.com/ferluht/fm1-sampler) by ferluht, built on M-VAVE's open firmware
-   FM1 Open (GPL). Open its flash page `firmware/FM1-Sampler-Workbench.html` in Chrome on a computer,
-   tab **Device update**, tick the backup box, **Connect device**, then **Force flash**.
+1. **Firmware on the FM-1:** open the flash page https://brotschuh.github.io/fm1-loopstation/firmware/
+   in Chrome on a computer, tab **Device update**, tick the backup box, **Connect device**, then
+   **Start update** (or **Force flash** when coming from another firmware).
    You can go back to the original firmware at any time with M-VAVE's updater M-UPGRADE.
 2. **Phone:** connect the FM-1 to the phone with a USB-C cable, headphones or a speaker into the FM-1,
    open the app address above in Chrome, tap **Starten**, allow the microphone and MIDI.
@@ -55,6 +54,21 @@ The user interface is in German for now.
 
 On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter.
 
+## Firmware
+
+`firmware/` is the control-surface firmware of [fm1-sampler](https://github.com/ferluht/fm1-sampler) by ferluht
+(built on M-VAVE's open firmware FM1 Open V14, GPL-3.0 with the FM1 SDK linking exception) with these changes:
+
+- **Dimmable button lights:** a new SysEx command `0x0B GLOW` (the 6-byte LED mask of `LED`, then a level 0–8).
+  The chosen LEDs glow with a pulse of 0.25–4 µs at every scan tick (10 kHz, timed on TIMER4) in
+  `app/board/fm1_input.h`; LEDs that are on stay fully lit.
+- Splash screen "LOOP STATION".
+- `app/ctrl.c` is named `app/screen.c` again, so M-VAVE's own `sdk/Build.ps1` builds it with its flags.
+
+The `firmware` workflow builds it on a Windows runner with JieLi's toolchain 2.5.3 and publishes the flash page
+(`tools/make_flash_page.py`) to `docs/firmware/`. Host test of the control code:
+`gcc -DFM1_HOST_TEST -Ifirmware/sdk/include -Ifirmware/app -Ifirmware/app/board -Ifirmware/app/synth -Ifirmware/sdk/config firmware/hosttest/ctrl_host.c`.
+
 ## Development
 
 Plain JavaScript, no dependencies. `python3 build.py` builds one self-contained page
@@ -72,5 +86,6 @@ Plain JavaScript, no dependencies. `python3 build.py` builds one self-contained 
 - Code: GPL-3.0 (see `LICENSE`).
 - Rock kit: **Big Rusty Drums** by Karoryfer Samples, CC0 1.0 (public domain),
   https://github.com/sfzinstruments/karoryfer.big-rusty-drums
-- Firmware and protocol: **fm1-sampler** by ferluht, built on **FM1 Open** by M-VAVE.
+- Firmware and protocol: **fm1-sampler** by ferluht, built on **FM1 Open** by M-VAVE (GPL-3.0 with the FM1 SDK
+  linking exception; the SDK binaries have their own terms, see `firmware/THIRD_PARTY.md`).
 - Not affiliated with M-VAVE or Roland/Boss. M-VAVE, FM-1 and Boss are trademarks of their owners.

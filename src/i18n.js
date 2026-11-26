@@ -37,8 +37,8 @@ const EN = {
   'Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken':
     'Drum pads: kick, snare, rimshot/clap, closed hat, open hat, 3 toms, sidestick/rim, ride/cowbell, crash/cymbal',
   'Tastenlicht': 'Button lights',
-  'Seite MIKRO (GLO), K4: IMMER AN = alle Tasten leuchten, aktive blinken. STATUS = nur aktive leuchten.':
-    'Page MIC (GLO), K4: ALWAYS = every button lit, active ones blink. STATUS = only active ones lit.',
+  'Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Loop-Station-Firmware).':
+    'Page MIC (GLO), K4: base brightness of the buttons from OFF to 8; the active button is fully lit (needs the loop station firmware).',
   'Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter.':
     'On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter.',
   'ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).': 'ROCK kit: Big Rusty Drums by Karoryfer Samples, CC0 (public domain).',

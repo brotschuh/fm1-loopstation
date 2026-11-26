@@ -28,6 +28,7 @@ window.__fm1 = (() => {
         break;
       }
       case 6: st.scale = Array.from(p.slice(0, 4)); break;
+      case 11: { let m = 0n; for (let i = 0; i < 6; i++) m |= BigInt(p[i] & 127) << BigInt(7 * i); st.glow = m; st.glowLevel = p[6]; break; }
       case 10: { let i = 0; while (i + 3 <= p.length) { const l = n14(p.slice(i)); if (l < 1 || i + 2 + l > p.length) { st.errors.push('bad batch'); break; } cmd(p[i + 2], p.slice(i + 3, i + 3 + l - 1)); i += 2 + l; } break; }
     }
   }
