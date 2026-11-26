@@ -18,6 +18,9 @@ static unsigned char glow_on[41]; static unsigned glow_lvl;
 void fm1_led_glow(unsigned k, int on) { if (k < 41) glow_on[k] = (unsigned char)(on != 0); }
 void fm1_led_glow_level(unsigned l) { glow_lvl = l; }
 int groove_master_update(unsigned adc) { (void)adc; return 0; }
+int fm1_ble_scan(void) { return 0; } int fm1_ble_connect(unsigned i) { (void)i; return 0; } int fm1_ble_disconnect(void) { return 0; }
+void fm1_ble_get_status(struct fm1_ble_status *s) { (void)s; } int fm1_ble_get_device(unsigned i, struct fm1_ble_device *d) { (void)i; (void)d; return 0; }
+void fm1_bluetooth_get_status(struct fm1_bluetooth_status *s) { (void)s; }
 uint32_t fm1_millis(void) { return ms; }
 void fm1_control_request(void) {}
 void fm1_screen_init(void) {}

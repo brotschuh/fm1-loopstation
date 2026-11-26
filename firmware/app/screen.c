@@ -20,6 +20,8 @@ static volatile uint8_t rx_head;            /* written by routing task */
 static uint8_t rx_tail;                     /* read by control task */
 static volatile uint32_t rx_frames, rx_bytes, rx_dropped;
 
+static void *volatile keep_sdk[6];
+
 static void barrier(void)
 {
 #ifndef FM1_HOST_TEST
@@ -307,6 +309,10 @@ void groove_screen_init(void)
     memset(enc_acc, 0, sizeof enc_acc);
     memset(held_count, 0, sizeof held_count);
     knob_sent = -100; battery_at = 0; overlay = overlay_dirty = 0;
+    /* M-VAVE's Build.ps1 checks that these SDK functions are in the image. Nothing here calls them,
+     * so the linker would drop them; a store of their addresses keeps them (they are never called). */
+    keep_sdk[0] = (void *)fm1_ble_scan; keep_sdk[1] = (void *)fm1_ble_connect; keep_sdk[2] = (void *)fm1_ble_disconnect;
+    keep_sdk[3] = (void *)fm1_ble_get_status; keep_sdk[4] = (void *)fm1_ble_get_device; keep_sdk[5] = (void *)fm1_bluetooth_get_status;
     rx_head = rx_tail = 0;
     for (unsigned i = 0; i < SYSEX_Q; ++i) rxq[i].length = 0;
     fm1_controls_init();
