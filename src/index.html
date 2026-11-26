@@ -76,7 +76,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 #pages{display:flex;flex-wrap:wrap;gap:6px}
 #pages button{flex:none;font-size:14px;font-weight:700;min-height:40px}
 #pages button.on{background:var(--dub);color:#1a0f00;border-color:var(--dub)}
-#params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-top:10px}
+#params,.params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-top:10px}
 .prm{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:2px 8px;font-size:13px;color:var(--dim)}
 .prm b{color:var(--ink);font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:15px}
 .prm input{grid-column:1/-1;width:100%;accent-color:var(--dub);height:32px}
@@ -161,8 +161,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     <p class="credit" data-t>ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
   </section>
 
-  <section class="set">
+  <section class="set" id="secSettings">
     <h2 data-t>EINSTELLUNGEN</h2>
+    <div id="setParams" class="params"></div>
     <label><span data-t>Sprache</span><select id="selLang"><option value="de">Deutsch</option><option value="en">English</option></select></label>
     <label><span data-t>Mikrofon</span> <small id="micName"></small><select id="selMic"></select></label>
     <label id="outRow" hidden><span data-t>Ausgang (am Computer: das FM-1 waehlen)</span><select id="selOut"></select></label>

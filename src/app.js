@@ -364,7 +364,8 @@ function reveal(id) {
   const r = el.getBoundingClientRect(), h = innerHeight;
   if (r.top < 60 || r.top > h * 0.5) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
-const BTN_SECTION = { 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secFx', 7: 'secFx', 10: 'secDrums', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks', 3: 'secTracks', 9: 'secTracks' };
+// ARP (10) jumps nowhere; GLO (7) goes to the settings, where the MIKRO knobs are too
+const BTN_SECTION = { 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secFx', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks', 3: 'secTracks', 9: 'secTracks' };
 link.onButton = (b, on) => {
   const B = FM1.BTN;
   if (on && BTN_SECTION[b]) reveal(sel === 3 && (b === 12 || b === 13) ? 'secDrums' : BTN_SECTION[b]);
@@ -395,7 +396,7 @@ link.onButton = (b, on) => {
 };
 link.onEncoder = (e, d) => {
   if (e === 0) { select((sel + (d > 0 ? 1 : 3)) % 4); reveal('secTracks'); return; }
-  if (e === 1 || e === 6) reveal('secDrums'); else reveal('secFx');
+  if (e === 1 || e === 6) reveal('secDrums'); else reveal(page === 'MIKRO' ? 'secSettings' : 'secFx');
   if (e === 6) { setP('pat', (S.pat + (d > 0 ? 1 : PATTERNS.length - 1)) % PATTERNS.length); toast(T('Muster') + ': ' + T(PATTERNS[S.pat].name)); return; }
   if (e === 1) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); toast('Drum: ' + T(voiceNames()[voice])); return; }
   const p = PAGES[page].p[e - 2]; if (!p) return;
@@ -466,7 +467,15 @@ function updateMeters() {
   const pb = $('#pb3'); if (pb) pb.style.width = st.step >= 0 ? (st.step + 1) / 16 * 100 + '%' : '0%';
 }
 
+function paramsHtml(pg) {
+  return pg.p.map((p, i) => {
+    const disabled = (p.id.startsWith('t') && sel > 2) || (p.id === 'bpm' && st && st.master > 0);
+    return `<label class="prm"><span>K${i + 1} ${esc(T(p.label))}</span><b>${esc(TV(p.fmt(getP(p.id))))}</b>
+      <input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${getP(p.id)}" data-id="${p.id}" ${disabled ? 'disabled' : ''}></label>`;
+  }).join('');
+}
 function renderParams() {
+  $('#setParams').innerHTML = paramsHtml(PAGES.MIKRO);
   $('#pages').innerHTML = PAGE_KEYS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(k)}</button>`).join('');
   const pg = PAGES[page];
   $('#params').innerHTML = pg.p.map((p, i) => {
@@ -524,7 +533,7 @@ $('#bClear').onpointerup = $('#bClear').onpointerleave = () => { if (clrT) { cle
 $('#stut').onpointerdown = e => { e.preventDefault(); stutter(true); };
 $('#stut').onpointerup = $('#stut').onpointerleave = $('#stut').onpointercancel = () => stutter(false);
 $('#pages').onclick = e => { const b = e.target.closest('button'); if (b) setPage(b.dataset.p); };
-$('#params').oninput = e => { const i = e.target.closest('input'); if (i) setP(i.dataset.id, +i.value); };
+$('#params').oninput = $('#setParams').oninput = e => { const i = e.target.closest('input'); if (i) setP(i.dataset.id, +i.value); };
 $('#grid').onpointerdown = e => {
   const b = e.target.closest('button'); if (!b || !st) return;
   voice = +b.dataset.v;
