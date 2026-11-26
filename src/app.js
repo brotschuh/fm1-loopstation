@@ -14,6 +14,10 @@ const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40,
 let S = { ...DEF };
 try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0 }); } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
+// effects are per channel: tracks 1-3 and the drums (index 3), each with its own settings
+const FX_IDS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'bits', 'down', 'filt', 'res'];
+if (!Array.isArray(S.tfx) || S.tfx.length !== 4) S.tfx = [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, S[k] !== undefined ? S[k] : DEF[k]])));
+for (const t of S.tfx) for (const k of FX_IDS) if (t[k] === undefined) t[k] = DEF[k];
 LANG = S.lang || ((navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en');
 function applyLang() {
   document.documentElement.lang = LANG;
@@ -41,13 +45,14 @@ const FX_SUB = {
 };
 const FX_KEYS = Object.keys(FX_SUB);
 const PAGES = {
-  FX: { btn: 2, get name() { return 'FX ' + (S.fxSel + 1) + '/' + FX_KEYS.length + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
-  FILTER: { name: 'FILTER', btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
+  FX: { btn: 2, get name() { return chName() + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name + ' ' + (S.fxSel + 1) + '/' + FX_KEYS.length; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
+  FILTER: { get name() { return chName() + ' FILTER'; }, btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
   STUTTER: { name: 'STUTTER', btn: 5, p: [P('stutDiv', 'LAENGE', 0, 3, 1, v => '1/' + STUT_DIV[v])] },
-  SPUR: { name: 'SPUR', btn: 6, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
+  SPUR: { name: 'LOOPSTATION', btn: 8, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
   DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1, null, 'DRUMS')] },
   MIKRO: { name: 'MIKRO + AUSGANG', btn: 7, p: [P('inGain', 'EINGANG', 0, 200, 2), P('mon', 'MITHOEREN', 0, 100, 2, null, 'MONITOR'), P('lat', 'LATENZ', 0, 400, 1, v => v + 'ms'), P('glow', 'TASTENLICHT', 0, 8, 1, v => v ? String(v) : 'AUS', 'LICHT')] },
 };
+function chName() { return sel < 3 ? 'S' + (sel + 1) : 'DR'; }
 const ALL_PARAMS = [...Object.values(FX_SUB).flatMap(g => g.p), ...Object.keys(PAGES).filter(k => k !== 'FX').flatMap(k => PAGES[k].p)];
 const WEB_TABS = ['FX', 'FILTER', 'STUTTER', 'SPUR', 'DRUMS'];   // MIKRO lives in the settings on the phone
 function setFx(i) { S.fxSel = (i + FX_KEYS.length) % FX_KEYS.length; save(); setPage('FX'); }
@@ -59,6 +64,7 @@ function getP(id) {
   if (id === 'tPan') return t ? Math.round(t.pan * 100) : 0;
   if (id === 'tRev') return t && t.rev ? 1 : 0;
   if (id === 'bpm') return st ? Math.round(st.bpm) : S.bpm;
+  if (FX_IDS.includes(id)) return S.tfx[sel][id];
   return S[id];
 }
 function setP(id, v) {
@@ -71,7 +77,8 @@ function setP(id, v) {
     if (st) st.tracks[sel][k] = id === 'tRev' ? !!v : v / 100;
   } else {
     if (id === 'bpm' && st && st.master > 0) { toast(T('Tempo kommt vom Loop')); return; }
-    S[id] = v; save(); applyParam(id);
+    if (FX_IDS.includes(id)) { S.tfx[sel][id] = v; save(); applyFx(sel, id); }
+    else { S[id] = v; save(); applyParam(id); }
   }
   renderParams(); drawParam(id);
 }
@@ -91,25 +98,31 @@ async function startAudio() {
   // blob: works on a web server; a page opened as a file (origin null) needs a data: URL
   try { await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([src], { type: 'application/javascript' }))); }
   catch (e) { await ctx.audioWorklet.addModule('data:application/javascript;charset=utf-8,' + encodeURIComponent(src)); }
-  node = new AudioWorkletNode(ctx, 'loop-engine', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 1, channelCountMode: 'explicit' });
+  node = new AudioWorkletNode(ctx, 'loop-engine', { numberOfInputs: 1, numberOfOutputs: 5, outputChannelCount: [2, 2, 2, 2, 2], channelCount: 1, channelCountMode: 'explicit' });
   node.port.onmessage = m => onStatus(m.data);
-  // effect chain: filter -> chorus -> (dry, delay, hall) -> master
-  fx.filter = ctx.createBiquadFilter();
-  fx.choDry = ctx.createGain(); fx.choWet = ctx.createGain(); fx.choDel = ctx.createDelay(0.1); fx.choDel.delayTime.value = 0.018;
-  fx.lfo = ctx.createOscillator(); fx.lfo.frequency.value = 0.7; fx.lfoAmt = ctx.createGain(); fx.lfo.connect(fx.lfoAmt); fx.lfoAmt.connect(fx.choDel.delayTime); fx.lfo.start();
-  fx.mix = ctx.createGain();
-  fx.dSend = ctx.createGain(); fx.delay = ctx.createDelay(3); fx.dFb = ctx.createGain(); fx.dTone = ctx.createBiquadFilter(); fx.dTone.frequency.value = 4500;
-  fx.rSend = ctx.createGain(); fx.conv = ctx.createConvolver(); fx.rPre = ctx.createDelay(0.2); fx.rDamp = ctx.createBiquadFilter();
   fx.master = ctx.createGain(); fx.lim = ctx.createDynamicsCompressor(); fx.lim.threshold.value = -3; fx.lim.ratio.value = 20; fx.lim.attack.value = 0.002; fx.lim.release.value = 0.1;
-  node.connect(fx.filter);
-  fx.filter.connect(fx.choDry); fx.filter.connect(fx.choDel); fx.choDel.connect(fx.choWet);
-  fx.choDry.connect(fx.mix); fx.choWet.connect(fx.mix);
-  fx.mix.connect(fx.master);
-  fx.mix.connect(fx.dSend); fx.dSend.connect(fx.delay); fx.delay.connect(fx.dTone); fx.dTone.connect(fx.dFb); fx.dFb.connect(fx.delay); fx.dTone.connect(fx.master);
-  fx.mix.connect(fx.rSend); fx.rSend.connect(fx.rPre); fx.rPre.connect(fx.conv); fx.conv.connect(fx.rDamp); fx.rDamp.connect(fx.master);
   fx.master.connect(fx.lim); fx.lim.connect(ctx.destination);
+  // per channel: filter -> chorus -> (dry, delay, reverb) -> master; the bitcrusher runs in the engine
+  fx.ch = [0, 1, 2, 3].map(c => {
+    const f = {};
+    f.filter = ctx.createBiquadFilter();
+    f.choDry = ctx.createGain(); f.choWet = ctx.createGain(); f.choDel = ctx.createDelay(0.1); f.choDel.delayTime.value = 0.018;
+    f.lfo = ctx.createOscillator(); f.lfoAmt = ctx.createGain(); f.lfo.connect(f.lfoAmt); f.lfoAmt.connect(f.choDel.delayTime); f.lfo.start();
+    f.mix = ctx.createGain();
+    f.dSend = ctx.createGain(); f.delay = ctx.createDelay(3); f.dFb = ctx.createGain(); f.dTone = ctx.createBiquadFilter();
+    f.rSend = ctx.createGain(); f.conv = ctx.createConvolver(); f.rPre = ctx.createDelay(0.2); f.rDamp = ctx.createBiquadFilter();
+    node.connect(f.filter, c);
+    f.filter.connect(f.choDry); f.filter.connect(f.choDel); f.choDel.connect(f.choWet);
+    f.choDry.connect(f.mix); f.choWet.connect(f.mix);
+    f.mix.connect(fx.master);
+    f.mix.connect(f.dSend); f.dSend.connect(f.delay); f.delay.connect(f.dTone); f.dTone.connect(f.dFb); f.dFb.connect(f.delay); f.dTone.connect(fx.master);
+    f.mix.connect(f.rSend); f.rSend.connect(f.rPre); f.rPre.connect(f.conv); f.conv.connect(f.rDamp); f.rDamp.connect(fx.master);
+    return f;
+  });
+  node.connect(fx.master, 4);   // microphone monitor and click: no effects
   if (S.lat < 0) S.lat = Math.round(((ctx.baseLatency || 0.01) + (ctx.outputLatency || 0.02)) * 1000 + 15);
-  for (const k of Object.keys(DEF)) applyParam(k);
+  for (const k of Object.keys(DEF)) if (!FX_IDS.includes(k)) applyParam(k);
+  for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k);
   // drums
   kits = [await decodeRock(), ...makeKits(ctx.sampleRate)];
   send({ t: 'set', k: 'kits', v: kits });
@@ -120,30 +133,39 @@ async function startAudio() {
   try { await navigator.wakeLock.request('screen'); } catch (e) { }
 }
 
+function applyFx(c, k) {
+  if (!ctx) return;
+  const f = fx.ch[c], S2 = S.tfx[c], v = S2[k], now = ctx.currentTime, set = (prm, x) => prm.setTargetAtTime(x, now, 0.02);
+  const beat = 60 / (st ? st.bpm : S.bpm);
+  switch (k) {
+    case 'dlyMix': set(f.dSend.gain, v / 100 * 0.8); break;
+    case 'dlyDiv': set(f.delay.delayTime, Math.min(2.9, beat * DLY_DIV[v][1])); break;
+    case 'dlyFb': set(f.dFb.gain, v / 100); break;
+    case 'dlyTone': set(f.dTone.frequency, 800 * Math.pow(2, v / 100 * 4)); break;
+    case 'rev': set(f.rSend.gain, v / 100 * 0.9); break;
+    case 'revSize': f.conv.buffer = impulse(0.4 + v / 100 * 4); break;
+    case 'revDamp': set(f.rDamp.frequency, 18000 * Math.pow(2, -v / 100 * 3.2)); break;
+    case 'revPre': set(f.rPre.delayTime, v / 1000); break;
+    case 'choMix': set(f.choWet.gain, v / 100); set(f.choDry.gain, 1 - v / 200); break;
+    case 'choDepth': set(f.lfoAmt.gain, 0.0005 + v / 100 * 0.006); break;
+    case 'choRate': set(f.lfo.frequency, 0.1 + v / 100 * 4.9); break;
+    case 'bits': send({ t: 'set', k: 'bits', v: { i: c, v } }); break;
+    case 'down': send({ t: 'set', k: 'down', v: { i: c, v } }); break;
+    case 'filt': case 'res': {
+      const fl = S2.filt, q = 0.7 + S2.res / 100 * 14;
+      if (fl <= 0) { f.filter.type = 'lowpass'; set(f.filter.frequency, fl === 0 ? 22000 : 20000 * Math.pow(2, fl / 100 * 9)); }
+      else { f.filter.type = 'highpass'; set(f.filter.frequency, 20 * Math.pow(2, fl / 100 * 9)); }
+      set(f.filter.Q, fl === 0 ? 0.7 : q); break;
+    }
+  }
+}
+
 function applyParam(k) {
   if (!ctx) return;
   const v = S[k], now = ctx.currentTime, set = (prm, x) => prm.setTargetAtTime(x, now, 0.02);
   const beat = () => 60 / (st ? st.bpm : S.bpm);
   switch (k) {
-    case 'dlyMix': set(fx.dSend.gain, v / 100 * 0.8); break;
-    case 'dlyDiv': case 'bpm': set(fx.delay.delayTime, Math.min(2.9, beat() * DLY_DIV[S.dlyDiv][1])); if (k === 'bpm') send({ t: 'set', k: 'bpm', v }); break;
-    case 'dlyFb': set(fx.dFb.gain, v / 100); break;
-    case 'dlyTone': set(fx.dTone.frequency, 800 * Math.pow(2, v / 100 * 4)); break;
-    case 'revDamp': set(fx.rDamp.frequency, 18000 * Math.pow(2, -v / 100 * 3.2)); break;
-    case 'revPre': set(fx.rPre.delayTime, v / 1000); break;
-    case 'choRate': set(fx.lfo.frequency, 0.1 + v / 100 * 4.9); break;
-    case 'rev': set(fx.rSend.gain, v / 100 * 0.9); break;
-    case 'revSize': fx.conv.buffer = impulse(0.4 + v / 100 * 4); break;
-    case 'filt': case 'res': {
-      const f = S.filt, q = 0.7 + S.res / 100 * 14;
-      if (f <= 0) { fx.filter.type = 'lowpass'; set(fx.filter.frequency, f === 0 ? 22000 : 20000 * Math.pow(2, f / 100 * 9)); }
-      else { fx.filter.type = 'highpass'; set(fx.filter.frequency, 20 * Math.pow(2, f / 100 * 9)); }
-      set(fx.filter.Q, f === 0 ? 0.7 : q); break;
-    }
-    case 'bits': send({ t: 'set', k: 'bits', v }); break;
-    case 'down': send({ t: 'set', k: 'down', v }); break;
-    case 'choMix': set(fx.choWet.gain, v / 100); set(fx.choDry.gain, 1 - v / 200); break;
-    case 'choDepth': set(fx.lfoAmt.gain, 0.0005 + v / 100 * 0.006); break;
+    case 'bpm': for (let c = 0; c < 4; c++) applyFx(c, 'dlyDiv'); send({ t: 'set', k: 'bpm', v }); break;
     case 'stutDiv': send({ t: 'set', k: 'stutDiv', v: STUT_DIV[v] }); break;
     case 'pat': send({ t: 'set', k: 'pattern', v: patternArray(v) }); break;
     case 'kit': send({ t: 'set', k: 'kit', v }); $('#grid').innerHTML = ''; renderGrid(); break;
@@ -211,7 +233,7 @@ let lastSig = '', lastLed = -1n, lastProg = 0, lastPat = '';
 function onStatus(s) {
   const prev = st; st = s;
   if (s.wave) { wave = s.wave; fmWaveDirty = true; }
-  for (const ev of s.events) if (ev.t === 'loop') { toast(`Loop: ${ev.bars} ${T(ev.bars > 1 ? 'Takte' : 'Takt')}, ${Math.round(ev.bpm)} BPM`); applyParam('dlyDiv'); }
+  for (const ev of s.events) if (ev.t === 'loop') { toast(`Loop: ${ev.bars} ${T(ev.bars > 1 ? 'Takte' : 'Takt')}, ${Math.round(ev.bpm)} BPM`); for (let c = 0; c < 4; c++) applyFx(c, 'dlyDiv'); }
   const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0]);
   if (sig !== lastSig) { lastSig = sig; renderTracks(); drawScreen(); renderParams(); }
   const pat = s.pattern.join('');
@@ -380,7 +402,7 @@ function reveal(id) {
   if (r.top < 60 || r.top > h * 0.5) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 // ARP (10) jumps nowhere; GLO (7) goes to the settings, where the MIKRO knobs are too
-const BTN_SECTION = { 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secFx', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks', 3: 'secTracks', 9: 'secTracks' };
+const BTN_SECTION = { 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secTracks', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks', 3: 'secTracks', 9: 'secTracks' };
 link.onButton = (b, on) => {
   const B = FM1.BTN;
   if (on && BTN_SECTION[b]) reveal(sel === 3 && (b === 12 || b === 13) ? 'secDrums' : BTN_SECTION[b]);
@@ -390,7 +412,11 @@ link.onButton = (b, on) => {
     case B.REC: if (on) recPress(); break;
     case B.PLAY: if (on) send({ t: 'play' }); break;
     case B.SCL: if (on) send({ t: 'undo', i: sel }); break;
-    case B.HOME: if (on) send({ t: 'stop', i: sel }); break;
+    case B.HOME:   // tap: the main page (SELECT chooses the track), hold: mute / unmute the track
+      if (on) held.homeTimer = setTimeout(() => { held.homeTimer = 0; send({ t: 'stop', i: sel }); }, 500);
+      else if (held.homeTimer) { clearTimeout(held.homeTimer); held.homeTimer = 0; setPage('SPUR'); }
+      break;
+    case B.EDIT: if (on) setPage('SPUR'); break;
     case B.ARP:   // tap: drums on / off, hold: click on / off
       if (on) held.arpTimer = setTimeout(() => { held.arpTimer = 0; toggleClick(); }, 450);
       else if (held.arpTimer) { clearTimeout(held.arpTimer); held.arpTimer = 0; toggleDrums(); }
@@ -495,6 +521,7 @@ function renderParams() {
   $('#pages').innerHTML = WEB_TABS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(k)}</button>`).join('');
   $('#fxsubs').hidden = page !== 'FX';
   $('#fxsubs').innerHTML = FX_KEYS.map((k, i) => `<button data-fx="${i}" class="${i === S.fxSel ? 'on' : ''}">${k}</button>`).join('');
+  $('#fxFor').textContent = T('fuer') + ' ' + (sel < 3 ? T('SPUR') + ' ' + (sel + 1) : 'DRUMS');
   const pg = PAGES[page];
   $('#params').innerHTML = pg.p.map((p, i) => {
     const disabled = (p.id.startsWith('t') && p.id !== 'tVol' ? sel > 2 : false) || (p.id === 'tVol' && sel > 2) || (p.id === 'bpm' && st && st.master > 0);

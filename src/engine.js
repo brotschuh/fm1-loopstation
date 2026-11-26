@@ -2,7 +2,7 @@
 // Runs inside an AudioWorklet (one instance), and in Node for the tests.
 // Mono loop tracks (the phone microphone), a 16-step drum machine, bitcrusher and stutter on the sum.
 
-const NTRACKS = 3, NVOICES = 11, NSTEPS = 16;
+const NTRACKS = 3, NVOICES = 11, NSTEPS = 16, NOUT = 5;
 const CHUNK = 4096;   // copy-on-write granularity of the undo snapshot
 const PKB = 1024;     // samples per peak bin of the waveform overview
 
@@ -43,9 +43,15 @@ class LoopEngine {
     this.clickOn = false; this.clickVol = 0.5; this.lastBeat = -1;
     const blip = (f, n) => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = Math.sin(2 * Math.PI * f * i / sr) * Math.exp(-i / (n / 5)); return a; };
     this.clickHi = blip(2000, Math.round(sr * 0.03)); this.clickLo = blip(1200, Math.round(sr * 0.025));
-    // fx on the sum
-    this.bits = 16; this.down = 1; this.holdL = 0; this.holdR = 0; this.holdN = 0;
-    this.ringLen = Math.floor(sr * 2); this.ringL = new Float32Array(this.ringLen); this.ringR = new Float32Array(this.ringLen); this.ringW = 0;
+    // outputs: 0..2 the loop tracks, 3 the drums, 4 the microphone monitor and the click (no effects)
+    // bitcrusher per channel 0..3; stutter on all of them together
+    this.bits = [16, 16, 16, 16]; this.down = [1, 1, 1, 1];
+    this.holdL = new Float32Array(4); this.holdR = new Float32Array(4); this.holdN = new Int32Array(4);
+    this.ringLen = Math.floor(sr * 2); this.ringW = 0;
+    this.ringL = []; this.ringR = [];
+    for (let c = 0; c < NOUT; c++) { this.ringL.push(new Float32Array(this.ringLen)); this.ringR.push(new Float32Array(this.ringLen)); }
+    this.clicks = [];
+    this.oL = new Float64Array(NOUT); this.oR = new Float64Array(NOUT);
     this.stut = false; this.stutDiv = 16; this.stutStart = 0; this.stutLen = 0; this.stutK = 0;
     this.meterIn = 0; this.meterOut = 0;
     this.events = [];         // messages for the UI (finished recording etc.)
@@ -282,6 +288,9 @@ class LoopEngine {
       case 'vol': this.tracks[v.i].vol = v.v; break;
       case 'pan': this.tracks[v.i].pan = v.v; break;
       case 'rev': this.tracks[v.i].rev = !!v.v; break;
+      case 'bits': case 'down':   // { i: channel 0..3, v } or a number for all of them
+        if (typeof v === 'number') this[k].fill(v); else this[k][v.i] = v.v;
+        break;
       case 'stut':
         if (v && !this.stut && this.running) {
           this.stutLen = Math.max(64, Math.round(this.barLen() / this.stutDiv));
@@ -297,19 +306,21 @@ class LoopEngine {
   }
 
   // ---- audio ----------------------------------------------------------------------
-  // input: Float32Array (mono mic) or null; outL/outR: Float32Array of the block
-  process(input, outL, outR) {
-    const n = outL.length, tr = this.tracks;
+  // input: Float32Array (mono mic) or null; outs: NOUT pairs [L, R] of Float32Array (the block)
+  processMulti(input, outs) {
+    const n = outs[0][0].length, tr = this.tracks, oL = this.oL, oR = this.oR;
     let mIn = this.meterIn * 0.9, mOut = this.meterOut * 0.9;
     // background copy of undo snapshots (fast, native copies)
     for (const t of tr) if (t.copied && t.copyNext < t.copied.length) {
       for (let c = 0; c < 48 && t.copyNext < t.copied.length; c++, t.copyNext++) if (!t.copied[t.copyNext]) this.copyChunk(t, t.copyNext);
     }
-    const bl = this.barLen(), sl = bl / NSTEPS, crushQ = this.bits < 16 ? Math.pow(2, this.bits - 1) : 0;
+    const bl = this.barLen(), sl = bl / NSTEPS;
+    const crushQ = this.bits.map(b => (b < 16 ? Math.pow(2, b - 1) : 0));
     for (let s = 0; s < n; s++) {
+      oL.fill(0); oR.fill(0);
       const x = input ? input[s] * this.inGain : 0;
       const ax = x < 0 ? -x : x; if (ax > mIn) mIn = ax;
-      let L = x * this.monitor, R = L;
+      oL[4] = oR[4] = x * this.monitor;
       if (this.running) {
         if (this.armed >= 0 && this.p >= this.armAt) {
           const i = this.armed; this.armed = -1;
@@ -331,7 +342,7 @@ class LoopEngine {
           const idx = mod(this.p - t.anchor, t.len);
           if (t.state === 'play' || t.state === 'dub') {
             const v = t.buf[t.rev ? t.len - 1 - idx : idx] * t.vol;
-            L += v * (t.pan > 0 ? 1 - t.pan : 1); R += v * (t.pan < 0 ? 1 + t.pan : 1);
+            oL[i] = v * (t.pan > 0 ? 1 - t.pan : 1); oR[i] = v * (t.pan < 0 ? 1 + t.pan : 1);
             const av = v < 0 ? -v : v; if (av > t.peak) t.peak = av;
           }
           if (t.state === 'dub' || t.tail > 0) {
@@ -348,7 +359,7 @@ class LoopEngine {
         // metronome
         if (this.clickOn) {
           const bt = Math.floor(mod(this.p, bl) / (bl / 4)) % 4;
-          if (bt !== this.lastBeat) { this.lastBeat = bt; this.trigger(bt === 0 ? this.clickHi : this.clickLo, this.clickVol / Math.max(0.05, this.drumVol)); }
+          if (bt !== this.lastBeat) { this.lastBeat = bt; this.clicks.push({ s: bt === 0 ? this.clickHi : this.clickLo, i: 0, g: this.clickVol }); }
         }
         // drum sequencer
         if (this.drumOn) {
@@ -366,33 +377,51 @@ class LoopEngine {
         }
         this.p++;
       }
-      // drum voices
+      // drum voices -> channel 3, click -> channel 4
       let d = 0;
       for (let k = this.playing.length - 1; k >= 0; k--) {
         const pv = this.playing[k];
         d += pv.s[pv.i++] * pv.g;
         if (pv.i >= pv.s.length) this.playing.splice(k, 1);
       }
-      d *= this.drumVol; L += d; R += d;
-      // bitcrusher (sample & hold + quantise)
-      if (this.down > 1) {
-        if (this.holdN <= 0) { this.holdL = L; this.holdR = R; this.holdN = this.down; }
-        this.holdN--; L = this.holdL; R = this.holdR;
+      d *= this.drumVol; oL[3] = d; oR[3] = d;
+      for (let k = this.clicks.length - 1; k >= 0; k--) {
+        const pv = this.clicks[k], c = pv.s[pv.i++] * pv.g;
+        oL[4] += c; oR[4] += c;
+        if (pv.i >= pv.s.length) this.clicks.splice(k, 1);
       }
-      if (crushQ) { L = Math.round(L * crushQ) / crushQ; R = Math.round(R * crushQ) / crushQ; }
-      // stutter: repeat the last slice of the output
+      // bitcrusher per channel (sample & hold + quantise)
+      for (let c = 0; c < 4; c++) {
+        if (this.down[c] > 1) {
+          if (this.holdN[c] <= 0) { this.holdL[c] = oL[c]; this.holdR[c] = oR[c]; this.holdN[c] = this.down[c]; }
+          this.holdN[c]--; oL[c] = this.holdL[c]; oR[c] = this.holdR[c];
+        }
+        const q = crushQ[c];
+        if (q) { oL[c] = Math.round(oL[c] * q) / q; oR[c] = Math.round(oR[c] * q) / q; }
+      }
+      // stutter: every channel repeats its last slice
       if (this.stut) {
         const k = this.stutK++ % this.stutLen;
         const j = (this.stutStart + k) % this.ringLen;
         const e = Math.min(k, this.stutLen - 1 - k, 64) / 64;   // short fades, no clicks
-        L = this.ringL[j] * e; R = this.ringR[j] * e;
+        for (let c = 0; c < NOUT; c++) { oL[c] = this.ringL[c][j] * e; oR[c] = this.ringR[c][j] * e; }
       } else {
-        this.ringL[this.ringW] = L; this.ringR[this.ringW] = R; this.ringW = (this.ringW + 1) % this.ringLen;
+        for (let c = 0; c < NOUT; c++) { this.ringL[c][this.ringW] = oL[c]; this.ringR[c][this.ringW] = oR[c]; }
+        this.ringW = (this.ringW + 1) % this.ringLen;
       }
-      outL[s] = L; outR[s] = R;
-      const ao = L < 0 ? -L : L; if (ao > mOut) mOut = ao;
+      let sum = 0;
+      for (let c = 0; c < NOUT; c++) { outs[c][0][s] = oL[c]; outs[c][1][s] = oR[c]; sum += oL[c]; }
+      const ao = sum < 0 ? -sum : sum; if (ao > mOut) mOut = ao;
     }
     this.meterIn = mIn; this.meterOut = mOut;
+  }
+
+  // everything summed into one stereo pair (tests and simple hosts)
+  process(input, outL, outR) {
+    const n = outL.length;
+    if (!this.scratch || this.scratch[0][0].length !== n) this.scratch = Array.from({ length: NOUT }, () => [new Float32Array(n), new Float32Array(n)]);
+    this.processMulti(input, this.scratch);
+    for (let s = 0; s < n; s++) { let l = 0, r = 0; for (let c = 0; c < NOUT; c++) { l += this.scratch[c][0][s]; r += this.scratch[c][1][s]; } outL[s] = l; outR[s] = r; }
   }
 
   status(waveFor = -1, bins = 0) {
@@ -423,4 +452,4 @@ class LoopEngine {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS };
+if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT };

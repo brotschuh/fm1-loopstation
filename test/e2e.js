@@ -74,7 +74,23 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.waitForTimeout(300);
   check((await page.textContent('#fxsubs .on')) === 'CHORUS', 'FX again: ' + await page.textContent('#fxsubs .on'));
   s = await S();
-  check(s.texts.some(t => t.startsWith('FX 3/4 CHORUS')), 'FM-1 shows the effect');
+  check(s.texts.some(t => t.startsWith('DR CHORUS 3/4')), 'FM-1 shows the effect and its channel: ' + s.texts.filter(t => /CHORUS/.test(t)).join('|'));
+  // effects are per track: turn up the chorus of the drums, then look at track 1
+  await page.evaluate(() => { for (let i = 0; i < 4; i++) window.__fm1.enc(2, 3); });   // K1 = chorus mix on the drums
+  await page.waitForTimeout(300);
+  const drumMix = await page.textContent('#params .prm b');
+  await page.evaluate(() => { window.__fm1.tap(8); window.__fm1.enc(0, 1); window.__fm1.tap(2); });   // HOME, SELECT -> track 1, FX
+  await page.waitForTimeout(400);
+  const t1Mix = await page.textContent('#params .prm b');
+  check(drumMix !== '0' && t1Mix === '0', 'effects per track: drums chorus ' + drumMix + ', track 1 chorus ' + t1Mix);
+  check((await page.textContent('#fxFor')).includes('1'), 'the phone says which track: ' + await page.textContent('#fxFor'));
+  // HOME held = mute track 1
+  await page.evaluate(() => window.__fm1.button(8, true)); await page.waitForTimeout(700); await page.evaluate(() => window.__fm1.button(8, false));
+  await page.waitForTimeout(300);
+  check(await page.textContent('.track[data-i="0"] .ts') === 'STOP', 'HOME held mutes track 1: ' + await page.textContent('.track[data-i="0"] .ts'));
+  await page.evaluate(() => { window.__fm1.button(8, true); }); await page.waitForTimeout(700); await page.evaluate(() => window.__fm1.button(8, false));
+  await page.evaluate(() => { window.__fm1.tap(8); for (let i = 0; i < 3; i++) window.__fm1.enc(0, 1); });   // back to the drums for the next checks
+  await page.waitForTimeout(300);
   // pages and knobs: ENV -> FILTER page, K1 turned
   await page.evaluate(() => window.__fm1.tap(4));
   await page.evaluate(() => { for (let i = 0; i < 5; i++) window.__fm1.enc(2, -1); });

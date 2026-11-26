@@ -24,8 +24,7 @@ class LoopProcessor extends AudioWorkletProcessor {
   }
   process(inputs, outputs) {
     const inp = inputs[0] && inputs[0].length ? inputs[0][0] : null;
-    const o = outputs[0];
-    this.e.process(inp, o[0], o[1] || o[0]);
+    this.e.processMulti(inp, outputs.map(o => [o[0], o[1] || o[0]]));
     if (++this.n % 10 === 0) this.port.postMessage(this.e.status(this.n % 40 === 0 ? this.waveFor : -1, this.bins));
     return true;
   }

@@ -132,7 +132,10 @@ test('stutter repeats a slice, bitcrusher quantises', () => {
   assert.equal(len, 2 * SR / 16);
   for (let k = 200; k < 400; k++) assert.ok(Math.abs(out[k] - out[k + len]) < 1e-6);
   e.set('stut', false);
-  e.bits = 3; const o2 = []; run(e, 0.05, i => Math.sin(i / 10), o2);
+  // the bitcrusher works per channel: crush track 1, record a sine into it, play it back
+  e.monitor = 0; e.recToDub = false; e.set('bits', { i: 0, v: 3 });
+  e.recButton(0); run(e, 0.5, i => Math.sin(i / 10)); e.recButton(0);
+  const o2 = []; run(e, 0.05, () => 0, o2);
   const levels = new Set(o2.map(x => Math.round(x * 1000)));
   assert.ok(levels.size <= 9, 'levels ' + levels.size);
 });
@@ -176,6 +179,17 @@ test('waveform overview follows the recording and marks the overdub layer', () =
   e.undoButton(0);
   ov = e.overview(0, 10);
   assert.ok(ov.pk[9] < 0.01 && ov.dk[9] === 0, 'undo takes the overdub out of the picture');
+});
+
+test('outputs: tracks, drums and monitor/click come out on their own channels', () => {
+  const e = mk(); e.recToDub = false; e.monitor = 1; e.kits = makeKits(SR); e.clickOn = false;
+  e.recButton(0); run(e, 0.5, () => 0.5); e.recButton(0);
+  const B2 = 128, outs = Array.from({ length: 5 }, () => [new Float32Array(B2), new Float32Array(B2)]);
+  e.pad(0);
+  e.processMulti(new Float32Array(B2).fill(0.25), outs);
+  const pk = c => Math.max(...outs[c][0].map(Math.abs));
+  assert.ok(pk(0) > 0.3, 'track 1 on channel 0'); assert.equal(pk(1), 0); assert.equal(pk(2), 0);
+  assert.ok(pk(3) > 0, 'drums on channel 3'); assert.ok(Math.abs(pk(4) - 0.25) < 1e-6, 'monitor on channel 4');
 });
 
 test('click: one bar count-in, heard in the output, never in the recording', () => {
