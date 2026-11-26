@@ -266,7 +266,8 @@ function bigWord() {
 const Y = { tiles: 28, tileH: 50, word: 84, wave: 110, waveH: 10, line: 123, page: 129, rows: 150, rowH: 42 };
 function drawScreen() {
   if (!link.connected || !st) return;
-  const o = FM1.op, ops = [o.clear(C.bg)];
+  // no clear (that flashed black): every region is painted over, the texts are opaque cells
+  const o = FM1.op, ops = [o.rect(0, 0, 240, 4, C.bg), o.rect(150, 4, 24, 16, C.bg), o.rect(0, Y.tiles - 6, 240, Y.tileH + 10, C.bg)];
   ops.push(o.text(6, 4, 2, C.accent, C.bg, 'LOOP STATION'));
   ops.push(o.text(174, 4, 2, C.fg, C.bg, String(Math.round(st.bpm)).padStart(3) + ' '));
   for (let i = 0; i < 4; i++) {
@@ -277,11 +278,13 @@ function drawScreen() {
     ops.push(o.text(x + 25 - lbl.length * 9, y + 13, 3, c === C.dark ? C.dim : C.bg, c, lbl));
   }
   const w = T(bigWord()).slice(0, 13);
+  ops.push(o.rect(0, Y.word - 2, 240, 26, C.bg));
   ops.push(o.text(Math.max(0, 120 - w.length * 9), Y.word, 3, C.fg, C.bg, w));
   ops.push(o.rect(6, Y.line, 228, 2, C.dark));
   ops.push(...waveOps());
   const pg = PAGES[page];
-  ops.push(o.text(6, Y.page, 2, C.accent, C.bg, T(pg.name).slice(0, 19)));
+  ops.push(o.text(6, Y.page, 2, C.accent, C.bg, T(pg.name).slice(0, 19).padEnd(19)));
+  ops.push(o.rect(0, Y.rows - 4, 240, 240 - Y.rows + 4, C.bg));
   pg.p.forEach((p, i) => ops.push(...paramOps(p, i)));
   link.draw(ops, 'screen');
   drawProgress(true);
@@ -446,7 +449,12 @@ link.onEncoder = (e, d) => {
   setP(p.id, getP(p.id) + Math.sign(d) * p.step * acc);
 };
 link.onRedraw = () => { lastLed = -1n; drawScreen(); updateLeds(); sendGlow(); };
-link.onDropped = () => { lastLed = -1n; drawScreen(); updateLeds(); };   // the FM-1 lost frames: draw it all again
+let dropFixAt = 0;
+link.onDropped = () => {   // the FM-1 lost frames: slow down, and draw it all again (not more often than every 4 s)
+  link.pace = Math.min(60, link.pace + 8);
+  const now = performance.now(); if (now - dropFixAt < 4000) return; dropFixAt = now;
+  lastLed = -1n; drawScreen(); updateLeds();
+};
 link.onState = (ok, name, outs) => {
   if (ok) setTimeout(sendGlow, 150);
   $('#fm1').textContent = T(ok ? 'FM-1 verbunden' : (outs.length ? 'FM-1 nicht gefunden' : 'kein MIDI-Geraet'));
@@ -461,7 +469,7 @@ function toggleDrums() { send({ t: 'stop', i: 3 }); }
 function toggleClick() { const on = !(st && st.clickOn); send({ t: 'set', k: 'clickOn', v: on }); toast(T(on ? 'Klick an' : 'Klick aus')); }
 function clearSel() { send({ t: 'clear', i: sel }); toast(sel === 3 ? T('Drum-Muster geloescht') : T('SPUR') + ' ' + (sel + 1) + ' ' + T('geloescht')); }
 function stutter(on) { send({ t: 'set', k: 'stut', v: on }); $('#stut').classList.toggle('on', on); }
-function select(i) { sel = i; lastSig = ''; wave = null; send({ t: 'wave', i: i < 3 ? i : -1, bins: 400 }); renderTracks(); renderParams(); drawScreen(); updateLeds(); }
+function select(i) { sel = i; lastSig = ''; wave = null; send({ t: 'set', k: 'monCh', v: i < 3 ? i : 4 }); send({ t: 'wave', i: i < 3 ? i : -1, bins: 400 }); renderTracks(); renderParams(); drawScreen(); updateLeds(); }
 function setPage(k) { page = k; renderParams(); drawScreen(); updateLeds(); }
 
 // ---- phone UI --------------------------------------------------------------------------------
@@ -561,7 +569,7 @@ $('#start').onclick = async () => {
   $('#start').disabled = true; $('#start').textContent = T('Startet …');
   try {
     await startAudio();
-    send({ t: 'wave', i: sel, bins: 400 });
+    send({ t: 'wave', i: sel, bins: 400 }); send({ t: 'set', k: 'monCh', v: sel < 3 ? sel : 4 });
     $('#intro').hidden = true; $('#app').hidden = false;
     try { await link.open(); } catch (e) { $('#fm1').textContent = e.message; }
   } catch (e) { $('#start').disabled = false; $('#start').textContent = T('Starten'); $('#err').textContent = T('Fehler: ') + e.message; }

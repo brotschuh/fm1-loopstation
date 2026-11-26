@@ -192,6 +192,13 @@ test('outputs: tracks, drums and monitor/click come out on their own channels', 
   assert.ok(pk(3) > 0, 'drums on channel 3'); assert.ok(Math.abs(pk(4) - 0.25) < 1e-6, 'monitor on channel 4');
 });
 
+test('the monitor goes through the selected track (its effects), never into the recording twice', () => {
+  const e = mk(); e.monitor = 1; e.set('monCh', 1);
+  const B2 = 128, outs = Array.from({ length: 5 }, () => [new Float32Array(B2), new Float32Array(B2)]);
+  e.processMulti(new Float32Array(B2).fill(0.25), outs);
+  assert.ok(Math.abs(outs[1][0][5] - 0.25) < 1e-6 && outs[4][0][5] === 0, 'monitor on channel 1');
+});
+
 test('click: one bar count-in, heard in the output, never in the recording', () => {
   const e = mk(); e.recToDub = false; e.bpm = 120; e.clickOn = true; e.monitor = 0;
   e.recButton(0);

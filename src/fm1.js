@@ -42,7 +42,7 @@ const FM1 = (() => {
     constructor() {
       this.access = null; this.out = null; this.inp = null; this.q = []; this.timer = null;
       this.onKey = null; this.onButton = null; this.onEncoder = null; this.onRedraw = null; this.onState = null;
-      this.connected = false; this.name = ''; this.dropped = -1; this.pinger = 0; this.onDropped = null;
+      this.connected = false; this.name = ''; this.dropped = -1; this.pinger = 0; this.onDropped = null; this.pace = 28;
     }
     async open() {
       if (!navigator.requestMIDIAccess) throw new Error('Dieser Browser kann kein Web MIDI (Chrome oder Edge nehmen).');
@@ -114,7 +114,7 @@ const FM1 = (() => {
       const f = this.q.shift();
       if (!f) { this.timer = null; return; }
       try { this.out.send(f.frame); } catch (e) { this.connected = false; this.q = []; this.timer = null; this.find(); return; }
-      this.timer = setTimeout(() => this.pump(), 28);
+      this.timer = setTimeout(() => this.pump(), this.pace);
     }
     // a drawing replaces its own older frames still waiting (all of them, so the order stays right);
     // a whole screen also makes every other drawing still waiting useless

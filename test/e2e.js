@@ -119,7 +119,7 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.waitForTimeout(800);
   check(await page.textContent('#bClearAll') === 'Clear all', 'English UI: ' + await page.textContent('#bClearAll'));
   s = await S();
-  check(s.texts.includes('MIC + OUTPUT'), 'English on the FM-1 screen');
+  check(s.texts.some(t => t.startsWith('MIC + OUTPUT')), 'English on the FM-1 screen');
   await page.selectOption('#selLang', 'de');
   // back to track 1 for the screenshot of the FM-1 screen
   await page.evaluate(() => { window.__fm1.enc(0, 1); window.__fm1.tap(2); });

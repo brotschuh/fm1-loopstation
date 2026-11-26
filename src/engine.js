@@ -41,6 +41,7 @@ class LoopEngine {
     this.lastStep = -1; this.skip = new Uint8Array(NVOICES * NSTEPS);
     // metronome: only in the output, never in a recording (the loops record the microphone only)
     this.clickOn = false; this.clickVol = 0.5; this.lastBeat = -1;
+    this.monCh = 4;   // the output the microphone monitor goes to: a track (its effects) or 4 (dry)
     const blip = (f, n) => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = Math.sin(2 * Math.PI * f * i / sr) * Math.exp(-i / (n / 5)); return a; };
     this.clickHi = blip(2000, Math.round(sr * 0.03)); this.clickLo = blip(1200, Math.round(sr * 0.025));
     // outputs: 0..2 the loop tracks, 3 the drums, 4 the microphone monitor and the click (no effects)
@@ -320,7 +321,7 @@ class LoopEngine {
       oL.fill(0); oR.fill(0);
       const x = input ? input[s] * this.inGain : 0;
       const ax = x < 0 ? -x : x; if (ax > mIn) mIn = ax;
-      oL[4] = oR[4] = x * this.monitor;
+      oL[this.monCh] = oR[this.monCh] = x * this.monitor;   // monitor through the selected track's effects
       if (this.running) {
         if (this.armed >= 0 && this.p >= this.armAt) {
           const i = this.armed; this.armed = -1;
@@ -342,7 +343,7 @@ class LoopEngine {
           const idx = mod(this.p - t.anchor, t.len);
           if (t.state === 'play' || t.state === 'dub') {
             const v = t.buf[t.rev ? t.len - 1 - idx : idx] * t.vol;
-            oL[i] = v * (t.pan > 0 ? 1 - t.pan : 1); oR[i] = v * (t.pan < 0 ? 1 + t.pan : 1);
+            oL[i] += v * (t.pan > 0 ? 1 - t.pan : 1); oR[i] += v * (t.pan < 0 ? 1 + t.pan : 1);
             const av = v < 0 ? -v : v; if (av > t.peak) t.peak = av;
           }
           if (t.state === 'dub' || t.tail > 0) {
@@ -384,7 +385,7 @@ class LoopEngine {
         d += pv.s[pv.i++] * pv.g;
         if (pv.i >= pv.s.length) this.playing.splice(k, 1);
       }
-      d *= this.drumVol; oL[3] = d; oR[3] = d;
+      d *= this.drumVol; oL[3] += d; oR[3] += d;
       for (let k = this.clicks.length - 1; k >= 0; k--) {
         const pv = this.clicks[k], c = pv.s[pv.i++] * pv.g;
         oL[4] += c; oR[4] += c;
