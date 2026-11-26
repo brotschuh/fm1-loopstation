@@ -4,6 +4,7 @@
 
 const NTRACKS = 3, NVOICES = 11, NSTEPS = 16;
 const CHUNK = 4096;   // copy-on-write granularity of the undo snapshot
+const PKB = 1024;     // samples per peak bin of the waveform overview
 
 function mod(a, n) { const r = a % n; return r < 0 ? r + n : r; }
 
@@ -17,6 +18,9 @@ class LoopEngine {
         buf: new Float32Array(this.maxLen), undo: null, copied: null, copyNext: 0,
         len: 0, hi: 0, anchor: 0, state: 'empty', recEnd: -1, tail: 0,
         vol: 0.8, pan: 0, rev: false, canUndo: false, canRedo: false, peak: 0,
+        pk: new Float32Array(Math.ceil(this.maxLen / PKB)),   // waveform overview: max |sample| per bin
+        dk: new Float32Array(Math.ceil(this.maxLen / PKB)),   // the same for the newest overdub layer
+        pkVer: 0,
       });
     }
     this.master = 0;          // length of the first loop (samples); 0 = no loop yet
@@ -92,6 +96,7 @@ class LoopEngine {
     const t = this.tracks[i];
     if (t.hi > 0) t.buf.fill(0, 0, t.hi);
     t.anchor = Math.round(anchor); t.state = 'rec'; t.len = 0; t.hi = 0; t.recEnd = -1; t.tail = 0;
+    t.pk.fill(0); t.dk.fill(0); t.pkVer++;
     t.canUndo = false; t.canRedo = false; t.undo = null; t.copied = null;
     this.dirty = true;
   }
@@ -127,7 +132,7 @@ class LoopEngine {
   setLen(i, len) {
     const t = this.tracks[i];
     t.len = len; t.recEnd = -1;
-    if (t.hi > len) { t.buf.fill(0, len, t.hi); t.hi = len; }
+    if (t.hi > len) { t.buf.fill(0, len, t.hi); t.hi = len; this.repeak(t); }
     t.undo = new Float32Array(len); t.copied = new Uint8Array(Math.ceil(len / CHUNK)); t.copied.fill(1); t.copyNext = 0;
     t.canUndo = false; t.canRedo = false;
     if (this.recToDub) this.startDub(i, true);
@@ -140,6 +145,7 @@ class LoopEngine {
     if (t.len === 0) return;
     // snapshot for UNDO: copy-on-write, chunk by chunk, the rest in the background
     t.copied.fill(0); t.copyNext = 0; t.canUndo = true; t.canRedo = false;
+    if (!fromRec) { t.dk.fill(0); t.pkVer++; }
     t.state = 'dub'; t.tail = 0; this.dirty = true;
   }
 
@@ -166,6 +172,7 @@ class LoopEngine {
     this.ensureSnapshot(t);
     if (t.state === 'dub') t.state = 'play';
     const tmp = t.buf.slice(0, t.len); t.buf.set(t.undo); t.undo = tmp;
+    t.dk.fill(0); this.repeak(t);
     const u = t.canUndo; t.canUndo = t.canRedo; t.canRedo = u;
     t.tail = 0; this.dirty = true;
   }
@@ -174,11 +181,34 @@ class LoopEngine {
     if (i === 3) { this.pattern.fill(0); this.dirty = true; return; }
     const t = this.tracks[i];
     if (this.armed === i) this.armed = -1;
-    t.buf.fill(0, 0, Math.max(t.hi, t.len));
+    t.buf.fill(0, 0, Math.max(t.hi, t.len)); t.pk.fill(0); t.dk.fill(0); t.pkVer++;
     t.state = 'empty'; t.len = 0; t.hi = 0; t.recEnd = -1; t.tail = 0; t.undo = null; t.copied = null;
     t.canUndo = t.canRedo = false;
     if (this.tracks.every(x => x.state === 'empty')) { this.master = 0; this.masterBars = 1; }
     this.dirty = true;
+  }
+
+  repeak(t) {
+    const n = Math.max(t.len, t.hi), pk = t.pk; pk.fill(0);
+    const buf = t.buf;
+    for (let i = 0; i < n; i++) { const a = buf[i] < 0 ? -buf[i] : buf[i]; const b = (i / PKB) | 0; if (a > pk[b]) pk[b] = a; }
+    t.pkVer++;
+  }
+
+  // waveform of track i in `bins` columns over its loop (or over what is recorded so far)
+  overview(i, bins) {
+    const t = this.tracks[i];
+    const span = t.len || (this.master && t.state === 'rec' ? Math.max(this.master, t.hi) : t.hi);
+    const out = new Float32Array(bins), dub = new Float32Array(bins);
+    if (!span) return { pk: out, dk: dub, span: 0 };
+    const nb = Math.ceil(span / PKB);
+    for (let c = 0; c < bins; c++) {
+      const a = Math.floor(c * nb / bins), b = Math.max(a + 1, Math.floor((c + 1) * nb / bins));
+      let m = 0, d = 0;
+      for (let k = a; k < b; k++) { if (t.pk[k] > m) m = t.pk[k]; if (t.dk[k] > d) d = t.dk[k]; }
+      out[t.rev ? bins - 1 - c : c] = m; dub[t.rev ? bins - 1 - c : c] = d;
+    }
+    return { pk: out, dk: dub, span };
   }
 
   clearAll() { for (let i = 0; i < NTRACKS; i++) this.clear(i); this.master = 0; this.masterBars = 1; this.running = false; this.p = 0; }
@@ -281,7 +311,10 @@ class LoopEngine {
           const t = tr[i];
           if (t.state === 'rec') {
             const w = this.p - t.anchor - this.latency;
-            if (w >= 0 && w < this.maxLen) { t.buf[w] += x; if (w + 1 > t.hi) t.hi = w + 1; }
+            if (w >= 0 && w < this.maxLen) {
+              t.buf[w] += x; if (w + 1 > t.hi) t.hi = w + 1;
+              const a = t.buf[w] < 0 ? -t.buf[w] : t.buf[w], b = (w / PKB) | 0; if (a > t.pk[b]) { t.pk[b] = a; t.pkDirty = 1; }
+            }
             if (t.recEnd >= 0 && this.p >= t.recEnd + this.latency) { this.setLen(i, t.pendingLen); }
             else if (this.p - t.anchor >= this.maxLen) { this.finishRecPress(i); if (t.state === 'rec') this.setLen(i, Math.min(t.pendingLen, this.maxLen)); }
             continue;
@@ -299,6 +332,8 @@ class LoopEngine {
             if (t.copied) { const c = (w / CHUNK) | 0; if (!t.copied[c]) this.copyChunk(t, c); }
             t.buf[w] += x;
             if (w + 1 > t.hi) t.hi = w + 1;
+            const a = t.buf[w] < 0 ? -t.buf[w] : t.buf[w], b = (w / PKB) | 0; if (a > t.pk[b]) { t.pk[b] = a; t.pkDirty = 1; }
+            const ax = x < 0 ? -x : x; if (t.state === 'dub' && ax > t.dk[b]) { t.dk[b] = ax; t.pkDirty = 1; }
             if (t.tail > 0) t.tail--;
           }
         }
@@ -347,8 +382,17 @@ class LoopEngine {
     this.meterIn = mIn; this.meterOut = mOut;
   }
 
-  status() {
+  status(waveFor = -1, bins = 0) {
+    let wave = null;
+    if (waveFor >= 0 && waveFor < NTRACKS) {
+      const t = this.tracks[waveFor];
+      if (t.pkDirty || t.pkVer !== this.waveVer || waveFor !== this.waveTrack) {
+        t.pkDirty = 0; this.waveVer = t.pkVer; this.waveTrack = waveFor;
+        wave = { i: waveFor, ...this.overview(waveFor, bins) };
+      }
+    }
     return {
+      wave,
       running: this.running, p: this.p, master: this.master, bars: this.masterBars, bpm: this.bpm,
       armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1,
       drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit,

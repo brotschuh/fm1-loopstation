@@ -6,7 +6,7 @@ const FM1 = (() => {
   const HDR = [0xf0, 0x7d, 0x44, 0x41, 0x57, 0x01];
   const CMD = { LED: 1, CLEAR: 2, RECT: 3, TEXT: 4, PING: 5, SCALE: 6, BATCH: 10 };
   const BTN = { OCTM: 0, OCTP: 1, FX: 2, SCL: 3, ENV: 4, LFO: 5, EDIT: 6, GLO: 7, HOME: 8, SAVE: 9, ARP: 10, SEQ: 11, PLAY: 12, REC: 13 };
-  const KEY_BASE = 53, NKEYS = 27, MAX_FRAME = 300;
+  const KEY_BASE = 53, NKEYS = 27, MAX_FRAME = 280;
 
   const n14 = v => { v = Math.max(0, Math.min(16383, Math.round(v))); return [v >> 7 & 127, v & 127]; };
   const rgb = (r, g, b) => ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
@@ -40,7 +40,7 @@ const FM1 = (() => {
     constructor() {
       this.access = null; this.out = null; this.inp = null; this.q = []; this.timer = null;
       this.onKey = null; this.onButton = null; this.onEncoder = null; this.onRedraw = null; this.onState = null;
-      this.connected = false; this.name = '';
+      this.connected = false; this.name = ''; this.dropped = -1; this.pinger = 0; this.onDropped = null;
     }
     async open() {
       if (!navigator.requestMIDIAccess) throw new Error('Dieser Browser kann kein Web MIDI (Chrome oder Edge nehmen).');
@@ -71,8 +71,10 @@ const FM1 = (() => {
         ins.forEach(i => { if (i !== inp) i.onmidimessage = null; });
         this.inp = inp; this.out = found; this.name = inp.name;
         inp.onmidimessage = ev => this.recv(ev.data);
-        this.connected = true;
+        this.connected = true; this.dropped = -1;
         this.send(scaleFrame());
+        clearInterval(this.pinger);
+        this.pinger = setInterval(() => { if (this.connected) this.send(pingFrame(1), 'ping'); }, 1500);
       } else {
         ins.forEach(i => i.onmidimessage = null);
         this.inp = this.out = null;
@@ -81,7 +83,16 @@ const FM1 = (() => {
     }
     recv(d) {
       const st = d[0] & 0xf0, ch = d[0] & 0x0f;
-      if (d[0] === 0xf0) { if (d[6] === 0x42 && this.onRedraw) this.onRedraw(); return; }
+      if (d[0] === 0xf0) {
+        if (d[6] === 0x42 && this.onRedraw) this.onRedraw();
+        if (d[6] === 0x40 && d.length >= 30) {   // PONG: did the FM-1 drop frames since the last one?
+          const v = o => ((d[o] & 15) << 28 | d[o + 1] << 21 | d[o + 2] << 14 | d[o + 3] << 7 | d[o + 4]) >>> 0;
+          const dropped = v(24);
+          if (this.dropped >= 0 && dropped > this.dropped && this.onDropped) this.onDropped(dropped - this.dropped);
+          this.dropped = dropped;
+        }
+        return;
+      }
       if (st === 0x90 || st === 0x80) {
         const on = st === 0x90 && d[2] > 0;
         if (ch === 0) { const k = d[1] - KEY_BASE; if (k >= 0 && k < NKEYS && this.onKey) this.onKey(k, on); }
@@ -90,7 +101,7 @@ const FM1 = (() => {
         const delta = d[2] - 64; if (delta) this.onEncoder(d[1] - 16, delta);
       }
     }
-    // paced sending: the FM-1 keeps 4 frames; one frame every 12 ms is safe
+    // paced sending: the FM-1 queues only 4 frames and works them off in its control loop; 28 ms apart keeps it safe
     send(frame, key) {
       if (!this.connected) return;
       if (key) { const i = this.q.findIndex(f => f.key === key); if (i >= 0) { this.q[i].frame = frame; return; } }
@@ -101,9 +112,17 @@ const FM1 = (() => {
       const f = this.q.shift();
       if (!f) { this.timer = null; return; }
       try { this.out.send(f.frame); } catch (e) { this.connected = false; this.q = []; this.timer = null; this.find(); return; }
-      this.timer = setTimeout(() => this.pump(), 12);
+      this.timer = setTimeout(() => this.pump(), 28);
     }
-    draw(ops, key) { frames(ops).forEach((f, i) => this.send(f, key ? key + i : null)); }
+    // a drawing replaces its own older frames still waiting (all of them, so the order stays right);
+    // a whole screen also makes every other drawing still waiting useless
+    draw(ops, key) {
+      if (!this.connected) return;
+      if (key === 'screen') this.q = this.q.filter(f => f.key === 'led' || f.key === 'ping');
+      else if (key) this.q = this.q.filter(f => !(f.key && f.key.startsWith(key + '#')));
+      frames(ops).forEach((f, i) => { this.q.push({ frame: f, key: key ? key + '#' + i : null }); });
+      if (!this.timer) this.pump();
+    }
     leds(mask) { this.send(ledFrame(mask), 'led'); }
     backlog() { return this.q.length; }
   }

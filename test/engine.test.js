@@ -165,4 +165,17 @@ test('CLEAR of every track removes the loop length', () => {
   assert.equal(e.tracks[0].state, 'empty');
 });
 
+test('waveform overview follows the recording and marks the overdub layer', () => {
+  const e = mk(); e.recToDub = false;
+  e.recButton(0); run(e, 1.0, i => (i < 24000 ? 0.5 : 0)); e.recButton(0);
+  let ov = e.overview(0, 10);
+  assert.ok(ov.pk[0] > 0.45 && ov.pk[9] < 0.01, 'first half loud, second silent');
+  e.recButton(0); run(e, 1.0, i => 0.3); e.recButton(0);
+  ov = e.overview(0, 10);
+  assert.ok(ov.dk[9] > 0.25 && ov.pk[9] > 0.25, 'overdub shows in the silent half');
+  e.undoButton(0);
+  ov = e.overview(0, 10);
+  assert.ok(ov.pk[9] < 0.01 && ov.dk[9] === 0, 'undo takes the overdub out of the picture');
+});
+
 if (failures) { console.log(failures + ' failed'); process.exit(1); } else console.log('all passed');

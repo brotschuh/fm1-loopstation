@@ -9,7 +9,7 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'] });
-  const ctxB = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, permissions: ['microphone'] });
+  const ctxB = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, permissions: ['microphone'], locale: 'de-DE' });
   const page = await ctxB.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -32,7 +32,9 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.waitForTimeout(2000);
   let ts = await page.textContent('.track[data-i="0"] .ts');
   check(ts === 'REC', 'track 1 records after REC on the FM-1: ' + ts);
-  check(await page.evaluate(() => window.__fm1.led(13)), 'REC LED on while recording');
+  let recLed = false;
+  for (let i = 0; i < 8 && !recLed; i++) { recLed = await page.evaluate(() => window.__fm1.led(13)); await page.waitForTimeout(90); }
+  check(recLed, 'REC LED on (blinking) while recording');
   await page.evaluate(() => window.__fm1.tap(13));
   await page.waitForTimeout(400);
   ts = await page.textContent('.track[data-i="0"] .ts');
@@ -69,13 +71,26 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.evaluate(() => { for (let i = 0; i < 5; i++) window.__fm1.enc(2, -1); });
   await page.waitForTimeout(300);
   const filt = await page.textContent('#params .prm b');
-  check(/^TP/.test(filt), 'K1 on the FILTER page sets the filter: ' + filt);
+  check(filt === 'TP 5', 'K1 on the FILTER page sets the filter in steps of 1: ' + filt);
   // hold LFO = stutter
   await page.evaluate(() => window.__fm1.button(5, true));
   await page.waitForTimeout(400);
   check(await page.evaluate(() => document.querySelector('#stut').classList.contains('on')), 'holding LFO = stutter');
   await page.evaluate(() => window.__fm1.button(5, false));
 
+  // all four knob rows reach the screen (K4 used to go missing)
+  await page.evaluate(() => { window.__fm1.st.texts.length = 0; window.__fm1.tap(7); });
+  await page.waitForTimeout(1500);
+  s = await S();
+  check(s.texts.some(t => t.startsWith('4 LICHT')), 'K4 row drawn on the FM-1 (GLO page): ' + s.texts.filter(t => /^\d /.test(t)).join(' | '));
+  check(s.dropped === 0, 'FM-1 dropped no frames: ' + s.dropped);
+  // language switch
+  await page.selectOption('#selLang', 'en');
+  await page.waitForTimeout(800);
+  check(await page.textContent('#bClearAll') === 'Clear all', 'English UI: ' + await page.textContent('#bClearAll'));
+  s = await S();
+  check(s.texts.includes('MIC + OUTPUT'), 'English on the FM-1 screen');
+  await page.selectOption('#selLang', 'de');
   // back to track 1 for the screenshot of the FM-1 screen
   await page.evaluate(() => { window.__fm1.enc(0, 1); window.__fm1.tap(2); });
   await page.waitForTimeout(800);

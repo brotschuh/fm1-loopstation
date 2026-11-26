@@ -3,7 +3,7 @@ class LoopProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.e = new LoopEngine(sampleRate);
-    this.n = 0;
+    this.n = 0; this.waveFor = -1; this.bins = 400;
     this.port.onmessage = m => this.cmd(m.data);
   }
   cmd(m) {
@@ -18,14 +18,15 @@ class LoopProcessor extends AudioWorkletProcessor {
       case 'pad': e.pad(m.v, m.g || 1); break;
       case 'drumRec': e.drumRecButton(); break;
       case 'set': e.set(m.k, m.v); break;
+      case 'wave': this.waveFor = m.i; this.bins = m.bins || 400; e.waveVer = -1; break;
     }
-    this.port.postMessage(e.status());
+    this.port.postMessage(e.status(this.waveFor, this.bins));
   }
   process(inputs, outputs) {
     const inp = inputs[0] && inputs[0].length ? inputs[0][0] : null;
     const o = outputs[0];
     this.e.process(inp, o[0], o[1] || o[0]);
-    if (++this.n % 10 === 0) this.port.postMessage(this.e.status());
+    if (++this.n % 10 === 0) this.port.postMessage(this.e.status(this.n % 40 === 0 ? this.waveFor : -1, this.bins));
     return true;
   }
 }

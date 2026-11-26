@@ -4,7 +4,7 @@ import pathlib
 root = pathlib.Path(__file__).parent
 src = root / 'src'
 html = (src / 'index.html').read_text()
-parts = {'ROCK': 'rockkit.js', 'ENGINE': 'engine.js', 'WORKLET': 'worklet.js', 'DRUMS': 'drums.js', 'FM1': 'fm1.js', 'APP': 'app.js'}
+parts = {'I18N': 'i18n.js', 'ROCK': 'rockkit.js', 'ENGINE': 'engine.js', 'WORKLET': 'worklet.js', 'DRUMS': 'drums.js', 'FM1': 'fm1.js', 'APP': 'app.js'}
 for key, name in parts.items():
     code = (src / name).read_text()
     assert '</script' not in code, name

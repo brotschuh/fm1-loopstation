@@ -7,7 +7,10 @@ window.__fm1 = (() => {
   const n14 = p => (p[0] & 127) << 7 | (p[1] & 127);
   const color = p => ((p[0] & 3) << 14) | ((p[1] & 127) << 7) | (p[2] & 127);
   const css = c => `rgb(${(c >> 11 & 31) * 255 / 31 | 0},${(c >> 5 & 63) * 255 / 63 | 0},${(c & 31) * 255 / 31 | 0})`;
-  const st = { frames: 0, maxFrame: 0, bad: 0, leds: 0n, texts: [], errors: [] };
+  const st = { frames: 0, maxFrame: 0, bad: 0, leds: 0n, texts: [], errors: [], dropped: 0, tick: 20 };
+  // like the firmware: 4 frames queued, worked off in the control loop every st.tick ms; a full queue drops
+  const q = [];
+  setInterval(() => { while (q.length) { const [c, p] = q.shift(); cmd(c, p); } }, 20);
   function fill(x, y, w, h, c) { if (!w || !h || x + w > W || y + h > W) { st.errors.push(`rect out of screen ${x},${y},${w},${h}`); return; } g.fillStyle = css(c); g.fillRect(x, y, w, h); }
   function cmd(c, p) {
     switch (c) {
@@ -38,8 +41,10 @@ window.__fm1 = (() => {
       if (d.length > 300) { st.errors.push('frame > 300 bytes: ' + d.length); return; }
       if (d[1] !== 0x7d || d[2] !== 68 || d[3] !== 65 || d[4] !== 87) return;
       const c = d[6], p = d.slice(7, d.length - 1);
-      if (c === 5) { reply([0xf0, 0x7d, 68, 65, 87, 1, 0x40, p[0], p[1], 0, 0, 0, 0, 0, 0xf7]); return; }
-      cmd(c, p);
+      const put32 = v => [v >>> 28 & 15, v >>> 21 & 127, v >>> 14 & 127, v >>> 7 & 127, v & 127];
+      if (c === 5) { reply([0xf0, 0x7d, 68, 65, 87, 1, 0x40, p[0], p[1], ...put32(0), ...put32(st.frames), ...put32(0), ...put32(st.dropped), 0xf7]); return; }
+      if (q.length >= 4) { st.dropped++; return; }
+      q.push([c, p]);
     },
   };
   inputPort = { name: 'FM-1 SAMPLER', state: 'connected', onmidimessage: null };

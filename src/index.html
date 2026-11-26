@@ -21,7 +21,8 @@ button:disabled{opacity:.35}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--dub);outline-offset:2px}
 select{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:44px;padding:0 10px;font-size:16px;width:100%}
 .mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace}
-#intro{max-width:560px;margin:0 auto;padding:40px 20px}
+#intro{max-width:560px;margin:0 auto;padding:40px 20px;position:relative}
+.lang{position:absolute;top:12px;right:20px;min-height:36px;font-size:14px;font-weight:700}
 #intro h1{font-size:40px;line-height:1.05;margin:0 0 12px;letter-spacing:-.02em}
 #intro h1 span{color:var(--rec)}
 #intro p{color:var(--dim);margin:0 0 14px}
@@ -36,7 +37,7 @@ header h1{font-size:18px;margin:0 auto 0 0;letter-spacing:.01em;white-space:nowr
 #bpm{font-weight:700}
 main{display:grid;gap:14px;padding:14px;max-width:1240px;margin:0 auto}
 @media(min-width:900px){main{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.wide{grid-column:1/-1}}
-section{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+section{scroll-margin-top:64px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;letter-spacing:.02em}
 #tracks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .track{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px;min-height:112px;text-align:left;border-width:2px;background:#202026;position:relative;overflow:hidden}
@@ -56,6 +57,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .track.drum{background:#10264a}.track.drum .ts{color:var(--drum)}
 .track.sel{box-shadow:0 0 0 2px var(--ink) inset}
 @keyframes blink{50%{background:#200}}
+.wavebox{position:relative;margin-top:10px;height:96px;background:#0b0b0d;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+#wave{position:absolute;inset:0;width:100%;height:100%}
+#waveLabel{position:absolute;left:10px;top:6px;font-size:12px;color:var(--dim)}
 .transport{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
 .big{min-height:76px;font-size:22px;font-weight:800;border-radius:var(--r)}
 .big.rec{background:#2a1214;border-color:#6b1f22;color:var(--rec)}
@@ -102,14 +106,15 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 </head>
 <body>
 <div id="intro">
+  <button id="bLang" class="lang" aria-label="Sprache / language">DE · EN</button>
   <h1>FM-1 <span>Loop Station</span></h1>
-  <p>Drei Loop-Spuren aus dem Mikrofon, eine Drum-Spur mit eigenem 808- und Akustik-Kit, Effekte. Bedient wird am FM-1 wie an einer Boss-Loop-Station, das Handy ist der grosse Bildschirm.</p>
+  <p data-t>Drei Loop-Spuren aus dem Mikrofon, eine Drum-Spur mit echtem Rock-Kit und 808-Kit, Effekte. Bedient wird am FM-1 wie an einem Loop-Pedal, das Handy ist der grosse Bildschirm.</p>
   <ol>
-    <li>FM-1 mit der Loop-Station-Firmware per USB-C anschliessen.</li>
-    <li>Kopfhoerer oder Box ans FM-1.</li>
-    <li>Starten tippen und Mikrofon und MIDI erlauben.</li>
+    <li data-t>FM-1 mit der Loop-Station-Firmware per USB-C anschliessen.</li>
+    <li data-t>Kopfhoerer oder Box ans FM-1.</li>
+    <li data-t>Starten tippen und Mikrofon und MIDI erlauben.</li>
   </ol>
-  <button id="start">Starten</button>
+  <button id="start" data-t>Starten</button>
   <div id="err"></div>
 </div>
 
@@ -121,8 +126,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
   <button id="bFull" aria-label="Vollbild">⛶</button>
 </header>
 <main>
-  <section class="wide">
+  <section class="wide" id="secTracks">
     <div id="tracks"></div>
+    <div class="wavebox"><canvas id="wave" aria-label="Wellenform"></canvas><span id="waveLabel"></span></div>
     <div class="transport">
       <button id="bRec" class="big rec">REC</button>
       <button id="bPlay" class="big">PLAY</button>
@@ -130,52 +136,53 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     </div>
     <div class="row2">
       <button id="bStop">SPUR STUMM</button>
-      <button id="bClear">LOESCHEN (halten)</button>
-      <button id="bClearAll">Alles loeschen</button>
+      <button id="bClear" data-t>LOESCHEN (halten)</button>
+      <button id="bClearAll" data-t>Alles loeschen</button>
     </div>
-    <div class="meters"><span>Mikro</span><div class="meter"><i id="mIn"></i></div><span>Ausgang</span><div class="meter"><i id="mOut"></i></div></div>
-    <p id="fm1hint" hidden>FM-1 nicht gefunden: Ist die Loop-Station-Firmware drauf und kein anderes Programm (Editor, M-UPGRADE) offen? <button id="bRetry">Nochmal suchen</button></p>
+    <div class="meters"><span data-t>Mikro</span><div class="meter"><i id="mIn"></i></div><span data-t>Ausgang</span><div class="meter"><i id="mOut"></i></div></div>
+    <p id="fm1hint" hidden><span data-t>FM-1 nicht gefunden: Ist die Loop-Station-Firmware drauf und kein anderes Programm (Editor, M-UPGRADE) offen?</span> <button id="bRetry" data-t>Nochmal suchen</button></p>
   </section>
 
-  <section>
-    <h2>EFFEKTE · die vier Regler K1–K4 am FM-1</h2>
+  <section id="secFx">
+    <h2 data-t>EFFEKTE · die vier Regler K1–K4 am FM-1</h2>
     <div id="pages"></div>
     <div id="params"></div>
-    <button id="stut">STUTTER (halten)</button>
+    <button id="stut" data-t>STUTTER (halten)</button>
   </section>
 
-  <section>
-    <h2>DRUMS · Tasten 1–16 = Schritte, Tasten 17–27 = Pads</h2>
+  <section id="secDrums">
+    <h2 data-t>DRUMS · Tasten 1–16 = Schritte, Tasten 17–27 = Pads</h2>
     <div class="drumbar"><select id="selPat" aria-label="Muster"></select><select id="selKit" aria-label="Kit"></select></div>
     <div id="grid"></div>
+    <p class="credit" data-t>ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
   </section>
 
   <section class="set">
-    <h2>EINSTELLUNGEN</h2>
-    <label>Mikrofon <small id="micName"></small><select id="selMic"></select></label>
-    <label id="outRow" hidden>Ausgang (am Computer: das FM-1 waehlen)<select id="selOut"></select></label>
-    <p class="credit">ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
+    <h2 data-t>EINSTELLUNGEN</h2>
+    <label><span data-t>Sprache</span><select id="selLang"><option value="de">Deutsch</option><option value="en">English</option></select></label>
+    <label><span data-t>Mikrofon</span> <small id="micName"></small><select id="selMic"></select></label>
+    <label id="outRow" hidden><span data-t>Ausgang (am Computer: das FM-1 waehlen)</span><select id="selOut"></select></label>
   </section>
 
   <section class="help">
-    <h2>BEDIENUNG AM FM-1</h2>
+    <h2 data-t>BEDIENUNG AM FM-1</h2>
     <table>
-      <tr><td>REC</td><td>Aufnahme → Overdub → Wiedergabe → Overdub … (wie Boss). Auf der Drum-Spur: Pads ins Muster einspielen.</td></tr>
-      <tr><td>PLAY</td><td>Alles starten / stoppen</td></tr>
-      <tr><td>SCL</td><td>Undo / Redo der letzten Aufnahme</td></tr>
-      <tr><td>HOME</td><td>Gewaehlte Spur stumm / an</td></tr>
-      <tr><td>SAVE halten</td><td>Gewaehlte Spur loeschen</td></tr>
-      <tr><td>ARP</td><td>Drums an / aus</td></tr>
-      <tr><td>SELECT</td><td>Spur waehlen (1, 2, 3, Drums)</td></tr>
-      <tr><td>ALGORITHM</td><td>Drum-Muster waehlen</td></tr>
-      <tr><td>PRESETS</td><td>Drum-Instrument fuer die Schritt-Tasten waehlen</td></tr>
-      <tr><td>FX · ENV · EDIT · GLO · SEQ</td><td>Seiten DELAY+HALL · FILTER+BITCRUSH · SPUR · MIKRO · DRUMS. K1–K4 stellen die vier Werte. Bitcrusher: ENV, dann K3 (Bits) und K4 (Samplerate).</td></tr>
-      <tr><td>LFO</td><td>Tippen: Seite CHORUS+STUTTER. Halten: Stutter</td></tr>
-      <tr><td>Tasten 1–16</td><td>Die 16 Schritte des gewaehlten Drum-Instruments (leuchtet = Schlag)</td></tr>
-      <tr><td>Tasten 17–27</td><td>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
-      <tr><td>Tastenlicht</td><td>Seite MIKRO (GLO), K4: IMMER AN = alle Tasten leuchten, aktive blinken. STATUS = nur aktive leuchten.</td></tr>
+      <tr><td>REC</td><td data-t>Aufnahme → Overdub → Wiedergabe → Overdub … (wie am Loop-Pedal). Auf der Drum-Spur: Pads ins Muster einspielen.</td></tr>
+      <tr><td>PLAY</td><td data-t>Alles starten / stoppen</td></tr>
+      <tr><td>SCL</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
+      <tr><td>HOME</td><td data-t>Gewaehlte Spur stumm / an</td></tr>
+      <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
+      <tr><td>ARP</td><td data-t>Drums an / aus</td></tr>
+      <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
+      <tr><td>ALGORITHM</td><td data-t>Drum-Muster waehlen</td></tr>
+      <tr><td>PRESETS</td><td data-t>Drum-Instrument fuer die Schritt-Tasten waehlen</td></tr>
+      <tr><td>FX · ENV · EDIT · GLO · SEQ</td><td data-t>Seiten DELAY+HALL · FILTER+BITCRUSH · SPUR · MIKRO · DRUMS. K1–K4 stellen die vier Werte. Bitcrusher: ENV, dann K3 (Bits) und K4 (Samplerate).</td></tr>
+      <tr><td>LFO</td><td data-t>Tippen: Seite CHORUS+STUTTER. Halten: Stutter</td></tr>
+      <tr><td data-t>Tasten 1–16</td><td data-t>Die 16 Schritte des gewaehlten Drum-Instruments (leuchtet = Schlag)</td></tr>
+      <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
+      <tr><td data-t>Tastenlicht</td><td data-t>Seite MIKRO (GLO), K4: IMMER AN = alle Tasten leuchten, aktive blinken. STATUS = nur aktive leuchten.</td></tr>
     </table>
-    <p>Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter.</p>
+    <p data-t>Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter.</p>
   </section>
 </main>
 </div>
@@ -185,6 +192,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 /*WORKLET*/
 </script>
 <script>
+/*I18N*/
 /*ROCK*/
 /*DRUMS*/
 /*FM1*/
