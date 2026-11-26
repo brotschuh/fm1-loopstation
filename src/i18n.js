@@ -7,6 +7,7 @@ const EN = {
   'FM-1 mit der Loop-Station-Firmware per USB-C anschliessen.': 'Connect the FM-1 (with the loop station firmware) by USB-C.',
   'Kopfhoerer oder Box ans FM-1.': 'Headphones or a speaker into the FM-1.',
   'Starten tippen und Mikrofon und MIDI erlauben.': 'Tap Start and allow the microphone and MIDI.',
+  'Dieser Browser kann nicht mit dem FM-1 sprechen. Bitte die Seite in Google Chrome oder Microsoft Edge oeffnen.': 'This browser cannot talk to the FM-1. Please open the page in Google Chrome or Microsoft Edge.',
   'Starten': 'Start', 'Startet …': 'Starting …', 'Fehler: ': 'Error: ',
   'SPUR STUMM': 'MUTE TRACK', 'SPUR AN': 'UNMUTE TRACK', 'LOESCHEN (halten)': 'CLEAR (hold)',
   'Alles loeschen': 'Clear all', 'Wirklich alles loeschen?': 'Really clear everything?',

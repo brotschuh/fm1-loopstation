@@ -9,10 +9,10 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, rev: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
-  stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 100, lat: -1, master: 90,
-  recToDub: 1, micId: '', outId: '', ledAll: 1, lang: '', v: 2 };
+  stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
+  recToDub: 1, micId: '', outId: '', ledAll: 1, lang: '', v: 3 };
 let S = { ...DEF };
-try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 2) Object.assign(S, o); else Object.assign(S, o, { kit: 0, pat: 0, v: 2, ledAll: 1 }); } catch (e) { }
+try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0, ledAll: 1 }); } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
 LANG = S.lang || ((navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en');
 function applyLang() {
@@ -495,6 +495,8 @@ function flashPad(v) { const b = document.querySelector(`.pad[data-v="${v}"]`); 
 
 // ---- wiring --------------------------------------------------------------------------------
 applyLang();
+// Firefox and Safari cannot talk to the FM-1 (no Web MIDI with SysEx): say so before anything else
+if (!navigator.requestMIDIAccess) $('#browserWarn').hidden = false;
 $('#bLang').onclick = () => setLang(LANG === 'de' ? 'en' : 'de');
 $('#selLang').onchange = e => setLang(e.target.value);
 

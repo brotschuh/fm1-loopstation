@@ -29,6 +29,7 @@ select{background:var(--panel);border:1px solid var(--line);border-radius:10px;m
 #intro ol{color:var(--dim);padding-left:20px;margin:0 0 24px}
 #start{background:var(--rec);border:0;color:#fff;font-weight:700;font-size:20px;width:100%;min-height:64px;border-radius:var(--r)}
 #err{color:var(--rec);margin-top:12px}
+.warn{background:#4a2f0c;border:1px solid var(--dub);color:#ffd9a0;padding:12px 14px;border-radius:10px;font-weight:700}
 header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
 header h1{font-size:18px;margin:0 auto 0 0;letter-spacing:.01em;white-space:nowrap}
 #bFull{min-height:36px;padding:4px 10px}
@@ -114,6 +115,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     <li data-t>Kopfhoerer oder Box ans FM-1.</li>
     <li data-t>Starten tippen und Mikrofon und MIDI erlauben.</li>
   </ol>
+  <p id="browserWarn" class="warn" hidden data-t>Dieser Browser kann nicht mit dem FM-1 sprechen. Bitte die Seite in Google Chrome oder Microsoft Edge oeffnen.</p>
   <button id="start" data-t>Starten</button>
   <div id="err"></div>
 </div>
