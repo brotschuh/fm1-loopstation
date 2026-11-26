@@ -18,6 +18,7 @@ concurrency:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -37,26 +38,25 @@ jobs:
             }
             return $null
           }
-          # 1) unpack the installer; 2) run it silently (Inno Setup / NSIS switches)
-          7z x jl-2.5.3.exe -ojl -y | Out-Null
+          # The installer is Inno Setup: unpack it with innoextract (no installer run, no dialogs).
+          curl.exe -fL --retry 4 -o innoextract.zip https://github.com/dscharrer/innoextract/releases/download/1.9/innoextract-1.9-windows.zip
+          Expand-Archive innoextract.zip -DestinationPath ie -Force
+          $ie = (Get-ChildItem ie -Recurse -Filter innoextract.exe | Select-Object -First 1).FullName
+          & $ie --version
+          & $ie -e -s -d jl jl-2.5.3.exe 2>&1 | Select-Object -Last 15
           $pi32 = Find-Pi32 @("$PWD\jl")
           if (!$pi32) {
-            foreach ($inner in Get-ChildItem jl -Recurse -Include *.7z,*.zip,*.exe -ErrorAction SilentlyContinue | Where-Object Length -gt 10MB) {
-              7z x $inner.FullName "-ojl\$($inner.BaseName)" -y | Out-Null
-            }
-            $pi32 = Find-Pi32 @("$PWD\jl")
+            # fall back: run it silently with a log, at most 8 minutes, then show the log
+            $p = Start-Process .\jl-2.5.3.exe -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /NOICONS /DIR=C:\JL /LOG=C:\jl-setup.log' -PassThru
+            if (!$p.WaitForExit(480000)) { Write-Host 'installer still running after 8 min, stopping it'; $p.Kill() }
+            if (Test-Path C:\jl-setup.log) { Write-Host '--- setup log (end) ---'; Get-Content C:\jl-setup.log -Tail 40 }
+            Get-Process | Where-Object { $_.StartTime -gt (Get-Date).AddMinutes(-10) } | Select-Object -First 15 | ForEach-Object { Write-Host ('process ' + $_.ProcessName) }
+            $pi32 = Find-Pi32 @('C:\JL', "$PWD\jl")
           }
           if (!$pi32) {
-            foreach ($args in @('/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /DIR=C:\JL', '/S /D=C:\JL', '/quiet')) {
-              Write-Host "installer $args"
-              $p = Start-Process .\jl-2.5.3.exe -ArgumentList $args -PassThru
-              if (!$p.WaitForExit(600000)) { $p.Kill() }
-              $pi32 = Find-Pi32 @('C:\JL', "$env:ProgramFiles", "${env:ProgramFiles(x86)}", "$env:LOCALAPPDATA")
-              if ($pi32) { break }
-            }
-          }
-          if (!$pi32) {
-            Write-Host 'unpacked:'; Get-ChildItem jl -Recurse -Depth 3 | Select-Object -First 80 | ForEach-Object { $_.FullName }
+            Write-Host 'clang.exe found:'
+            foreach ($d in @("$PWD\jl", 'C:\JL')) { if (Test-Path $d) { Get-ChildItem $d -Recurse -Filter clang.exe -ErrorAction SilentlyContinue | ForEach-Object { Write-Host ($_.FullName + ' ' + (Get-FileHash $_.FullName).Hash) } } }
+            Write-Host 'unpacked:'; Get-ChildItem jl -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 60 | ForEach-Object { $_.FullName }
             throw 'pi32 toolchain with the expected clang.exe not found'
           }
           Write-Host "toolchain: $pi32"
