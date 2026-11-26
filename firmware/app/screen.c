@@ -314,7 +314,9 @@ void groove_screen_init(void)
     fm1_led_glow_level(0);
     fm1_screen_init();
     fm1_screen_fill(0, 0, FM1_SCREEN_WIDTH, FM1_SCREEN_HEIGHT, 0);
-    draw_text(39, 90, 3, "OUROLOOPS", 0xfc80, 0);
+    draw_text(102, 64, 2, "HMS", 0x738e, 0);
+    draw_text(39, 86, 3, "OUROLOOPS", 0xfc80, 0);
+    draw_text(45, 120, 1, "HARDWARE MEETS SMARTPHONE", 0x738e, 0);
     draw_text(18, 160, 2, "WAITING FOR PHONE", 0x738e, 0);
 }
 

@@ -13,6 +13,6 @@ for out in (root / 'dist' / 'ouroloops.html', root / 'docs' / 'index.html'):   #
     out.parent.mkdir(exist_ok=True)
     page = html
     if out.parent.name == 'dist':   # the single file has no manifest and icons next to it
-        page = '\n'.join(l for l in html.split('\n') if not (l.startswith('<link rel="manifest"') or l.startswith('<link rel="icon"') or l.startswith('<link rel="apple-touch-icon"')))
+        page = '\n'.join(l for l in html.split('\n') if not (l.startswith('<link rel="manifest"') or l.startswith('<meta name="apple-mobile-web-app-title"') or l.startswith('<link rel="icon"') or l.startswith('<link rel="apple-touch-icon"')))
     out.write_text(page)
     print('built', out, len(page), 'bytes')

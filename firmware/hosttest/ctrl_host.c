@@ -43,6 +43,7 @@ static void ppm(const char *p) {
 
 int main(void) {
     groove_screen_init();
+    ppm("splash.ppm");
     /* default scale: MIN, root C, octave 0: key 0 = C4 (60), key 2 = Eb, key 7 = C5 */
     press_key(0, 1); CHECK(last_on() == 60, "key 0 -> %d (C)", last_on()); press_key(0, 0);
     press_key(2, 1); CHECK(last_on() == 63, "key 2 -> %d (Eb, minor third)", last_on()); press_key(2, 0);

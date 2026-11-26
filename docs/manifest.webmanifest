@@ -1,7 +1,7 @@
 {
- "name": "Ouroloops",
+ "name": "HMS Ouroloops",
  "short_name": "Ouroloops",
- "description": "Loop station for the M-VAVE FM-1 with your phone as screen and microphone",
+ "description": "Hardware Meets Smartphone: a loop station for the M-VAVE FM-1 with your phone as screen and microphone",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",

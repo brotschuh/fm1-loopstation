@@ -1,12 +1,16 @@
-# Ouroloops
+# HMS Ouroloops
 
-A looper for the **M-VAVE FM-1** with a classic loop-pedal workflow (Boss-inspired). The name: the Ouroboros, the snake that bites its own tail, and loops.
+**Hardware Meets Smartphone.** A looper for the **M-VAVE FM-1** with a classic loop-pedal workflow (Boss-inspired).
+
+The name: the Ouroboros, the snake that bites its own tail, and loops. HMS stands for *Hardware Meets
+Smartphone*, and of course for the ships of the Royal Navy, which once had an HMS Serpent but never an
+HMS Ouroboros. Short name: Ouroloops.
 The phone records through its microphone and does the loops, drums and effects; the FM-1 is the
 controller, the second screen and the audio output.
 
 **Open the app:** https://brotschuh.github.io/ouroloops/ (Chrome on Android or on a computer)
 
-The user interface is in German for now.
+The user interface is in German and English.
 
 ## Features
 
@@ -78,7 +82,7 @@ It then starts like an app, full screen, and works offline.
 - **Dimmable button lights:** a new SysEx command `0x0B GLOW` (the 6-byte LED mask of `LED`, then a level 0–8).
   The chosen LEDs glow with a pulse of 0.25–4 µs at every scan tick (10 kHz, timed on TIMER4) in
   `app/board/fm1_input.h`; LEDs that are on stay fully lit.
-- Splash screen "OUROLOOPS".
+- Splash screen "HMS OUROLOOPS – Hardware Meets Smartphone".
 - `app/ctrl.c` is named `app/screen.c` again, so M-VAVE's own `sdk/Build.ps1` builds it with its flags.
 
 The `firmware` workflow builds it on a Windows runner with JieLi's toolchain 2.5.3 and publishes the flash page
