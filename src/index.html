@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0d0f">
+<title>FM-1 Loop Station</title>
+<style>
+/* VOICE: a stage tool: big, dark, readable at arm's length
+   IDEA: the pedal board of a loop station: coloured state lamps, one huge REC/PLAY pair
+   PICTURE: the track lamps and the 16-step drum grid are the picture
+   COLOUR and TYPE: near black, red = rec, amber = dub, green = play, blue = drums; Archivo + JetBrains Mono for values
+   LAYOUT: one column on the phone, two on wide screens */
+:root{--bg:#0d0d0f;--panel:#17171b;--line:#2a2a30;--ink:#ececef;--dim:#8b8b95;--rec:#ff3030;--dub:#ff9a1a;--play:#25d366;--stop:#1f6b3a;--drum:#3b8bff;--r:14px}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 "Archivo",system-ui,-apple-system,"Segoe UI",sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow-x:clip}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:44px;padding:8px 12px;cursor:pointer;touch-action:manipulation;user-select:none}
+button:disabled{opacity:.35}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--dub);outline-offset:2px}
+select{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:44px;padding:0 10px;font-size:16px;width:100%}
+.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace}
+#intro{max-width:560px;margin:0 auto;padding:40px 20px}
+#intro h1{font-size:40px;line-height:1.05;margin:0 0 12px;letter-spacing:-.02em}
+#intro h1 span{color:var(--rec)}
+#intro p{color:var(--dim);margin:0 0 14px}
+#intro ol{color:var(--dim);padding-left:20px;margin:0 0 24px}
+#start{background:var(--rec);border:0;color:#fff;font-weight:700;font-size:20px;width:100%;min-height:64px;border-radius:var(--r)}
+#err{color:var(--rec);margin-top:12px}
+header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header h1{font-size:18px;margin:0 auto 0 0;letter-spacing:.01em;white-space:nowrap}
+#bFull{min-height:36px;padding:4px 10px}
+.chip{font-size:13px;padding:4px 10px;border-radius:99px;background:var(--panel);border:1px solid var(--line)}
+.chip.ok{color:var(--play);border-color:#1d5a35}.chip.bad{color:var(--dub);border-color:#6b4a14}
+#bpm{font-weight:700}
+main{display:grid;gap:14px;padding:14px;max-width:1240px;margin:0 auto}
+@media(min-width:900px){main{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.wide{grid-column:1/-1}}
+section{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;letter-spacing:.02em}
+#tracks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.track{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px;min-height:112px;text-align:left;border-width:2px;background:#202026;position:relative;overflow:hidden}
+.track.sel{border-color:var(--ink)}
+.track .tn{font-size:12px;color:var(--dim);font-weight:600}
+.track .ts{font-size:19px;font-weight:800;line-height:1.1}
+.track .tl{font-size:12px;color:var(--dim)}
+.track .bar,.track .lv{position:absolute;left:0;right:0;height:5px;background:#0006}
+.track .bar{bottom:0}.track .lv{bottom:7px;height:3px;left:10px;right:10px;background:transparent}
+.track .bar i,.track .lv i{display:block;height:100%;width:0;background:var(--ink)}
+.track .lv i{background:#fff8}
+.track.rec{background:#4a1012;border-color:var(--rec)}.track.rec .ts{color:var(--rec)}
+.track.armed{animation:blink .5s steps(2) infinite}
+.track.dub{background:#4a2f0c;border-color:var(--dub)}.track.dub .ts{color:var(--dub)}
+.track.play{background:#0f3a22}.track.play .ts{color:var(--play)}
+.track.stop .ts{color:var(--dim)}
+.track.drum{background:#10264a}.track.drum .ts{color:var(--drum)}
+.track.sel{box-shadow:0 0 0 2px var(--ink) inset}
+@keyframes blink{50%{background:#200}}
+.transport{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.big{min-height:76px;font-size:22px;font-weight:800;border-radius:var(--r)}
+.big.rec{background:#2a1214;border-color:#6b1f22;color:var(--rec)}
+.big.rec.on{background:var(--rec);color:#fff;border-color:var(--rec)}
+#bPlay{color:var(--play);background:#10261a;border-color:#1d5a35}
+#bPlay.on{background:var(--play);color:#062;}
+.row2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+#bClear.arm{background:var(--rec);color:#fff}
+.meters{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;font-size:12px;color:var(--dim);margin-top:12px}
+.meter{height:8px;background:#0008;border-radius:4px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--play);transition:width .05s}
+.meter i.clip{background:var(--rec)}
+#pages{display:flex;flex-wrap:wrap;gap:6px}
+#pages button{flex:none;font-size:14px;font-weight:700;min-height:40px}
+#pages button.on{background:var(--dub);color:#1a0f00;border-color:var(--dub)}
+#params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-top:10px}
+.prm{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:2px 8px;font-size:13px;color:var(--dim)}
+.prm b{color:var(--ink);font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:15px}
+.prm input{grid-column:1/-1;width:100%;accent-color:var(--dub);height:32px}
+#stut{width:100%;margin-top:12px;min-height:56px;font-weight:800;letter-spacing:.04em}
+#stut.on{background:var(--dub);color:#1a0f00}
+.drumbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:10px}
+#grid{display:grid;gap:3px;overflow-x:auto}
+.row{display:grid;grid-template-columns:76px repeat(16,minmax(16px,1fr));gap:3px}
+.row.cur .pad{background:#10264a;border-color:var(--drum);color:#fff}
+.pad{min-height:30px;padding:0 6px;font-size:11px;font-weight:700;text-align:left;border-radius:6px;color:var(--dim)}
+.pad.hit{background:var(--drum)!important;color:#fff}
+.st{min-height:30px;padding:0;border-radius:5px;background:#24242b;border-color:#2e2e36}
+.st.q{background:#2c2c35}
+.st.on{background:var(--drum);border-color:var(--drum)}
+.st.now{outline:2px solid #fff;outline-offset:-2px}
+.set{display:grid;gap:10px}
+.set label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
+.help{font-size:14px;color:var(--dim)}
+.credit{font-size:12px;color:var(--dim);margin:4px 0 0}
+.help table{width:100%;border-collapse:collapse}
+.help td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+.help td:first-child{color:var(--ink);font-weight:700;width:34%}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:#111;padding:10px 16px;border-radius:99px;font-weight:700;opacity:0;transition:.2s;pointer-events:none;z-index:9}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#fm1hint{font-size:13px;color:var(--dub);margin:8px 0 0}
+@media(max-width:600px){.track{min-height:96px;padding:8px}.track .ts{font-size:15px}.big{font-size:17px;min-height:68px;padding:4px}.row{grid-template-columns:52px repeat(16,minmax(14px,1fr))}.pad{font-size:9px;padding:0 3px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="intro">
+  <h1>FM-1 <span>Loop Station</span></h1>
+  <p>Drei Loop-Spuren aus dem Mikrofon, eine Drum-Spur mit eigenem 808- und Akustik-Kit, Effekte. Bedient wird am FM-1 wie an einer Boss-Loop-Station, das Handy ist der grosse Bildschirm.</p>
+  <ol>
+    <li>FM-1 mit der Loop-Station-Firmware per USB-C anschliessen.</li>
+    <li>Kopfhoerer oder Box ans FM-1.</li>
+    <li>Starten tippen und Mikrofon und MIDI erlauben.</li>
+  </ol>
+  <button id="start">Starten</button>
+  <div id="err"></div>
+</div>
+
+<div id="app" hidden>
+<header>
+  <h1>Loop Station</h1>
+  <span id="bpm" class="chip mono">– BPM</span>
+  <span id="fm1" class="chip">FM-1 …</span>
+  <button id="bFull" aria-label="Vollbild">⛶</button>
+</header>
+<main>
+  <section class="wide">
+    <div id="tracks"></div>
+    <div class="transport">
+      <button id="bRec" class="big rec">REC</button>
+      <button id="bPlay" class="big">PLAY</button>
+      <button id="bUndo" class="big">UNDO</button>
+    </div>
+    <div class="row2">
+      <button id="bStop">SPUR STUMM</button>
+      <button id="bClear">LOESCHEN (halten)</button>
+      <button id="bClearAll">Alles loeschen</button>
+    </div>
+    <div class="meters"><span>Mikro</span><div class="meter"><i id="mIn"></i></div><span>Ausgang</span><div class="meter"><i id="mOut"></i></div></div>
+    <p id="fm1hint" hidden>FM-1 nicht gefunden: Ist die Loop-Station-Firmware drauf und kein anderes Programm (Editor, M-UPGRADE) offen? <button id="bRetry">Nochmal suchen</button></p>
+  </section>
+
+  <section>
+    <h2>EFFEKTE · die vier Regler K1–K4 am FM-1</h2>
+    <div id="pages"></div>
+    <div id="params"></div>
+    <button id="stut">STUTTER (halten)</button>
+  </section>
+
+  <section>
+    <h2>DRUMS · Tasten 1–16 = Schritte, Tasten 17–27 = Pads</h2>
+    <div class="drumbar"><select id="selPat" aria-label="Muster"></select><select id="selKit" aria-label="Kit"></select></div>
+    <div id="grid"></div>
+  </section>
+
+  <section class="set">
+    <h2>EINSTELLUNGEN</h2>
+    <label>Mikrofon <small id="micName"></small><select id="selMic"></select></label>
+    <label id="outRow" hidden>Ausgang (am Computer: das FM-1 waehlen)<select id="selOut"></select></label>
+    <p class="credit">ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
+  </section>
+
+  <section class="help">
+    <h2>BEDIENUNG AM FM-1</h2>
+    <table>
+      <tr><td>REC</td><td>Aufnahme → Overdub → Wiedergabe → Overdub … (wie Boss). Auf der Drum-Spur: Pads ins Muster einspielen.</td></tr>
+      <tr><td>PLAY</td><td>Alles starten / stoppen</td></tr>
+      <tr><td>SCL</td><td>Undo / Redo der letzten Aufnahme</td></tr>
+      <tr><td>HOME</td><td>Gewaehlte Spur stumm / an</td></tr>
+      <tr><td>SAVE halten</td><td>Gewaehlte Spur loeschen</td></tr>
+      <tr><td>ARP</td><td>Drums an / aus</td></tr>
+      <tr><td>SELECT</td><td>Spur waehlen (1, 2, 3, Drums)</td></tr>
+      <tr><td>ALGORITHM</td><td>Drum-Muster waehlen</td></tr>
+      <tr><td>PRESETS</td><td>Drum-Instrument fuer die Schritt-Tasten waehlen</td></tr>
+      <tr><td>FX · ENV · EDIT · GLO · SEQ</td><td>Seiten DELAY+HALL · FILTER+BITCRUSH · SPUR · MIKRO · DRUMS. K1–K4 stellen die vier Werte. Bitcrusher: ENV, dann K3 (Bits) und K4 (Samplerate).</td></tr>
+      <tr><td>LFO</td><td>Tippen: Seite CHORUS+STUTTER. Halten: Stutter</td></tr>
+      <tr><td>Tasten 1–16</td><td>Die 16 Schritte des gewaehlten Drum-Instruments (leuchtet = Schlag)</td></tr>
+      <tr><td>Tasten 17–27</td><td>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
+      <tr><td>Tastenlicht</td><td>Seite MIKRO (GLO), K4: IMMER AN = alle Tasten leuchten, aktive blinken. STATUS = nur aktive leuchten.</td></tr>
+    </table>
+    <p>Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter.</p>
+  </section>
+</main>
+</div>
+<div id="toast" role="status"></div>
+<script type="text/plain" id="worklet-src">
+/*ENGINE*/
+/*WORKLET*/
+</script>
+<script>
+/*ROCK*/
+/*DRUMS*/
+/*FM1*/
+/*APP*/
+</script>
+</body>
+</html>
