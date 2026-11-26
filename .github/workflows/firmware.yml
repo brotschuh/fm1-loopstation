@@ -1,4 +1,4 @@
-# Builds the FM-1 Loop Station firmware with M-VAVE's build script and JieLi's Windows toolchain 2.5.3,
+# Builds the Ouroloops firmware with M-VAVE's build script and JieLi's Windows toolchain 2.5.3,
 # then publishes its flash page at docs/firmware/ (GitHub Pages).
 name: firmware
 
@@ -67,7 +67,7 @@ jobs:
         run: powershell -NoProfile -ExecutionPolicy Bypass -File firmware\sdk\Build.ps1 -FirmwareOnly -Toolchain $env:FM1_PI32_TOOLCHAIN
 
       - name: Flash page
-        run: python tools/make_flash_page.py firmware docs/firmware/index.html https://github.com/brotschuh/fm1-loopstation
+        run: python tools/make_flash_page.py firmware docs/firmware/index.html https://github.com/brotschuh/ouroloops
 
       - uses: actions/upload-artifact@v4
         with:

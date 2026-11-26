@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the flash page for the FM-1 Loop Station firmware.
+"""Builds the flash page for the Ouroloops firmware.
 
 usage: make_flash_page.py <firmware dir> <out.html> [source url]
 
@@ -11,7 +11,7 @@ the page updates the FM-1 and can go back to the original V15.
 import base64, hashlib, html, json, os, re, sys
 
 root, out = sys.argv[1], sys.argv[2]
-src_url = sys.argv[3] if len(sys.argv) > 3 else 'https://github.com/brotschuh/fm1-loopstation'
+src_url = sys.argv[3] if len(sys.argv) > 3 else 'https://github.com/brotschuh/ouroloops'
 rd = lambda p: open(os.path.join(root, p), encoding='utf-8').read()
 rb = lambda p: open(os.path.join(root, p), 'rb').read()
 sha = lambda b: hashlib.sha256(b).hexdigest()

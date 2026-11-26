@@ -49,7 +49,7 @@ void fm1_led_set(unsigned key, int on)
     fm1_led_key(key, on);
 }
 
-/* FM-1 Loop Station: the dimmed backlight (fm1_input.h). level 0 = off, 1..8 = 0.25 .. 4 us a scan tick. */
+/* Ouroloops: the dimmed backlight (fm1_input.h). level 0 = off, 1..8 = 0.25 .. 4 us a scan tick. */
 void fm1_led_glow(unsigned key, int on)
 {
     fm1_led_glow_key(key, on);

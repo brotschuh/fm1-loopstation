@@ -54,7 +54,7 @@ static inline __attribute__((always_inline)) void fm1_scan_queue(unsigned column
     FM1_SCAN_DMA(fm1_scan_bytes);FM1_SCAN_REG(16)=2;
     fm1_in.queued=(uint8_t)column;
 }
-/* FM-1 Loop Station: the glow. LEDs in fm1_led_glow light for a short pulse at every scan tick
+/* Ouroloops: the glow. LEDs in fm1_led_glow light for a short pulse at every scan tick
  * (10 kHz, one column a tick, so each column is lit ~100 us a frame); a lit LED stays on the whole tick.
  * The pulse is timed on TIMER4 (24 MHz, free-running, set up in device.c), the same idea as SLOOP's glow. */
 static volatile uint8_t fm1_led_glow_mask[FM1_NCOL];   /* same layout as fm1_led */

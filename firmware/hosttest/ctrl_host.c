@@ -80,7 +80,7 @@ int main(void) {
     /* queue full: Note On is not lost silently */
     midi_full = 1; press_key(1, 1); midi_full = 0; press_key(1, 0);
     printf("%s (%d failures)\n", fails ? "FAILED" : "ALL PASSED", fails);
-    {   /* FM-1 Loop Station: CMD_GLOW sets which LEDs glow and the level */
+    {   /* Ouroloops: CMD_GLOW sets which LEDs glow and the level */
         uint8_t m[] = {0xf0, 0x7d, 'D', 'A', 'W', 1, 11, 0x7c, 0x3f, 0, 0, 0, 0, 5, 0xf7};   /* buttons 2..12, level 5 */
         ctrl_sysex(m, sizeof m); groove_screen_control();
         CHECK(glow_on[2] && glow_on[12] && !glow_on[0] && !glow_on[13] && !glow_on[20] && glow_lvl == 5,

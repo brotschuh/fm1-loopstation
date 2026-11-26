@@ -1,10 +1,10 @@
-# FM-1 Loop Station
+# Ouroloops
 
-A loop station for the **M-VAVE FM-1** with a classic loop-pedal workflow (Boss-inspired).
+A looper for the **M-VAVE FM-1** with a classic loop-pedal workflow (Boss-inspired). The name: the Ouroboros, the snake that bites its own tail, and loops.
 The phone records through its microphone and does the loops, drums and effects; the FM-1 is the
 controller, the second screen and the audio output.
 
-**Open the app:** https://brotschuh.github.io/fm1-loopstation/ (Chrome on Android or on a computer)
+**Open the app:** https://brotschuh.github.io/ouroloops/ (Chrome on Android or on a computer)
 
 The user interface is in German for now.
 
@@ -24,7 +24,7 @@ The user interface is in German for now.
 
 ## Setup
 
-1. **Firmware on the FM-1:** open the flash page https://brotschuh.github.io/fm1-loopstation/firmware/
+1. **Firmware on the FM-1:** open the flash page https://brotschuh.github.io/ouroloops/firmware/
    in Chrome on a computer, tab **Device update**, tick the backup box, **Connect device**, then
    **Start update** (or **Force flash** when coming from another firmware).
    You can go back to the original firmware at any time with M-VAVE's updater M-UPGRADE.
@@ -62,7 +62,7 @@ On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, 
 - **Dimmable button lights:** a new SysEx command `0x0B GLOW` (the 6-byte LED mask of `LED`, then a level 0–8).
   The chosen LEDs glow with a pulse of 0.25–4 µs at every scan tick (10 kHz, timed on TIMER4) in
   `app/board/fm1_input.h`; LEDs that are on stay fully lit.
-- Splash screen "LOOP STATION".
+- Splash screen "OUROLOOPS".
 - `app/ctrl.c` is named `app/screen.c` again, so M-VAVE's own `sdk/Build.ps1` builds it with its flags.
 
 The `firmware` workflow builds it on a Windows runner with JieLi's toolchain 2.5.3 and publishes the flash page
@@ -72,7 +72,7 @@ The `firmware` workflow builds it on a Windows runner with JieLi's toolchain 2.5
 ## Development
 
 Plain JavaScript, no dependencies. `python3 build.py` builds one self-contained page
-(`docs/index.html` for GitHub Pages, `dist/fm1-loopstation.html` to open locally).
+(`docs/index.html` for GitHub Pages, `dist/ouroloops.html` to open locally).
 
 - `src/engine.js` – looper, drum sequencer, bitcrusher, stutter (runs in an AudioWorklet)
 - `src/drums.js` – the generated kits and the patterns; `src/rockkit.js` – the rock kit (made by `tools/make_rock_kit.py`)
@@ -88,4 +88,4 @@ Plain JavaScript, no dependencies. `python3 build.py` builds one self-contained 
   https://github.com/sfzinstruments/karoryfer.big-rusty-drums
 - Firmware and protocol: **fm1-sampler** by ferluht, built on **FM1 Open** by M-VAVE (GPL-3.0 with the FM1 SDK
   linking exception; the SDK binaries have their own terms, see `firmware/THIRD_PARTY.md`).
-- Not affiliated with M-VAVE or Roland/Boss. M-VAVE, FM-1 and Boss are trademarks of their owners.
+- Not affiliated with M-VAVE or Roland/Boss. M-VAVE and FM-1 are trademarks of their owners; BOSS and Loop Station are trademarks of Roland Corporation.

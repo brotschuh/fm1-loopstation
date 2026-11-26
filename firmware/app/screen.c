@@ -8,7 +8,7 @@
 
 enum { SYSEX_MAX = 300, SYSEX_Q = 4, KEYS = 27, BUTTONS = 14, ENC = 7, KEY_BASE = 53 };
 enum { CMD_LED = 1, CMD_CLEAR = 2, CMD_RECT = 3, CMD_TEXT = 4, CMD_PING = 5, CMD_SCALE = 6, CMD_PAL = 8, CMD_BLIT = 9, CMD_BATCH = 10, CMD_GLOW = 11, CMD_NOP = 0x7e };
-/* FM-1 Loop Station: CMD_GLOW = which LEDs glow (6 bytes, the bitmask of CMD_LED) and how bright (level 0..8). */
+/* Ouroloops: CMD_GLOW = which LEDs glow (6 bytes, the bitmask of CMD_LED) and how bright (level 0..8). */
 void fm1_led_glow(unsigned key, int on);
 void fm1_led_glow_level(unsigned level);   /* numbers are the wire format (PROTOCOL.md): keep them explicit */
 enum { EV_SCALE = 0x41, EV_REDRAW = 0x42 };
@@ -311,8 +311,7 @@ void groove_screen_init(void)
     fm1_led_glow_level(0);
     fm1_screen_init();
     fm1_screen_fill(0, 0, FM1_SCREEN_WIDTH, FM1_SCREEN_HEIGHT, 0);
-    draw_text(72, 70, 4, "LOOP", 0xfc80, 0);
-    draw_text(57, 110, 3, "STATION", 0xfc80, 0);
+    draw_text(39, 90, 3, "OUROLOOPS", 0xfc80, 0);
     draw_text(18, 160, 2, "WAITING FOR PHONE", 0x738e, 0);
 }
 

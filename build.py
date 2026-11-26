@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds dist/fm1-loopstation.html: one self-contained page (engine + worklet as text, drums, FM-1 link, app)."""
+"""Builds dist/ouroloops.html: one self-contained page (engine + worklet as text, drums, FM-1 link, app)."""
 import pathlib
 root = pathlib.Path(__file__).parent
 src = root / 'src'
@@ -9,7 +9,7 @@ for key, name in parts.items():
     code = (src / name).read_text()
     assert '</script' not in code, name
     html = html.replace(f'/*{key}*/', code)
-for out in (root / 'dist' / 'fm1-loopstation.html', root / 'docs' / 'index.html'):   # docs/ = the GitHub Pages site
+for out in (root / 'dist' / 'ouroloops.html', root / 'docs' / 'index.html'):   # docs/ = the GitHub Pages site
     out.parent.mkdir(exist_ok=True)
     out.write_text(html)
     print('built', out, len(html), 'bytes')

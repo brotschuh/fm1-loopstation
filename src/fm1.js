@@ -33,7 +33,7 @@ const FM1 = (() => {
     return out;
   }
   const ledFrame = mask => { const b = []; for (let i = 0; i < 6; i++) b.push(Number((mask >> BigInt(7 * i)) & 127n)); return [...HDR, CMD.LED, ...b, 0xf7]; };
-  // which LEDs glow and how bright (0 = off .. 8): needs the Loop Station firmware, older firmware ignores it
+  // which LEDs glow and how bright (0 = off .. 8): needs the Ouroloops firmware, older firmware ignores it
   const glowFrame = (mask, level) => { const b = []; for (let i = 0; i < 6; i++) b.push(Number((mask >> BigInt(7 * i)) & 127n)); return [...HDR, CMD.GLOW, ...b, level & 127, 0xf7]; };
   const scaleFrame = () => [...HDR, CMD.SCALE, 7, 0, 3, 0, 0xf7];   // scale OFF: plain keyboard, key k = note 53 + k
   const pingFrame = id => [...HDR, CMD.PING, ...n14(id), 0xf7];

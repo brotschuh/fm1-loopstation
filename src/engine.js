@@ -1,4 +1,4 @@
-// FM-1 Loop Station: audio engine.
+// Ouroloops: audio engine.
 // Runs inside an AudioWorklet (one instance), and in Node for the tests.
 // Mono loop tracks (the phone microphone), a 16-step drum machine, bitcrusher and stutter on the sum.
 

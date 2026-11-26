@@ -4,14 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0d0f">
-<title>FM-1 Loop Station</title>
+<title>Ouroloops</title>
 <style>
 /* VOICE: a stage tool: big, dark, readable at arm's length
-   IDEA: the pedal board of a loop station: coloured state lamps, one huge REC/PLAY pair
+   IDEA: the pedal board of a looper: coloured state lamps, one huge REC/PLAY pair
    PICTURE: the track lamps and the 16-step drum grid are the picture
    COLOUR and TYPE: near black, red = rec, amber = dub, green = play, blue = drums; Archivo + JetBrains Mono for values
    LAYOUT: one column on the phone, two on wide screens */
-:root{--bg:#0d0d0f;--panel:#17171b;--line:#2a2a30;--ink:#ececef;--dim:#8b8b95;--rec:#ff3030;--dub:#ff9a1a;--play:#25d366;--stop:#1f6b3a;--drum:#3b8bff;--r:14px}
+:root{--bg:#0d0d0f;--panel:#17171b;--line:#2a2a30;--ink:#ececef;--dim:#8b8b95;--rec:#ff3030;--dub:#ff9a1a;--play:#25d366;--stop:#1f6b3a;--drum:#3b8bff;--r:14px;
+  --tile:#202026;--shade:#0006;--lvl:#fff8;--recbg:#4a1012;--dubbg:#4a2f0c;--playbg:#0f3a22;--drumbg:#10264a;--wavebg:#0b0b0d;--recbtn:#2a1214;--recline:#6b1f22;
+  --playbtn:#10261a;--playline:#1d5a35;--dubline:#6b4a14;--onrec:#fff;--onplay:#062;--ondub:#1a0f00;--step:#24242b;--stepq:#2c2c35;--stepline:#2e2e36;--now:#fff;
+  --warnink:#ffd9a0;--blink:#200;--toastink:#111}
+/* the light design "Paper" (SEL on the FM-1 switches) */
+:root[data-theme=paper]{--bg:#EFE6D4;--panel:#F7F1E4;--line:#D8CBB3;--ink:#2B2420;--dim:#7A6E62;--rec:#B8432F;--dub:#B57712;--play:#4E6B25;--stop:#8A9A6A;--drum:#2F6F8F;
+  --tile:#F2EADB;--shade:#2B242022;--lvl:#2B242066;--recbg:#F3DEC9;--dubbg:#F4E3C2;--playbg:#E3EAD3;--drumbg:#DCE7EA;--wavebg:#FBF7EE;--recbtn:#F6E2D6;--recline:#D9A898;
+  --playbtn:#E6EDD8;--playline:#AFC08F;--dubline:#D9B77A;--onrec:#FFF7EE;--onplay:#F7F9EE;--ondub:#2B1A00;--step:#E6DCC8;--stepq:#DDD1BA;--stepline:#D3C6AE;--now:#2B2420;
+  --warnink:#6b3f00;--blink:#F3DEC9;--toastink:#F7F1E4;color-scheme:light}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 "Archivo",system-ui,-apple-system,"Segoe UI",sans-serif}
 body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow-x:clip}
@@ -27,55 +35,55 @@ select{background:var(--panel);border:1px solid var(--line);border-radius:10px;m
 #intro h1 span{color:var(--rec)}
 #intro p{color:var(--dim);margin:0 0 14px}
 #intro ol{color:var(--dim);padding-left:20px;margin:0 0 24px}
-#start{background:var(--rec);border:0;color:#fff;font-weight:700;font-size:20px;width:100%;min-height:64px;border-radius:var(--r)}
+#start{background:var(--rec);border:0;color:var(--onrec);font-weight:700;font-size:20px;width:100%;min-height:64px;border-radius:var(--r)}
 #err{color:var(--rec);margin-top:12px}
-.warn{background:#4a2f0c;border:1px solid var(--dub);color:#ffd9a0;padding:12px 14px;border-radius:10px;font-weight:700}
+.warn{background:var(--dubbg);border:1px solid var(--dub);color:var(--warnink);padding:12px 14px;border-radius:10px;font-weight:700}
 header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
 header h1{font-size:18px;margin:0 auto 0 0;letter-spacing:.01em;white-space:nowrap}
 #bFull{min-height:36px;padding:4px 10px}
 .chip{font-size:13px;padding:4px 10px;border-radius:99px;background:var(--panel);border:1px solid var(--line)}
-.chip.ok{color:var(--play);border-color:#1d5a35}.chip.bad{color:var(--dub);border-color:#6b4a14}
+.chip.ok{color:var(--play);border-color:var(--playline)}.chip.bad{color:var(--dub);border-color:var(--dubline)}
 #bpm{font-weight:700}
 main{display:grid;gap:14px;padding:14px;max-width:1240px;margin:0 auto}
 @media(min-width:900px){main{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.wide{grid-column:1/-1}}
 section{scroll-margin-top:64px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;letter-spacing:.02em}
 #tracks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.track{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px;min-height:112px;text-align:left;border-width:2px;background:#202026;position:relative;overflow:hidden}
+.track{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px;min-height:112px;text-align:left;border-width:2px;background:var(--tile);position:relative;overflow:hidden}
 .track.sel{border-color:var(--ink)}
 .track .tn{font-size:12px;color:var(--dim);font-weight:600}
 .track .ts{font-size:19px;font-weight:800;line-height:1.1}
 .track .tl{font-size:12px;color:var(--dim)}
-.track .bar,.track .lv{position:absolute;left:0;right:0;height:5px;background:#0006}
+.track .bar,.track .lv{position:absolute;left:0;right:0;height:5px;background:var(--shade)}
 .track .bar{bottom:0}.track .lv{bottom:7px;height:3px;left:10px;right:10px;background:transparent}
 .track .bar i,.track .lv i{display:block;height:100%;width:0;background:var(--ink)}
-.track .lv i{background:#fff8}
-.track.rec{background:#4a1012;border-color:var(--rec)}.track.rec .ts{color:var(--rec)}
+.track .lv i{background:var(--lvl)}
+.track.rec{background:var(--recbg);border-color:var(--rec)}.track.rec .ts{color:var(--rec)}
 .track.armed{animation:blink .5s steps(2) infinite}
-.track.dub{background:#4a2f0c;border-color:var(--dub)}.track.dub .ts{color:var(--dub)}
-.track.play{background:#0f3a22}.track.play .ts{color:var(--play)}
+.track.dub{background:var(--dubbg);border-color:var(--dub)}.track.dub .ts{color:var(--dub)}
+.track.play{background:var(--playbg)}.track.play .ts{color:var(--play)}
 .track.stop .ts{color:var(--dim)}
-.track.drum{background:#10264a}.track.drum .ts{color:var(--drum)}
+.track.drum{background:var(--drumbg)}.track.drum .ts{color:var(--drum)}
 .track.sel{box-shadow:0 0 0 2px var(--ink) inset}
-@keyframes blink{50%{background:#200}}
-.wavebox{position:relative;margin-top:10px;height:96px;background:#0b0b0d;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@keyframes blink{50%{background:var(--blink)}}
+.wavebox{position:relative;margin-top:10px;height:96px;background:var(--wavebg);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 #wave{position:absolute;inset:0;width:100%;height:100%}
 #waveLabel{position:absolute;left:10px;top:6px;font-size:12px;color:var(--dim)}
 .transport{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
 .big{min-height:76px;font-size:22px;font-weight:800;border-radius:var(--r)}
-.big.rec{background:#2a1214;border-color:#6b1f22;color:var(--rec)}
-.big.rec.on{background:var(--rec);color:#fff;border-color:var(--rec)}
-#bPlay{color:var(--play);background:#10261a;border-color:#1d5a35}
-#bPlay.on{background:var(--play);color:#062;}
+.big.rec{background:var(--recbtn);border-color:var(--recline);color:var(--rec)}
+.big.rec.on{background:var(--rec);color:var(--onrec);border-color:var(--rec)}
+#bPlay{color:var(--play);background:var(--playbtn);border-color:var(--playline)}
+#bPlay.on{background:var(--play);color:var(--onplay);}
 .row2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
-#bClick.on{background:var(--dub);color:#1a0f00;border-color:var(--dub)}
-#bClear.arm{background:var(--rec);color:#fff}
+#bClick.on{background:var(--dub);color:var(--ondub);border-color:var(--dub)}
+#bClear.arm{background:var(--rec);color:var(--onrec)}
 .meters{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;font-size:12px;color:var(--dim);margin-top:12px}
-.meter{height:8px;background:#0008;border-radius:4px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--play);transition:width .05s}
+.meter{height:8px;background:var(--shade);border-radius:4px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--play);transition:width .05s}
 .meter i.clip{background:var(--rec)}
 #pages{display:flex;flex-wrap:wrap;gap:6px}
 #pages button{flex:none;font-size:14px;font-weight:700;min-height:40px}
-#pages button.on{background:var(--dub);color:#1a0f00;border-color:var(--dub)}
+#pages button.on{background:var(--dub);color:var(--ondub);border-color:var(--dub)}
 #fxsubs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
 #fxsubs[hidden]{display:none}
 .fxfor{color:var(--dub);font-weight:800}
@@ -86,38 +94,72 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .prm b{color:var(--ink);font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:15px}
 .prm input{grid-column:1/-1;width:100%;accent-color:var(--dub);height:32px}
 #stut{width:100%;margin-top:12px;min-height:56px;font-weight:800;letter-spacing:.04em}
-#stut.on{background:var(--dub);color:#1a0f00}
+#stut.on{background:var(--dub);color:var(--ondub)}
 .drumbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:10px}
 #grid{display:grid;gap:3px;overflow-x:auto}
 .row{display:grid;grid-template-columns:76px repeat(16,minmax(16px,1fr));gap:3px}
-.row.cur .pad{background:#10264a;border-color:var(--drum);color:#fff}
+.row.cur .pad{background:var(--drumbg);border-color:var(--drum);color:var(--ink)}
 .pad{min-height:30px;padding:0 6px;font-size:11px;font-weight:700;text-align:left;border-radius:6px;color:var(--dim)}
-.pad.hit{background:var(--drum)!important;color:#fff}
-.st{min-height:30px;padding:0;border-radius:5px;background:#24242b;border-color:#2e2e36}
-.st.q{background:#2c2c35}
+.pad.hit{background:var(--drum)!important;color:var(--onrec)}
+.st{min-height:30px;padding:0;border-radius:5px;background:var(--step);border-color:var(--stepline)}
+.st.q{background:var(--stepq)}
 .st.on{background:var(--drum);border-color:var(--drum)}
-.st.now{outline:2px solid #fff;outline-offset:-2px}
+.st.now{outline:2px solid var(--now);outline-offset:-2px}
 .set{display:grid;gap:10px}
 .set label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
 .help{font-size:14px;color:var(--dim)}
+.hidden-feature{font-size:12px;color:var(--dim);margin:14px 0 0}
 .credit{font-size:12px;color:var(--dim);margin:4px 0 0}
 .help table{width:100%;border-collapse:collapse}
 .help td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
 .help td:first-child{color:var(--ink);font-weight:700;width:34%}
-#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:#111;padding:10px 16px;border-radius:99px;font-weight:700;opacity:0;transition:.2s;pointer-events:none;z-index:9}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:var(--toastink);padding:10px 16px;border-radius:99px;font-weight:700;opacity:0;transition:.2s;pointer-events:none;z-index:9}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #fm1hint{font-size:13px;color:var(--dub);margin:8px 0 0}
 @media(max-width:600px){.track{min-height:96px;padding:8px}.track .ts{font-size:15px}.big{font-size:17px;min-height:68px;padding:4px}.row{grid-template-columns:52px repeat(16,minmax(14px,1fr))}.pad{font-size:9px;padding:0 3px}}
+/* phone in landscape: every section is one screen, the page snaps from one to the next */
+@media (orientation:landscape) and (max-height:540px){
+  html{scroll-snap-type:y mandatory}
+  header{padding:4px 12px;min-height:40px;flex-wrap:nowrap}
+  header h1{font-size:16px}
+  .chip{font-size:12px;padding:2px 8px}
+  #bFull{min-height:30px;padding:2px 8px}
+  main{display:block;padding:0 10px;max-width:none}
+  main>section{height:calc(100dvh - 48px);margin:4px 0;padding:8px 12px;scroll-snap-align:start;scroll-margin-top:44px;overflow:hidden;display:flex;flex-direction:column;gap:6px}
+  section h2{margin:0;font-size:12px}
+  #secTracks .track{min-height:0;height:calc((100dvh - 48px) * .27);padding:6px 8px}
+  #secTracks .track .ts{font-size:16px}
+  .wavebox{margin:0;height:auto;flex:1 1 0;min-height:40px}
+  .controls{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2.2fr);gap:6px;height:calc((100dvh - 48px) * .24)}
+  .transport{margin:0;gap:6px}
+  .transport .big{min-height:0;height:100%;font-size:18px}
+  .row2{margin:0;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .row2 button{min-height:0;font-size:12px;padding:2px 4px}
+  .meters{margin:0;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr)}
+  #fm1hint{margin:0}
+  #params,.params{grid-template-columns:repeat(4,minmax(0,1fr));margin:0}
+  #stut{margin:auto 0 0;min-height:0;height:48px}
+  #secDrums{display:grid;grid-template-columns:150px minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:12px}
+  #secDrums h2{grid-column:1/-1}
+  #secDrums .drumbar{grid-column:1;grid-template-columns:1fr;align-content:start;margin:0}
+  #secDrums .credit{grid-column:1;grid-row:3;align-self:end}
+  #grid{grid-column:2;grid-row:2/4;gap:2px;grid-template-rows:repeat(11,minmax(0,1fr));overflow:hidden}
+  .row{gap:2px}
+  .pad,.st{min-height:0}
+  #secSettings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;column-gap:12px}
+  #secSettings h2,#secSettings .params{grid-column:1/-1}
+  .help{overflow:auto!important;height:auto!important;min-height:calc(100dvh - 48px)}
+}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <div id="intro">
   <button id="bLang" class="lang" aria-label="Sprache / language">DE · EN</button>
-  <h1>FM-1 <span>Loop Station</span></h1>
+  <h1>Ouro<span>loops</span></h1>
   <p data-t>Drei Loop-Spuren aus dem Mikrofon, eine Drum-Spur mit echtem Rock-Kit und 808-Kit, Effekte. Bedient wird am FM-1 wie an einem Loop-Pedal, das Handy ist der grosse Bildschirm.</p>
   <ol>
-    <li data-t>FM-1 mit der Loop-Station-Firmware per USB-C anschliessen.</li>
+    <li data-t>FM-1 mit der Ouroloops-Firmware per USB-C anschliessen.</li>
     <li data-t>Kopfhoerer oder Box ans FM-1.</li>
     <li data-t>Starten tippen und Mikrofon und MIDI erlauben.</li>
   </ol>
@@ -128,7 +170,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 
 <div id="app" hidden>
 <header>
-  <h1>Loop Station</h1>
+  <h1>Ouroloops</h1>
   <span id="bpm" class="chip mono">– BPM</span>
   <span id="fm1" class="chip">FM-1 …</span>
   <button id="bFull" aria-label="Vollbild">⛶</button>
@@ -137,6 +179,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
   <section class="wide" id="secTracks">
     <div id="tracks"></div>
     <div class="wavebox"><canvas id="wave" aria-label="Wellenform"></canvas><span id="waveLabel"></span></div>
+    <div class="controls">
     <div class="transport">
       <button id="bRec" class="big rec">REC</button>
       <button id="bPlay" class="big">PLAY</button>
@@ -148,8 +191,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <button id="bClear" data-t>LOESCHEN (halten)</button>
       <button id="bClearAll" data-t>Alles loeschen</button>
     </div>
+    </div>
     <div class="meters"><span data-t>Mikro</span><div class="meter"><i id="mIn"></i></div><span data-t>Ausgang</span><div class="meter"><i id="mOut"></i></div></div>
-    <p id="fm1hint" hidden><span data-t>FM-1 nicht gefunden: Ist die Loop-Station-Firmware drauf und kein anderes Programm (Editor, M-UPGRADE) offen?</span> <button id="bRetry" data-t>Nochmal suchen</button></p>
+    <p id="fm1hint" hidden><span data-t>FM-1 nicht gefunden: Ist die Ouroloops-Firmware drauf und kein anderes Programm (Editor, M-UPGRADE) offen?</span> <button id="bRetry" data-t>Nochmal suchen</button></p>
   </section>
 
   <section id="secFx">
@@ -180,7 +224,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     <table>
       <tr><td>REC</td><td data-t>Aufnahme → Overdub → Wiedergabe → Overdub … (wie am Loop-Pedal). Auf der Drum-Spur: Pads ins Muster einspielen.</td></tr>
       <tr><td>PLAY</td><td data-t>Alles starten / stoppen</td></tr>
-      <tr><td>SCL</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
+      <tr><td>EDIT</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
       <tr><td>HOME</td><td data-t>Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an</td></tr>
       <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
       <tr><td>ARP</td><td data-t>Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)</td></tr>
@@ -192,8 +236,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td>LFO</td><td data-t>Tippen: Seite STUTTER. Halten: Stutter</td></tr>
       <tr><td data-t>Tasten 1–16</td><td data-t>Die 16 Schritte des gewaehlten Drum-Instruments (leuchtet = Schlag)</td></tr>
       <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
-      <tr><td data-t>Tastenlicht</td><td data-t>Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Loop-Station-Firmware).</td></tr>
+      <tr><td data-t>Tastenlicht</td><td data-t>Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Ouroloops-Firmware).</td></tr>
     </table>
+    <p class="hidden-feature" data-t>SEL: Design wechseln (Dunkel / Paper)</p>
     <p data-t>Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter, K = Klick.</p>
   </section>
 </main>

@@ -1,4 +1,4 @@
-// FM-1 Loop Station: the page (phone or computer). Engine in an AudioWorklet, effects as Web Audio nodes,
+// Ouroloops: the page (phone or computer). Engine in an AudioWorklet, effects as Web Audio nodes,
 // the FM-1 as keys, knobs, LEDs and a second screen over USB MIDI.
 {
 const $ = s => document.querySelector(s);
@@ -10,7 +10,7 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
   stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
-  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', v: 3 };
+  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', v: 3 };
 let S = { ...DEF };
 try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0 }); } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
@@ -48,7 +48,7 @@ const PAGES = {
   FX: { btn: 2, get name() { return chName() + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name + ' ' + (S.fxSel + 1) + '/' + FX_KEYS.length; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
   FILTER: { get name() { return chName() + ' FILTER'; }, btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
   STUTTER: { name: 'STUTTER', btn: 5, p: [P('stutDiv', 'LAENGE', 0, 3, 1, v => '1/' + STUT_DIV[v])] },
-  SPUR: { name: 'LOOPSTATION', btn: 8, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
+  SPUR: { name: 'SPUREN', btn: 8, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
   DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1, null, 'DRUMS')] },
   MIKRO: { name: 'MIKRO + AUSGANG', btn: 7, p: [P('inGain', 'EINGANG', 0, 200, 2), P('mon', 'MITHOEREN', 0, 100, 2, null, 'MONITOR'), P('lat', 'LATENZ', 0, 400, 1, v => v + 'ms'), P('glow', 'TASTENLICHT', 0, 8, 1, v => v ? String(v) : 'AUS', 'LICHT')] },
 };
@@ -248,8 +248,23 @@ function onStatus(s) {
 
 // ---- FM-1 ------------------------------------------------------------------------------------
 const link = new FM1.Link();
-const C = { bg: 0, fg: FM1.rgb(235, 235, 235), dim: FM1.rgb(160, 160, 160), dark: FM1.rgb(40, 40, 40), accent: FM1.rgb(255, 150, 0),
-  rec: FM1.rgb(255, 30, 30), dub: FM1.rgb(255, 150, 0), play: FM1.rgb(30, 210, 70), stop: FM1.rgb(20, 90, 40), drum: FM1.rgb(40, 130, 255) };
+// the designs, on the phone (CSS, data-theme) and on the FM-1 screen (these colours); SEL switches
+const FM_THEMES = {
+  dark: { bg: 0, fg: FM1.rgb(235, 235, 235), dim: FM1.rgb(160, 160, 160), dark: FM1.rgb(40, 40, 40), accent: FM1.rgb(255, 150, 0),
+    rec: FM1.rgb(255, 30, 30), dub: FM1.rgb(255, 150, 0), play: FM1.rgb(30, 210, 70), stop: FM1.rgb(20, 90, 40), drum: FM1.rgb(40, 130, 255) },
+  paper: { bg: FM1.rgb(239, 230, 212), fg: FM1.rgb(43, 36, 32), dim: FM1.rgb(122, 110, 98), dark: FM1.rgb(216, 203, 179), accent: FM1.rgb(184, 67, 47),
+    rec: FM1.rgb(184, 67, 47), dub: FM1.rgb(201, 138, 27), play: FM1.rgb(91, 122, 46), stop: FM1.rgb(138, 154, 106), drum: FM1.rgb(47, 111, 143) },
+};
+const THEMES = Object.keys(FM_THEMES);
+const C = { ...FM_THEMES.dark };
+function applyTheme() {
+  if (!FM_THEMES[S.theme]) S.theme = 'dark';
+  Object.assign(C, FM_THEMES[S.theme]);
+  document.documentElement.dataset.theme = S.theme;
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  lastSig = ''; if (st) { renderTracks(); drawScreen(); }
+}
+function nextTheme() { S.theme = THEMES[(THEMES.indexOf(S.theme) + 1) % THEMES.length]; save(); applyTheme(); }
 function tileColor(i) {
   if (i === 3) return st.drumRec ? C.rec : st.drumOn ? C.drum : C.dark;
   if (st.armed === i) return C.rec;
@@ -268,7 +283,7 @@ function drawScreen() {
   if (!link.connected || !st) return;
   // no clear (that flashed black): every region is painted over, the texts are opaque cells
   const o = FM1.op, ops = [o.rect(0, 0, 240, 4, C.bg), o.rect(150, 4, 24, 16, C.bg), o.rect(0, Y.tiles - 6, 240, Y.tileH + 10, C.bg)];
-  ops.push(o.text(6, 4, 2, C.accent, C.bg, 'LOOP STATION'));
+  ops.push(o.text(6, 4, 2, C.accent, C.bg, 'OUROLOOPS'));
   ops.push(o.text(174, 4, 2, C.fg, C.bg, String(Math.round(st.bpm)).padStart(3) + ' '));
   for (let i = 0; i < 4; i++) {
     const x = 6 + i * 58, y = Y.tiles, c = tileColor(i);
@@ -348,7 +363,7 @@ function drawWave() {
   if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
   const css = getComputedStyle(document.documentElement), col = v => css.getPropertyValue(v).trim();
-  g.fillStyle = '#ffffff14'; g.fillRect(0, H / 2, W, 1);
+  g.fillStyle = col('--line'); g.fillRect(0, H / 2, W, 1);
   const t = sel < 3 ? st.tracks[sel] : null;
   const label = $('#waveLabel');
   if (!t) { label.textContent = T('Drums: keine Wellenform'); return; }
@@ -362,7 +377,7 @@ function drawWave() {
     g.fillRect(i * bw + 0.5, (H - h) / 2, Math.max(1, bw - 1), h);
   });
   const f = t.state === 'rec' ? (st.master ? (t.rec % st.master) / st.master : 1) : t.pos;
-  g.fillStyle = '#fff'; g.fillRect(Math.min(W - 2, f * W), 0, 2, H);
+  g.fillStyle = col('--now'); g.fillRect(Math.min(W - 2, f * W), 0, 2, H);
 }
 const USED_BTNS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 // every button we use glows at the level of K4 on the MIKRO page; what is active lights fully (the firmware
@@ -405,7 +420,7 @@ function reveal(id) {
   if (r.top < 60 || r.top > h * 0.5) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 // ARP (10) jumps nowhere; GLO (7) goes to the settings, where the MIKRO knobs are too
-const BTN_SECTION = { 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secTracks', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks', 3: 'secTracks', 9: 'secTracks' };
+const BTN_SECTION = { 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secTracks', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks', 9: 'secTracks' };
 link.onButton = (b, on) => {
   const B = FM1.BTN;
   if (on && BTN_SECTION[b]) reveal(sel === 3 && (b === 12 || b === 13) ? 'secDrums' : BTN_SECTION[b]);
@@ -414,12 +429,12 @@ link.onButton = (b, on) => {
   switch (b) {
     case B.REC: if (on) recPress(); break;
     case B.PLAY: if (on) send({ t: 'play' }); break;
-    case B.SCL: if (on) send({ t: 'undo', i: sel }); break;
+    case B.SCL: if (on) nextTheme(); break;   // SEL: the design (a hidden feature)
     case B.HOME:   // tap: the main page (SELECT chooses the track), hold: mute / unmute the track
       if (on) held.homeTimer = setTimeout(() => { held.homeTimer = 0; send({ t: 'stop', i: sel }); }, 500);
       else if (held.homeTimer) { clearTimeout(held.homeTimer); held.homeTimer = 0; setPage('SPUR'); }
       break;
-    case B.EDIT: if (on) setPage('SPUR'); break;
+    case B.EDIT: if (on) send({ t: 'undo', i: sel }); break;   // undo / redo
     case B.ARP:   // tap: drums on / off, hold: click on / off
       if (on) held.arpTimer = setTimeout(() => { held.arpTimer = 0; toggleClick(); }, 450);
       else if (held.arpTimer) { clearTimeout(held.arpTimer); held.arpTimer = 0; toggleDrums(); }
@@ -559,7 +574,7 @@ function markStep(s) {
 function flashPad(v) { const b = document.querySelector(`.pad[data-v="${v}"]`); if (b) { b.classList.add('hit'); setTimeout(() => b.classList.remove('hit'), 120); } }
 
 // ---- wiring --------------------------------------------------------------------------------
-applyLang();
+applyLang(); applyTheme();
 // Firefox and Safari cannot talk to the FM-1 (no Web MIDI with SysEx): say so before anything else
 if (!navigator.requestMIDIAccess) $('#browserWarn').hidden = false;
 $('#bLang').onclick = () => setLang(LANG === 'de' ? 'en' : 'de');

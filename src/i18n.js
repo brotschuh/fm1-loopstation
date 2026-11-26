@@ -4,7 +4,7 @@ const EN = {
   // intro and static page
   'Drei Loop-Spuren aus dem Mikrofon, eine Drum-Spur mit echtem Rock-Kit und 808-Kit, Effekte. Bedient wird am FM-1 wie an einem Loop-Pedal, das Handy ist der grosse Bildschirm.':
     'Three loop tracks from the microphone, a drum track with a real rock kit and an 808 kit, effects. You play it on the FM-1 like a loop pedal; the phone is the big screen.',
-  'FM-1 mit der Loop-Station-Firmware per USB-C anschliessen.': 'Connect the FM-1 (with the loop station firmware) by USB-C.',
+  'FM-1 mit der Ouroloops-Firmware per USB-C anschliessen.': 'Connect the FM-1 (with the Ouroloops firmware) by USB-C.',
   'Kopfhoerer oder Box ans FM-1.': 'Headphones or a speaker into the FM-1.',
   'Starten tippen und Mikrofon und MIDI erlauben.': 'Tap Start and allow the microphone and MIDI.',
   'Dieser Browser kann nicht mit dem FM-1 sprechen. Bitte die Seite in Google Chrome oder Microsoft Edge oeffnen.': 'This browser cannot talk to the FM-1. Please open the page in Google Chrome or Microsoft Edge.',
@@ -12,8 +12,8 @@ const EN = {
   'SPUR STUMM': 'MUTE TRACK', 'SPUR AN': 'UNMUTE TRACK', 'LOESCHEN (halten)': 'CLEAR (hold)',
   'Alles loeschen': 'Clear all', 'Wirklich alles loeschen?': 'Really clear everything?',
   'Mikro': 'Mic', 'Ausgang': 'Output',
-  'FM-1 nicht gefunden: Ist die Loop-Station-Firmware drauf und kein anderes Programm (Editor, M-UPGRADE) offen?':
-    'FM-1 not found: is the loop station firmware on it, and no other program (editor, M-UPGRADE) open?',
+  'FM-1 nicht gefunden: Ist die Ouroloops-Firmware drauf und kein anderes Programm (Editor, M-UPGRADE) offen?':
+    'FM-1 not found: is the Ouroloops firmware on it, and no other program (editor, M-UPGRADE) open?',
   'Nochmal suchen': 'Search again',
   'EFFEKTE · die vier Regler K1–K4 am FM-1': 'EFFECTS · the four knobs K1–K4 on the FM-1',
   'STUTTER (halten)': 'STUTTER (hold)',
@@ -35,7 +35,8 @@ const EN = {
   'Effekte: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.': 'Effects: DELAY, REVERB, CHORUS, BITCRUSH. Scroll with SELECT (or FX again), K1–K4 set the values.',
   'Seiten FILTER · SPUR · MIKRO (auf dem Handy bei den Einstellungen) · DRUMS': 'Pages FILTER · TRACK · MIC (on the phone in the settings) · DRUMS',
   'Tippen: Seite STUTTER. Halten: Stutter': 'Tap: page STUTTER. Hold: stutter',
-  'fuer': 'for', 'LOOPSTATION': 'LOOP STATION',
+  'SEL: Design wechseln (Dunkel / Paper)': 'SEL: switch the design (dark / paper)',
+  'fuer': 'for', 'SPUREN': 'TRACKS',
   'Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an': 'Tap: main page (SELECT chooses the track). Hold: mute / unmute the selected track',
   'Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.': 'Effects of the selected track: DELAY, REVERB, CHORUS, BITCRUSH. Scroll with SELECT (or FX again), K1–K4 set the values.',
   'KLANG': 'TONE', 'DAEMPFUNG': 'DAMPING', 'DAEMPF': 'DAMP', 'LAENGE': 'LENGTH',
@@ -44,8 +45,8 @@ const EN = {
   'Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken':
     'Drum pads: kick, snare, rimshot/clap, closed hat, open hat, 3 toms, sidestick/rim, ride/cowbell, crash/cymbal',
   'Tastenlicht': 'Button lights',
-  'Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Loop-Station-Firmware).':
-    'Page MIC (GLO), K4: base brightness of the buttons from OFF to 8; the active button is fully lit (needs the loop station firmware).',
+  'Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Ouroloops-Firmware).':
+    'Page MIC (GLO), K4: base brightness of the buttons from OFF to 8; the active button is fully lit (needs the Ouroloops firmware).',
   'Am Computer ohne FM-1: Leertaste = Play, R = Rec, Z = Undo, 1–4 = Spur, S halten = Stutter, K = Klick.':
     'On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter, K = click.',
   'ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).': 'ROCK kit: Big Rusty Drums by Karoryfer Samples, CC0 (public domain).',

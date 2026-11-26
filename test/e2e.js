@@ -1,7 +1,7 @@
 // Browser test: real Chrome, fake microphone (a tone), the software FM-1 of fm1-sim.js.
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
-const page_ = path.resolve(__dirname, '../dist/fm1-loopstation.html');
+const page_ = path.resolve(__dirname, '../dist/ouroloops.html');
 const sim = fs.readFileSync(path.join(__dirname, 'fm1-sim.js'), 'utf8');
 const shots = path.resolve(__dirname, '../shots'); fs.mkdirSync(shots, { recursive: true });
 let fails = 0;
@@ -25,7 +25,7 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   const S = () => page.evaluate(() => window.__fm1.st);
   let s = await S();
   check(JSON.stringify(s.scale) === '[7,0,3,0]', 'scale OFF sent to the FM-1: ' + JSON.stringify(s.scale));
-  check(s.texts.includes('LOOP STATION'), 'FM-1 screen drawn');
+  check(s.texts.includes('OUROLOOPS'), 'FM-1 screen drawn');
 
   // REC on the FM-1 -> recording, 2 s, REC again -> DUB, then PLAY state on REC
   await page.evaluate(() => window.__fm1.tap(13));
@@ -121,6 +121,14 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   s = await S();
   check(s.texts.some(t => t.startsWith('MIC + OUTPUT')), 'English on the FM-1 screen');
   await page.selectOption('#selLang', 'de');
+  // SEL switches the design (phone and FM-1 screen), EDIT is undo
+  await page.evaluate(() => window.__fm1.tap(3));
+  await page.waitForTimeout(500);
+  check(await page.evaluate(() => document.documentElement.dataset.theme) === 'paper', 'SEL switches to the paper design');
+  await page.screenshot({ path: shots + '/3-paper.png', fullPage: false });
+  await page.evaluate(() => window.__fm1.tap(3));
+  await page.waitForTimeout(300);
+  check(await page.evaluate(() => document.documentElement.dataset.theme) === 'dark', 'SEL again: dark');
   // back to track 1 for the screenshot of the FM-1 screen
   await page.evaluate(() => { window.__fm1.enc(0, 1); window.__fm1.tap(2); });
   await page.waitForTimeout(800);
