@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0d0f">
 <title>Ouroloops</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 /* VOICE: a stage tool: big, dark, readable at arm's length
    IDEA: the pedal board of a looper: coloured state lamps, one huge REC/PLAY pair
@@ -108,6 +111,19 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .set{display:grid;gap:10px}
 .set label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
 .help{font-size:14px;color:var(--dim)}
+.savegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.savegrid .col{display:grid;gap:8px;align-content:start}
+.savegrid label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
+.savegrid input[type=text]{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:44px;padding:0 12px;font-size:16px;color:var(--ink)}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btnrow3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.btnrow3 button{font-size:13px;padding:6px}
+.filebtn{display:flex!important;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:44px;cursor:pointer;color:var(--ink)!important;font-size:16px!important}
+.filebtn input{display:none}
+.live{min-height:52px;font-weight:800;color:var(--rec);background:var(--recbtn);border-color:var(--recline)}
+.live.on{background:var(--rec);color:var(--onrec);animation:blink 1s steps(2) infinite}
+#liveTime{font-size:14px;color:var(--rec);min-height:18px}
+.folder{margin:0;font-size:13px;color:var(--dim);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{margin:0;font-size:12px;color:var(--dim)}
 .hidden-feature{font-size:12px;color:var(--dim);margin:14px 0 0}
 .credit{font-size:12px;color:var(--dim);margin:4px 0 0}
 .help table{width:100%;border-collapse:collapse}
@@ -146,6 +162,10 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
   #grid{grid-column:2;grid-row:2/4;gap:2px;grid-template-rows:repeat(11,minmax(0,1fr));overflow:hidden}
   .row{gap:2px}
   .pad,.st{min-height:0}
+  #secSave .savegrid{grid-template-columns:1fr 1fr;gap:10px}
+  #secSave .col{gap:6px}
+  #secSave button,#secSave select,#secSave input[type=text],.filebtn{min-height:36px!important;font-size:13px!important}
+  .live{min-height:40px}
   #secSettings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;column-gap:12px}
   #secSettings h2,#secSettings .params{grid-column:1/-1}
   .help{overflow:auto!important;height:auto!important;min-height:calc(100dvh - 48px)}
@@ -211,6 +231,26 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     <p class="credit" data-t>ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
   </section>
 
+  <section class="savesec" id="secSave">
+    <h2 data-t>SPEICHERN · SAVE am FM-1</h2>
+    <div class="savegrid">
+      <div class="col">
+        <label><span data-t>Projekt</span><input id="projName" type="text" maxlength="60" autocomplete="off"></label>
+        <div class="btnrow"><button id="bSaveProj" data-t>Speichern</button><button id="bNewProj" data-t>Neues Projekt</button></div>
+        <select id="projList" aria-label="Projekte"></select>
+        <div class="btnrow"><button id="bLoadProj" data-t>Laden</button><button id="bDelProj" data-t>Loeschen</button></div>
+        <div class="btnrow"><button id="bExportProj" data-t>Als Datei sichern</button><label class="filebtn"><input id="fileProj" type="file" accept=".ouroloops,.zip"><span data-t>Datei laden</span></label></div>
+      </div>
+      <div class="col">
+        <button id="bLive" class="live" data-t>Live-Mitschnitt starten</button><span id="liveTime" class="mono"></span>
+        <label><span data-t>Durchlaeufe fuer Mix und Stems</span><select id="selLoops"></select></label>
+        <div class="btnrow3"><button id="bMix" data-t>Mix (WAV)</button><button id="bStemsDry" data-t>Stems trocken</button><button id="bStemsFx" data-t>Stems mit FX</button></div>
+        <p id="folderRow" class="folder"><button id="bFolder" data-t>Speicherort waehlen</button> <span id="folderName"></span></p>
+        <p class="note" data-t>Projekte bleiben im Browser dieses Geraets und werden jede Minute automatisch gesichert. Dateien landen im gewaehlten Ordner oder im Download-Ordner.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="set" id="secSettings">
     <h2 data-t>EINSTELLUNGEN</h2>
     <div id="setParams" class="params"></div>
@@ -226,6 +266,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td>PLAY</td><td data-t>Alles starten / stoppen</td></tr>
       <tr><td>EDIT</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
       <tr><td>HOME</td><td data-t>Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an</td></tr>
+      <tr><td>SAVE</td><td data-t>Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.</td></tr>
       <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
       <tr><td>ARP</td><td data-t>Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)</td></tr>
       <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
@@ -250,6 +291,8 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 </script>
 <script>
 /*I18N*/
+/*FXCHAIN*/
+/*SAVE*/
 /*ROCK*/
 /*DRUMS*/
 /*FM1*/

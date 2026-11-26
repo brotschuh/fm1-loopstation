@@ -129,6 +129,40 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.evaluate(() => window.__fm1.tap(3));
   await page.waitForTimeout(300);
   check(await page.evaluate(() => document.documentElement.dataset.theme) === 'dark', 'SEL again: dark');
+  // ---- saving -----------------------------------------------------------------------------
+  const Save = require('../src/save.js');
+  const NAME = /^Ouroloops_Session-1_\d{4}_\d{2}_\d{2}_\d{4}_/;
+  const grab = async fn => { const [d] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), fn()]); return { name: d.suggestedFilename(), data: new Uint8Array(fs.readFileSync(await d.path())) }; };
+  await page.evaluate(() => { window.__fm1.st.texts.length = 0; window.__fm1.tap(9); });
+  await page.waitForTimeout(600);
+  s = await S();
+  check(s.texts.some(t => t.startsWith('SAVE SESSION-1')), 'SAVE tap opens the save page on the FM-1: ' + s.texts.filter(t => t.startsWith('SAVE')).join(','));
+  await page.evaluate(() => { window.__fm1.st.texts.length = 0; window.__fm1.tap(9); });
+  await page.waitForTimeout(1200);
+  s = await S();
+  check(s.texts.some(t => t.includes('GESPEICHERT')), 'SAVE again saves, the FM-1 says GESPEICHERT');
+  check((await page.$$eval('#projList option', o => o.map(x => x.textContent))).some(t => t.startsWith('Session 1')), 'project "Session 1" in the list');
+  let f = await grab(() => page.click('#bMix'));
+  check(NAME.test(f.name) && f.name.endsWith('_Mix-4x.wav'), 'mix file name: ' + f.name);
+  let w = Save.unwav(f.data);
+  check(w.channels.length === 2 && w.channels[0].length > w.sr * 2, 'mix is stereo, ' + (w.channels[0].length / w.sr).toFixed(1) + ' s');
+  f = await grab(() => page.click('#bStemsFx'));
+  let z = Save.unzip(f.data);
+  check(f.name.endsWith('_Stems-fx-4x.zip') && z['Track1.wav'] && z['Drums.wav'], 'stems with FX: ' + f.name + ' ' + Object.keys(z).join(','));
+  f = await grab(() => page.click('#bStemsDry'));
+  z = Save.unzip(f.data);
+  check(f.name.endsWith('_Stems-dry-4x.zip') && Save.unwav(z['Track1.wav']).channels.length === 1, 'dry stems, the loop mono as recorded: ' + Object.keys(z).join(','));
+  await page.click('#bLive'); await page.waitForTimeout(1500);
+  f = await grab(() => page.click('#bLive'));
+  w = Save.unwav(f.data);
+  const lsec = w.channels[0].length / w.sr;
+  check(NAME.test(f.name) && f.name.endsWith('_Live.wav') && lsec > 1.2 && lsec < 2.5, 'live recording ' + f.name + ' ' + lsec.toFixed(2) + ' s');
+  f = await grab(() => page.click('#bExportProj'));
+  check(/^Session-1\.ouroloops$/.test(f.name), 'project file: ' + f.name);
+  const proj = Save.readProjectFile(f.data);
+  check(proj.snap.tracks[0].data && proj.snap.tracks[0].data.length === proj.snap.tracks[0].len, 'project file holds track 1 lossless (' + proj.snap.tracks[0].len + ' samples)');
+  const projPath = shots + '/test.ouroloops'; fs.writeFileSync(projPath, f.data);
+
   // back to track 1 for the screenshot of the FM-1 screen
   await page.evaluate(() => { window.__fm1.enc(0, 1); window.__fm1.tap(2); });
   await page.waitForTimeout(800);
@@ -142,6 +176,16 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.waitForTimeout(300);
   await page.screenshot({ path: shots + '/2-desktop.png', fullPage: false });
+  // the session comes back after a reload, and a project file loads
+  const len0 = await page.evaluate(() => document.querySelector('.track[data-i="0"] .ts').textContent);
+  await page.reload(); await page.click('#start');
+  await page.waitForSelector('#app:not([hidden])', { timeout: 10000 }); await page.waitForTimeout(2000);
+  const ts0 = await page.textContent('.track[data-i="0"] .ts');
+  check(ts0 !== 'LEER' && ts0 !== '' , 'after a reload track 1 is back: ' + len0 + ' -> ' + ts0);
+  await page.click('#bNewProj'); await page.waitForTimeout(800);
+  check(await page.inputValue('#projName') === 'Session 2', 'new project: ' + await page.inputValue('#projName'));
+  await page.setInputFiles('#fileProj', projPath); await page.waitForTimeout(1200);
+  check(await page.inputValue('#projName') === 'Session 1' && (await page.textContent('.track[data-i="0"] .ts')) !== 'LEER', 'project file loads back');
   check(errors.length === 0, 'no page errors: ' + errors.slice(0, 3).join(' | '));
   await browser.close();
   console.log(fails ? fails + ' failed' : 'all passed');

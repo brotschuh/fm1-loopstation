@@ -214,4 +214,19 @@ test('click: one bar count-in, heard in the output, never in the recording', () 
   assert.equal(e.tracks[0].len, 2 * SR);
 });
 
+test('snapshot and load bring a session back, offsets and all', () => {
+  const e = mk(); e.recToDub = false;
+  e.recButton(0); run(e, 1.0, i => (i % 480) / 480); e.recButton(0);
+  run(e, 0.3); e.recButton(1); run(e, 1.0, () => 0.2); e.recButton(1); run(e, 1.2);
+  e.trackStop(1);
+  const snap = e.snapshot();
+  assert.equal(snap.tracks[0].len, e.tracks[0].len); assert.equal(snap.tracks[2].data, null);
+  const f = mk(); f.load(JSON.parse(JSON.stringify({ ...snap, tracks: snap.tracks.map(x => ({ ...x, data: null })) })));
+  f.load({ ...snap });
+  assert.equal(f.master, e.master); assert.equal(f.tracks[0].state, 'play'); assert.equal(f.tracks[1].state, 'stop');
+  assert.equal(f.tracks[1].anchor, snap.tracks[1].offset);
+  for (let i = 0; i < 2000; i += 97) assert.equal(f.tracks[0].buf[i], e.tracks[0].buf[i]);
+  assert.ok(!f.running);
+});
+
 if (failures) { console.log(failures + ' failed'); process.exit(1); } else console.log('all passed');

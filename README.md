@@ -40,19 +40,35 @@ The user interface is in German for now.
 |---|---|
 | REC | record → overdub → play → overdub … On the drum track: record the pads into the pattern |
 | PLAY | start / stop everything |
-| SCL | undo / redo the last take |
-| HOME | mute / unmute the selected track |
-| SAVE (hold) | clear the selected track |
-| ARP | drums on / off |
-| SELECT | choose the track (1, 2, 3, drums) |
+| EDIT | undo / redo the last take |
+| HOME | tap: tracks page (volume, pan, reverse), hold: mute / unmute the selected track |
+| SAVE | tap: save page — K1 chooses the action (save, load, new, live recording, mix, stems dry, stems with FX), K2 the number of loops, K3 the project to load; SAVE again does it. Hold: clear the selected track |
+| ARP | tap: drums on / off, hold: click on / off (the click is never recorded) |
+| SELECT | choose the track (1, 2, 3, drums); on the FX page: choose the effect |
 | PRESETS | drum pattern |
 | ALGORITHM | drum sound shown on the step keys |
-| FX · ENV · EDIT · GLO · SEQ | pages Delay+Reverb · Filter+Bitcrush · Track · Mic · Drums; K1–K4 set the values |
-| LFO | tap: chorus+stutter page, hold: stutter |
+| FX | effects of the selected track (delay, reverb, chorus, bitcrusher); FX again = next effect |
+| ENV · SEQ · GLO | pages Filter · Drums · Mic, output and button light; K1–K4 set the values |
+| LFO | tap: stutter page, hold: stutter |
 | Keys 1–16 | the steps of the selected drum sound |
 | Keys 17–27 | drum pads |
 
-On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter.
+On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter, K = click.
+
+## Saving
+
+- **Projects** (all loops, lossless, plus every setting) are kept in the browser of the device and saved
+  automatically every minute. *Save as file* writes `Session-1.ouroloops` to move a project to another device.
+- **Live recording** of everything you hear: `Ouroloops_Session-1_2026_11_26_1714_Live.wav`.
+- **Mix** with 1–16 loops, effect tails included: `…_Mix-4x.wav`.
+- **Stems** dry (as recorded) or with effects, one ZIP with `Track1.wav` … `Drums.wav`: `…_Stems-dry-4x.zip`, `…_Stems-fx-4x.zip`.
+- On a computer, *Choose save folder* once and every file goes into a subfolder per project; on a phone the
+  files go to the downloads folder.
+
+## Install as an app
+
+Open https://brotschuh.github.io/ouroloops/ in Chrome and choose *Install app* / *Add to home screen*.
+It then starts like an app, full screen, and works offline.
 
 ## Firmware
 

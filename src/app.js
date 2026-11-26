@@ -10,7 +10,7 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
   stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
-  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', v: 3 };
+  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, projId: '', projName: '', v: 3 };
 let S = { ...DEF };
 try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0 }); } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
@@ -44,12 +44,17 @@ const FX_SUB = {
   BITCRUSH: { name: 'BITCRUSH', p: [P('bits', 'BITS', 2, 16, 1, v => v >= 16 ? 'AUS' : v + ' BIT'), P('down', 'SAMPLERATE', 1, 32, 1, v => v === 1 ? 'AUS' : '1/' + v, 'RATE')] },
 };
 const FX_KEYS = Object.keys(FX_SUB);
+const SAVE_ACTS = ['SPEICHERN', 'LADEN', 'NEU', 'LIVE', 'MIX', 'STEMS DRY', 'STEMS FX'];
+let projList = [];
 const PAGES = {
   FX: { btn: 2, get name() { return chName() + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name + ' ' + (S.fxSel + 1) + '/' + FX_KEYS.length; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
   FILTER: { get name() { return chName() + ' FILTER'; }, btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
   STUTTER: { name: 'STUTTER', btn: 5, p: [P('stutDiv', 'LAENGE', 0, 3, 1, v => '1/' + STUT_DIV[v])] },
   SPUR: { name: 'SPUREN', btn: 8, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
   DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1, null, 'DRUMS')] },
+  SAVE: { btn: 9, get name() { return 'SAVE ' + Save.safe(S.projName).toUpperCase(); },
+    p: [P('saveAct', 'AKTION', 0, SAVE_ACTS.length - 1, 1, v => SAVE_ACTS[v]), P('saveLoops', 'LOOPS', 1, 16, 1, v => v + 'X'),
+      P('saveProj', 'PROJEKT', 0, 99, 1, v => (projList[v] ? Save.safe(projList[v].name).toUpperCase() : '-'))] },
   MIKRO: { name: 'MIKRO + AUSGANG', btn: 7, p: [P('inGain', 'EINGANG', 0, 200, 2), P('mon', 'MITHOEREN', 0, 100, 2, null, 'MONITOR'), P('lat', 'LATENZ', 0, 400, 1, v => v + 'ms'), P('glow', 'TASTENLICHT', 0, 8, 1, v => v ? String(v) : 'AUS', 'LICHT')] },
 };
 function chName() { return sel < 3 ? 'S' + (sel + 1) : 'DR'; }
@@ -64,6 +69,7 @@ function getP(id) {
   if (id === 'tPan') return t ? Math.round(t.pan * 100) : 0;
   if (id === 'tRev') return t && t.rev ? 1 : 0;
   if (id === 'bpm') return st ? Math.round(st.bpm) : S.bpm;
+  if (id === 'saveProj') return S.saveProj || 0;
   if (FX_IDS.includes(id)) return S.tfx[sel][id];
   return S[id];
 }
@@ -77,7 +83,8 @@ function setP(id, v) {
     if (st) st.tracks[sel][k] = id === 'tRev' ? !!v : v / 100;
   } else {
     if (id === 'bpm' && st && st.master > 0) { toast(T('Tempo kommt vom Loop')); return; }
-    if (FX_IDS.includes(id)) { S.tfx[sel][id] = v; save(); applyFx(sel, id); }
+    if (id === 'saveProj') v = Math.min(v, Math.max(0, projList.length - 1));
+    if (FX_IDS.includes(id)) { S.tfx[sel][id] = v; save(); applyFx(sel, id); changed = true; }
     else { S[id] = v; save(); applyParam(id); }
   }
   renderParams(); drawParam(id);
@@ -86,11 +93,6 @@ function setP(id, v) {
 // ---- audio --------------------------------------------------------------------------------
 function send(m) { if (node) node.port.postMessage(m); }
 
-function impulse(sec) {
-  const n = Math.floor(ctx.sampleRate * sec), b = ctx.createBuffer(2, n, ctx.sampleRate);
-  for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.5); }
-  return b;
-}
 
 async function startAudio() {
   ctx = new AudioContext({ latencyHint: 'interactive' });
@@ -100,26 +102,14 @@ async function startAudio() {
   catch (e) { await ctx.audioWorklet.addModule('data:application/javascript;charset=utf-8,' + encodeURIComponent(src)); }
   node = new AudioWorkletNode(ctx, 'loop-engine', { numberOfInputs: 1, numberOfOutputs: 5, outputChannelCount: [2, 2, 2, 2, 2], channelCount: 1, channelCountMode: 'explicit' });
   node.port.onmessage = m => onStatus(m.data);
-  fx.master = ctx.createGain(); fx.lim = ctx.createDynamicsCompressor(); fx.lim.threshold.value = -3; fx.lim.ratio.value = 20; fx.lim.attack.value = 0.002; fx.lim.release.value = 0.1;
-  fx.master.connect(fx.lim); fx.lim.connect(ctx.destination);
-  // per channel: filter -> chorus -> (dry, delay, reverb) -> master; the bitcrusher runs in the engine
-  fx.ch = [0, 1, 2, 3].map(c => {
-    const f = {};
-    f.filter = ctx.createBiquadFilter();
-    f.choDry = ctx.createGain(); f.choWet = ctx.createGain(); f.choDel = ctx.createDelay(0.1); f.choDel.delayTime.value = 0.018;
-    f.lfo = ctx.createOscillator(); f.lfoAmt = ctx.createGain(); f.lfo.connect(f.lfoAmt); f.lfoAmt.connect(f.choDel.delayTime); f.lfo.start();
-    f.mix = ctx.createGain();
-    f.dSend = ctx.createGain(); f.delay = ctx.createDelay(3); f.dFb = ctx.createGain(); f.dTone = ctx.createBiquadFilter();
-    f.rSend = ctx.createGain(); f.conv = ctx.createConvolver(); f.rPre = ctx.createDelay(0.2); f.rDamp = ctx.createBiquadFilter();
-    node.connect(f.filter, c);
-    f.filter.connect(f.choDry); f.filter.connect(f.choDel); f.choDel.connect(f.choWet);
-    f.choDry.connect(f.mix); f.choWet.connect(f.mix);
-    f.mix.connect(fx.master);
-    f.mix.connect(f.dSend); f.dSend.connect(f.delay); f.delay.connect(f.dTone); f.dTone.connect(f.dFb); f.dFb.connect(f.delay); f.dTone.connect(fx.master);
-    f.mix.connect(f.rSend); f.rSend.connect(f.rPre); f.rPre.connect(f.conv); f.conv.connect(f.rDamp); f.rDamp.connect(fx.master);
-    return f;
-  });
-  node.connect(fx.master, 4);   // microphone monitor and click: no effects
+  const m = FXChain.master(ctx, ctx.destination, 1); fx.master = m.gain; fx.lim = m.lim;
+  // per channel (tracks 1-3, drums) its own chain; the bitcrusher runs in the engine
+  fx.ch = [0, 1, 2, 3].map(c => { const f = FXChain.make(ctx, fx.master); node.connect(f.input, c); return f; });
+  node.connect(fx.master, 4);
+  fx.tap = new AudioWorkletNode(ctx, 'tap', { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 2, channelCountMode: 'explicit' });
+  fx.tap.port.onmessage = m => { live.chunks.push(m.data); live.n += m.data.L.length; };
+  const silent = ctx.createGain(); silent.gain.value = 0;
+  fx.lim.connect(fx.tap); fx.tap.connect(silent); silent.connect(ctx.destination);   // microphone monitor and click: no effects
   if (S.lat < 0) S.lat = Math.round(((ctx.baseLatency || 0.01) + (ctx.outputLatency || 0.02)) * 1000 + 15);
   for (const k of Object.keys(DEF)) if (!FX_IDS.includes(k)) applyParam(k);
   for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k);
@@ -135,29 +125,8 @@ async function startAudio() {
 
 function applyFx(c, k) {
   if (!ctx) return;
-  const f = fx.ch[c], S2 = S.tfx[c], v = S2[k], now = ctx.currentTime, set = (prm, x) => prm.setTargetAtTime(x, now, 0.02);
-  const beat = 60 / (st ? st.bpm : S.bpm);
-  switch (k) {
-    case 'dlyMix': set(f.dSend.gain, v / 100 * 0.8); break;
-    case 'dlyDiv': set(f.delay.delayTime, Math.min(2.9, beat * DLY_DIV[v][1])); break;
-    case 'dlyFb': set(f.dFb.gain, v / 100); break;
-    case 'dlyTone': set(f.dTone.frequency, 800 * Math.pow(2, v / 100 * 4)); break;
-    case 'rev': set(f.rSend.gain, v / 100 * 0.9); break;
-    case 'revSize': f.conv.buffer = impulse(0.4 + v / 100 * 4); break;
-    case 'revDamp': set(f.rDamp.frequency, 18000 * Math.pow(2, -v / 100 * 3.2)); break;
-    case 'revPre': set(f.rPre.delayTime, v / 1000); break;
-    case 'choMix': set(f.choWet.gain, v / 100); set(f.choDry.gain, 1 - v / 200); break;
-    case 'choDepth': set(f.lfoAmt.gain, 0.0005 + v / 100 * 0.006); break;
-    case 'choRate': set(f.lfo.frequency, 0.1 + v / 100 * 4.9); break;
-    case 'bits': send({ t: 'set', k: 'bits', v: { i: c, v } }); break;
-    case 'down': send({ t: 'set', k: 'down', v: { i: c, v } }); break;
-    case 'filt': case 'res': {
-      const fl = S2.filt, q = 0.7 + S2.res / 100 * 14;
-      if (fl <= 0) { f.filter.type = 'lowpass'; set(f.filter.frequency, fl === 0 ? 22000 : 20000 * Math.pow(2, fl / 100 * 9)); }
-      else { f.filter.type = 'highpass'; set(f.filter.frequency, 20 * Math.pow(2, fl / 100 * 9)); }
-      set(f.filter.Q, fl === 0 ? 0.7 : q); break;
-    }
-  }
+  if (k === 'bits' || k === 'down') { send({ t: 'set', k, v: { i: c, v: S.tfx[c][k] } }); return; }
+  FXChain.set(ctx, fx.ch[c], k, S.tfx[c], st ? st.bpm : S.bpm);
 }
 
 function applyParam(k) {
@@ -231,13 +200,15 @@ async function setOutput(id) { try { await ctx.setSinkId(id); S.outId = id; save
 // ---- engine status -> UI, FM-1 screen and LEDs ------------------------------------------------
 let lastSig = '', lastLed = -1n, lastProg = 0, lastPat = '';
 function onStatus(s) {
+  if (s.t === 'snapshot') { if (snapWait) { snapWait(s.snap); snapWait = null; } return; }
   const prev = st; st = s;
+  if (prev && (s.master !== prev.master || s.tracks.some((t, i) => t.state !== prev.tracks[i].state && (t.state === 'play' || t.state === 'dub')))) changed = true;
   if (s.wave) { wave = s.wave; fmWaveDirty = true; }
   for (const ev of s.events) if (ev.t === 'loop') { toast(`Loop: ${ev.bars} ${T(ev.bars > 1 ? 'Takte' : 'Takt')}, ${Math.round(ev.bpm)} BPM`); for (let c = 0; c < 4; c++) applyFx(c, 'dlyDiv'); }
   const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0]);
   if (sig !== lastSig) { lastSig = sig; renderTracks(); drawScreen(); renderParams(); }
   const pat = s.pattern.join('');
-  if (pat !== lastPat) { lastPat = pat; renderGrid(); }
+  if (pat !== lastPat) { if (lastPat) changed = true; lastPat = pat; renderGrid(); }
   updateMeters();
   updateLeds();
   const now = performance.now();
@@ -270,7 +241,10 @@ function tileColor(i) {
   if (st.armed === i) return C.rec;
   const t = st.tracks[i]; return { empty: C.dark, rec: C.rec, dub: C.dub, play: C.play, stop: C.stop }[t.state];
 }
+let fmMsg = '', fmMsgUntil = 0;
+function fmSay(m) { fmMsg = m; fmMsgUntil = performance.now() + 2500; lastSig = ''; drawScreen(); setTimeout(() => { lastSig = ''; drawScreen(); }, 2600); }
 function bigWord() {
+  if (fmMsg && performance.now() < fmMsgUntil) return fmMsg;
   if (sel === 3) return st.drumRec ? 'D-REC' : st.drumOn ? (st.running ? 'DRUMS' : 'BEREIT') : 'AUS';
   if (st.armed === sel) return 'WARTE';
   const t = st.tracks[sel];
@@ -285,6 +259,7 @@ function drawScreen() {
   const o = FM1.op, ops = [o.rect(0, 0, 240, 4, C.bg), o.rect(150, 4, 24, 16, C.bg), o.rect(0, Y.tiles - 6, 240, Y.tileH + 10, C.bg)];
   ops.push(o.text(6, 4, 2, C.accent, C.bg, 'OUROLOOPS'));
   ops.push(o.text(174, 4, 2, C.fg, C.bg, String(Math.round(st.bpm)).padStart(3) + ' '));
+  ops.push(o.text(120, 4, 2, C.rec, C.bg, live.on ? 'LIVE' : '    '));
   for (let i = 0; i < 4; i++) {
     const x = 6 + i * 58, y = Y.tiles, c = tileColor(i);
     if (i === sel) ops.push(o.rect(x - 3, y - 3, 56, Y.tileH + 6, C.fg));
@@ -420,7 +395,7 @@ function reveal(id) {
   if (r.top < 60 || r.top > h * 0.5) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 // ARP (10) jumps nowhere; GLO (7) goes to the settings, where the MIKRO knobs are too
-const BTN_SECTION = { 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secTracks', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks', 9: 'secTracks' };
+const BTN_SECTION = { 9: 'secSave', 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secTracks', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks' };
 link.onButton = (b, on) => {
   const B = FM1.BTN;
   if (on && BTN_SECTION[b]) reveal(sel === 3 && (b === 12 || b === 13) ? 'secDrums' : BTN_SECTION[b]);
@@ -439,9 +414,9 @@ link.onButton = (b, on) => {
       if (on) held.arpTimer = setTimeout(() => { held.arpTimer = 0; toggleClick(); }, 450);
       else if (held.arpTimer) { clearTimeout(held.arpTimer); held.arpTimer = 0; toggleDrums(); }
       break;
-    case B.SAVE:
+    case B.SAVE:   // tap: the save page, on it: do what K1 says; hold: clear the track
       if (on) held.saveTimer = setTimeout(() => { clearSel(); held.saveTimer = 0; }, 800);
-      else if (held.saveTimer) { clearTimeout(held.saveTimer); toast(T('SAVE halten = Spur loeschen')); }
+      else if (held.saveTimer) { clearTimeout(held.saveTimer); held.saveTimer = 0; if (page === 'SAVE') saveAction(); else { ensureProject().then(() => { setPage('SAVE'); lastSig = ''; drawScreen(); }); } }
       break;
     case B.LFO:
       if (on) held.stutTimer = setTimeout(() => { held.stutTimer = 0; stutter(true); }, 220);
@@ -456,7 +431,7 @@ link.onButton = (b, on) => {
 link.onEncoder = (e, d) => {
   if (e === 0 && page === 'FX') { setFx(S.fxSel + (d > 0 ? 1 : -1)); reveal('secFx'); return; }
   if (e === 0) { select((sel + (d > 0 ? 1 : 3)) % 4); reveal('secTracks'); return; }
-  if (e === 1 || e === 6) reveal('secDrums'); else reveal(page === 'MIKRO' ? 'secSettings' : 'secFx');
+  if (e === 1 || e === 6) reveal('secDrums'); else reveal(page === 'MIKRO' ? 'secSettings' : page === 'SAVE' ? 'secSave' : 'secFx');
   if (e === 6) { setP('pat', (S.pat + (d > 0 ? 1 : PATTERNS.length - 1)) % PATTERNS.length); toast(T('Muster') + ': ' + T(PATTERNS[S.pat].name)); return; }
   if (e === 1) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); toast('Drum: ' + T(voiceNames()[voice])); return; }
   const p = PAGES[page].p[e - 2]; if (!p) return;
@@ -477,6 +452,124 @@ link.onState = (ok, name, outs) => {
   $('#fm1hint').hidden = ok;
   if (ok) { lastLed = -1n; setTimeout(drawScreen, 100); }
 };
+
+// ---- saving ----------------------------------------------------------------------------------
+let snapWait = null, changed = false;
+function getSnap() { return new Promise(res => { snapWait = res; send({ t: 'snapshot', id: Date.now() }); }); }
+function settingsOf() { return { tfx: S.tfx, drumVol: S.drumVol, pat: S.pat, kit: S.kit, master: S.master, recToDub: S.recToDub, clickOn: !!(st && st.clickOn) }; }
+async function refreshProjects() {
+  try { projList = await Save.listProjects(); } catch (e) { projList = []; }
+  const i = projList.findIndex(p => p.id === S.projId); if (i >= 0 && !S.saveProj) S.saveProj = i;
+  renderSave(); if (page === 'SAVE') drawScreen();
+}
+function newId() { return 'p' + Date.now().toString(36); }
+async function ensureProject() {
+  if (S.projId) return;
+  await refreshProjects();
+  S.projId = newId(); S.projName = 'Session ' + (projList.length + 1); save();
+}
+async function saveProject(auto) {
+  await ensureProject();
+  const snap = await getSnap(), old = await Save.getProject(S.projId).catch(() => null);
+  await Save.putProject({ id: S.projId, name: S.projName, created: old ? old.created : Date.now(), updated: Date.now(), auto: !!auto, sr: ctx.sampleRate, snap, settings: settingsOf() });
+  changed = false; await refreshProjects();
+  if (!auto) { toast(T('Projekt gespeichert') + ': ' + S.projName); fmSay(T('GESPEICHERT')); }
+}
+async function loadProject(id) {
+  const p = await Save.getProject(id); if (!p) return;
+  if (changed && S.projId && S.projId !== id) await saveProject(true);
+  applyProject(p);
+  toast(T('Projekt geladen') + ': ' + p.name); fmSay(T('GELADEN'));
+}
+function applyProject(p) {
+  S.projId = p.id; S.projName = p.name;
+  const g = p.settings || {};
+  if (g.tfx) S.tfx = g.tfx;
+  for (const k of ['drumVol', 'pat', 'kit', 'master', 'recToDub']) if (g[k] !== undefined) S[k] = g[k];
+  save();
+  const snap = p.snap, transfer = snap.tracks.filter(t => t.data).map(t => t.data.buffer);
+  node.port.postMessage({ t: 'load', p: snap }, transfer);
+  for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k);
+  for (const k of ['drumVol', 'master', 'recToDub']) applyParam(k);
+  send({ t: 'set', k: 'clickOn', v: !!g.clickOn });
+  $('#grid').innerHTML = ''; renderGrid(); renderParams(); changed = false; refreshProjects();
+}
+async function newProject() {
+  if (changed && S.projId) await saveProject(true);
+  send({ t: 'clearAll' });
+  await refreshProjects();
+  S.projId = newId(); S.projName = 'Session ' + (projList.length + 1); changed = false; save();
+  renderSave(); toast(T('Neues Projekt') + ': ' + S.projName); fmSay(T('NEU'));
+}
+async function exportProject() {
+  await saveProject(true);
+  const p = await Save.getProject(S.projId);
+  const r = await Save.write(`${Save.safe(p.name)}.ouroloops`, Save.projectFile(p), p.name);
+  toast(T('Gespeichert in') + ' ' + r.where);
+}
+async function importProject(file) {
+  try {
+    const p = Save.readProjectFile(new Uint8Array(await file.arrayBuffer()));
+    p.id = newId(); p.updated = Date.now();
+    await Save.putProject(p); applyProject(p); toast(T('Projekt geladen') + ': ' + p.name);
+  } catch (e) { toast(T('Datei nicht lesbar') + ': ' + e.message); }
+}
+async function exportAudio(kind) {
+  await ensureProject();
+  const snap = await getSnap();
+  if (!snap.tracks.some(t => t.data) && !snap.drumOn) { toast(T('Nichts zum Exportieren')); return; }
+  fmSay(T('RECHNET')); toast(T('Rechnet …'));
+  const loops = S.saveLoops, kits_ = kits, sr = ctx.sampleRate, set = { tfx: S.tfx, drumVol: S.drumVol / 100, master: S.master };
+  const tag = kind === 'mix' ? `Mix-${loops}x` : kind === 'dry' ? `Stems-dry-${loops}x` : `Stems-fx-${loops}x`;
+  const out = await Save.render(snap, set, kits_, sr, { loops, fx: kind !== 'dry', stems: kind !== 'mix' });
+  let r;
+  if (kind === 'mix') r = await Save.write(Save.fileName(S.projName, tag, 'wav'), Save.wav(out.mix, sr, 16), S.projName);
+  else r = await Save.write(Save.fileName(S.projName, tag, 'zip'), Save.zip(out.stems.map(x => ({ name: x.name + '.wav', data: Save.wav(x.channels, sr, 16) }))), S.projName);
+  toast(T('Gespeichert in') + ' ' + r.where + ': ' + r.name); fmSay(T('GESPEICHERT'));
+}
+// live recording of everything that comes out
+const live = { on: false, chunks: [], n: 0, t0: 0 };
+function liveToggle() {
+  if (!fx.tap) return;
+  if (!live.on) {
+    live.on = true; live.chunks = []; live.n = 0; live.t0 = performance.now();
+    fx.tap.port.postMessage({ on: true }); toast(T('Live-Mitschnitt laeuft')); fmSay('LIVE REC');
+  } else {
+    live.on = false; fx.tap.port.postMessage({ on: false });
+    setTimeout(async () => {
+      const L = new Float32Array(live.n), R = new Float32Array(live.n); let o = 0;
+      for (const c of live.chunks) { L.set(c.L, o); R.set(c.R, o); o += c.L.length; }
+      live.chunks = [];
+      await ensureProject();
+      const r = await Save.write(Save.fileName(S.projName, 'Live', 'wav'), Save.wav([L, R], ctx.sampleRate, 16), S.projName);
+      toast(T('Gespeichert in') + ' ' + r.where + ': ' + r.name); fmSay(T('GESPEICHERT'));
+    }, 150);
+  }
+  lastSig = ''; renderSave(); drawScreen();
+}
+function saveAction() {
+  const a = SAVE_ACTS[S.saveAct];
+  if (a === 'SPEICHERN') saveProject(false);
+  else if (a === 'LADEN') { const p = projList[S.saveProj || 0]; if (p) loadProject(p.id); }
+  else if (a === 'NEU') newProject();
+  else if (a === 'LIVE') liveToggle();
+  else if (a === 'MIX') exportAudio('mix');
+  else if (a === 'STEMS DRY') exportAudio('dry');
+  else exportAudio('fx');
+}
+function renderSave() {
+  if (!$('#projName')) return;
+  if (document.activeElement !== $('#projName')) $('#projName').value = S.projName || '';
+  $('#projList').innerHTML = projList.length ? projList.map(p => `<option value="${esc(p.id)}" ${p.id === S.projId ? 'selected' : ''}>${esc(p.name)} · ${new Date(p.updated).toLocaleString()}</option>`).join('') : `<option value="">${esc(T('noch keine Projekte'))}</option>`;
+  $('#bLive').classList.toggle('on', live.on);
+  $('#bLive').textContent = live.on ? T('Mitschnitt stoppen') : T('Live-Mitschnitt starten');
+  $('#selLoops').value = S.saveLoops;
+  $('#folderRow').hidden = !Save.canChooseFolder();
+  $('#folderName').textContent = Save.folderName() || T('noch keiner (Download-Ordner)');
+}
+setInterval(() => { if (live.on) { const s = Math.floor((performance.now() - live.t0) / 1000); $('#liveTime').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); } else $('#liveTime').textContent = ''; }, 500);
+// autosave once a minute when something changed
+setInterval(() => { if (node && changed && st && (st.master > 0 || st.drumOn)) saveProject(true).catch(() => { }); }, 60000);
 
 // ---- actions ---------------------------------------------------------------------------------
 function recPress() { if (sel === 3) send({ t: 'drumRec' }); else send({ t: 'rec', i: sel }); }
@@ -574,7 +667,8 @@ function markStep(s) {
 function flashPad(v) { const b = document.querySelector(`.pad[data-v="${v}"]`); if (b) { b.classList.add('hit'); setTimeout(() => b.classList.remove('hit'), 120); } }
 
 // ---- wiring --------------------------------------------------------------------------------
-applyLang(); applyTheme();
+applyLang(); applyTheme(); renderSave();
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { });
 // Firefox and Safari cannot talk to the FM-1 (no Web MIDI with SysEx): say so before anything else
 if (!navigator.requestMIDIAccess) $('#browserWarn').hidden = false;
 $('#bLang').onclick = () => setLang(LANG === 'de' ? 'en' : 'de');
@@ -585,6 +679,9 @@ $('#start').onclick = async () => {
   try {
     await startAudio();
     send({ t: 'wave', i: sel, bins: 400 });
+    await Save.restoreFolder(); await refreshProjects();
+    if (S.projId) { const p = await Save.getProject(S.projId).catch(() => null); if (p) applyProject(p); else S.projId = ''; }
+    await ensureProject(); renderSave();
     $('#intro').hidden = true; $('#app').hidden = false;
     try { await link.open(); } catch (e) { $('#fm1').textContent = e.message; }
   } catch (e) { $('#start').disabled = false; $('#start').textContent = T('Starten'); $('#err').textContent = T('Fehler: ') + e.message; }
@@ -612,6 +709,25 @@ $('#grid').onpointerdown = e => {
 };
 $('#selPat').onchange = e => setP('pat', +e.target.value);
 $('#selKit').onchange = e => setP('kit', +e.target.value);
+$('#projName').onchange = e => { S.projName = e.target.value.trim() || S.projName; save(); changed = true; if (S.projId) saveProject(true); };
+$('#bSaveProj').onclick = () => saveProject(false);
+$('#bNewProj').onclick = () => newProject();
+$('#bLoadProj').onclick = () => { const id = $('#projList').value; if (id) loadProject(id); };
+$('#bDelProj').onclick = async () => {
+  const b = $('#bDelProj'), id = $('#projList').value; if (!id) return;
+  if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = T('Wirklich loeschen?'); setTimeout(() => { delete b.dataset.arm; b.textContent = T('Loeschen'); }, 3000); return; }
+  delete b.dataset.arm; b.textContent = T('Loeschen');
+  await Save.delProject(id); if (id === S.projId) { S.projId = ''; save(); } refreshProjects(); toast(T('Projekt geloescht'));
+};
+$('#bExportProj').onclick = () => exportProject();
+$('#fileProj').onchange = e => { const f = e.target.files[0]; if (f) importProject(f); e.target.value = ''; };
+$('#bLive').onclick = () => liveToggle();
+$('#selLoops').onchange = e => { S.saveLoops = +e.target.value; save(); renderParams(); };
+$('#bMix').onclick = () => exportAudio('mix');
+$('#bStemsDry').onclick = () => exportAudio('dry');
+$('#bStemsFx').onclick = () => exportAudio('fx');
+$('#bFolder').onclick = async () => { try { await Save.chooseFolder(); renderSave(); toast(T('Speicherort') + ': ' + Save.folderName()); } catch (e) { } };
+$('#selLoops').innerHTML = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}x</option>`).join('');
 $('#selMic').onchange = e => { S.micId = e.target.value; save(); openMic(); };
 $('#selOut').onchange = e => setOutput(e.target.value);
 $('#bClearAll').onclick = () => { if ($('#bClearAll').dataset.arm) { send({ t: 'clearAll' }); delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); } else { $('#bClearAll').dataset.arm = 1; $('#bClearAll').textContent = T('Wirklich alles loeschen?'); setTimeout(() => { delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); }, 3000); } };

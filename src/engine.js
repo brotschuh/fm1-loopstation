@@ -226,6 +226,40 @@ class LoopEngine {
     return { pk: out, dk: dub, span };
   }
 
+  // ---- projects -------------------------------------------------------------------
+  // a copy of everything needed to save the session (the loops dry, as recorded)
+  snapshot() {
+    return {
+      master: this.master, masterBars: this.masterBars, bpm: this.bpm, drumOn: this.drumOn, kit: this.kit,
+      pattern: Array.from(this.pattern),
+      tracks: this.tracks.map(t => ({
+        len: t.len, offset: t.len ? mod(t.anchor, t.len) : 0, vol: t.vol, pan: t.pan, rev: t.rev, muted: t.state === 'stop',
+        data: t.len ? t.buf.slice(0, t.len) : null,
+      })),
+    };
+  }
+  // load a saved session: transport stopped, every track with audio ready to play
+  load(p) {
+    this.running = false; this.p = 0; this.armed = -1; this.stut = false; this.drumRec = false;
+    this.playing.length = 0; this.clicks.length = 0;
+    for (let i = 0; i < NTRACKS; i++) {
+      const t = this.tracks[i], s = p.tracks[i] || {};
+      t.buf.fill(0, 0, Math.max(t.hi, t.len));
+      const n = s.data ? Math.min(s.data.length, this.maxLen) : 0;
+      if (n) t.buf.set(s.data.subarray(0, n));
+      t.len = n; t.hi = n; t.anchor = n ? (s.offset || 0) % n : 0; t.recEnd = -1; t.tail = 0;
+      t.vol = s.vol !== undefined ? s.vol : 0.8; t.pan = s.pan || 0; t.rev = !!s.rev;
+      t.state = n ? (s.muted ? 'stop' : 'play') : 'empty';
+      t.undo = n ? new Float32Array(n) : null; t.copied = n ? new Uint8Array(Math.ceil(n / CHUNK)).fill(1) : null; t.copyNext = 0;
+      t.canUndo = t.canRedo = false; t.dk.fill(0); this.repeak(t);
+    }
+    this.master = p.master || 0; this.masterBars = p.masterBars || 1; this.bpm = p.bpm || this.bpm;
+    if (p.pattern) this.pattern.set(p.pattern);
+    if (p.drumOn !== undefined) this.drumOn = !!p.drumOn;
+    if (p.kit !== undefined) this.kit = p.kit;
+    this.dirty = true;
+  }
+
   clearAll() { for (let i = 0; i < NTRACKS; i++) this.clear(i); this.master = 0; this.masterBars = 1; this.running = false; this.p = 0; }
 
   trackStop(i) {
