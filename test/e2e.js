@@ -66,6 +66,15 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
 
   const lbl = await page.textContent('.row[data-r="2"] .pad');
   check(lbl === 'RIMSHOT', 'ROCK kit is the default, grid shows its voices: ' + lbl);
+  // FX: SELECT scrolls the effects, FX again goes to the next one
+  await page.evaluate(() => { window.__fm1.tap(2); window.__fm1.enc(0, 1); });
+  await page.waitForTimeout(300);
+  check((await page.textContent('#fxsubs .on')) === 'REVERB', 'SELECT on the FX page: ' + await page.textContent('#fxsubs .on'));
+  await page.evaluate(() => window.__fm1.tap(2));
+  await page.waitForTimeout(300);
+  check((await page.textContent('#fxsubs .on')) === 'CHORUS', 'FX again: ' + await page.textContent('#fxsubs .on'));
+  s = await S();
+  check(s.texts.some(t => t.startsWith('FX 3/4 CHORUS')), 'FM-1 shows the effect');
   // pages and knobs: ENV -> FILTER page, K1 turned
   await page.evaluate(() => window.__fm1.tap(4));
   await page.evaluate(() => { for (let i = 0; i < 5; i++) window.__fm1.enc(2, -1); });

@@ -76,6 +76,10 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 #pages{display:flex;flex-wrap:wrap;gap:6px}
 #pages button{flex:none;font-size:14px;font-weight:700;min-height:40px}
 #pages button.on{background:var(--dub);color:#1a0f00;border-color:var(--dub)}
+#fxsubs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+#fxsubs[hidden]{display:none}
+#fxsubs button{flex:none;font-size:13px;font-weight:700;min-height:36px;color:var(--dim)}
+#fxsubs button.on{color:var(--ink);border-color:var(--dub);box-shadow:inset 0 -3px 0 var(--dub)}
 #params,.params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-top:10px}
 .prm{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:2px 8px;font-size:13px;color:var(--dim)}
 .prm b{color:var(--ink);font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:15px}
@@ -150,6 +154,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
   <section id="secFx">
     <h2 data-t>EFFEKTE · die vier Regler K1–K4 am FM-1</h2>
     <div id="pages"></div>
+    <div id="fxsubs" hidden></div>
     <div id="params"></div>
     <button id="stut" data-t>STUTTER (halten)</button>
   </section>
@@ -181,8 +186,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
       <tr><td>PRESETS</td><td data-t>Drum-Muster waehlen</td></tr>
       <tr><td>ALGORITHM</td><td data-t>Drum-Instrument fuer die Schritt-Tasten waehlen</td></tr>
-      <tr><td>FX · ENV · EDIT · GLO · SEQ</td><td data-t>Seiten DELAY+HALL · FILTER+BITCRUSH · SPUR · MIKRO · DRUMS. K1–K4 stellen die vier Werte. Bitcrusher: ENV, dann K3 (Bits) und K4 (Samplerate).</td></tr>
-      <tr><td>LFO</td><td data-t>Tippen: Seite CHORUS+STUTTER. Halten: Stutter</td></tr>
+      <tr><td>FX</td><td data-t>Effekte: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.</td></tr>
+      <tr><td>ENV · EDIT · GLO · SEQ</td><td data-t>Seiten FILTER · SPUR · MIKRO (auf dem Handy bei den Einstellungen) · DRUMS</td></tr>
+      <tr><td>LFO</td><td data-t>Tippen: Seite STUTTER. Halten: Stutter</td></tr>
       <tr><td data-t>Tasten 1–16</td><td data-t>Die 16 Schritte des gewaehlten Drum-Instruments (leuchtet = Schlag)</td></tr>
       <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
       <tr><td data-t>Tastenlicht</td><td data-t>Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Loop-Station-Firmware).</td></tr>

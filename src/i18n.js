@@ -32,7 +32,10 @@ const EN = {
   'Drum-Muster waehlen': 'Choose the drum pattern', 'Drum-Instrument fuer die Schritt-Tasten waehlen': 'Choose the drum sound shown on the step keys',
   'Seiten DELAY+HALL · FILTER+BITCRUSH · SPUR · MIKRO · DRUMS. K1–K4 stellen die vier Werte. Bitcrusher: ENV, dann K3 (Bits) und K4 (Samplerate).':
     'Pages DELAY+REVERB · FILTER+BITCRUSH · TRACK · MIC · DRUMS. K1–K4 set the four values. Bitcrusher: ENV, then K3 (bits) and K4 (sample rate).',
-  'Tippen: Seite CHORUS+STUTTER. Halten: Stutter': 'Tap: page CHORUS+STUTTER. Hold: stutter',
+  'Effekte: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.': 'Effects: DELAY, REVERB, CHORUS, BITCRUSH. Scroll with SELECT (or FX again), K1–K4 set the values.',
+  'Seiten FILTER · SPUR · MIKRO (auf dem Handy bei den Einstellungen) · DRUMS': 'Pages FILTER · TRACK · MIC (on the phone in the settings) · DRUMS',
+  'Tippen: Seite STUTTER. Halten: Stutter': 'Tap: page STUTTER. Hold: stutter',
+  'KLANG': 'TONE', 'DAEMPFUNG': 'DAMPING', 'DAEMPF': 'DAMP', 'LAENGE': 'LENGTH',
   'Tasten 1–16': 'Keys 1–16', 'Tasten 17–27': 'Keys 17–27',
   'Die 16 Schritte des gewaehlten Drum-Instruments (leuchtet = Schlag)': 'The 16 steps of the selected drum sound (lit = hit)',
   'Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken':

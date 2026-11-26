@@ -8,7 +8,7 @@ const STUT_DIV = [4, 8, 16, 32];
 const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'STOP' };
 
 // ---- settings (remembered on this device) ---------------------------------------------
-const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, rev: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
+const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
   stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
   recToDub: 1, micId: '', outId: '', glow: 3, lang: '', v: 3 };
 let S = { ...DEF };
@@ -27,19 +27,30 @@ function setLang(l) { LANG = l; S.lang = l; save(); applyLang(); }
 const save = () => { try { localStorage.setItem('fm1loop', JSON.stringify(S)); } catch (e) { } };
 
 let ctx = null, node = null, st = null, kits = null, mic = null, micSrc = null;
-let sel = 0, page = 'FX', voice = 0;
+let sel = 0, page = 'SPUR', voice = 0;   // on the FX page SELECT chooses the effect, elsewhere the track
 const fx = {};
 
 // ---- pages: four parameters each, the same on the phone and on K1..K4 of the FM-1 ---------
 const P = (id, label, min, max, step, fmt, short) => ({ id, label, min, max, step, fmt: fmt || (v => String(v)), short: short || label });
+// FX: one effect at a time, chosen with SELECT (or FX again), each with up to four knobs
+const FX_SUB = {
+  DELAY: { name: 'DELAY', p: [P('dlyMix', 'MIX', 0, 100, 1), P('dlyDiv', 'ZEIT', 0, 5, 1, v => DLY_DIV[v][0]), P('dlyFb', 'FEEDBACK', 0, 90, 1, null, 'FEEDBK'), P('dlyTone', 'KLANG', 0, 100, 1)] },
+  REVERB: { name: 'REVERB', p: [P('rev', 'MIX', 0, 100, 1), P('revSize', 'RAUM', 0, 100, 2), P('revDamp', 'DAEMPFUNG', 0, 100, 1, null, 'DAEMPF'), P('revPre', 'PRE-DELAY', 0, 100, 1, v => v + 'ms', 'PRE')] },
+  CHORUS: { name: 'CHORUS', p: [P('choMix', 'MIX', 0, 100, 1), P('choDepth', 'TIEFE', 0, 100, 1), P('choRate', 'TEMPO', 0, 100, 1, v => (0.1 + v / 100 * 4.9).toFixed(1) + 'HZ', 'RATE')] },
+  BITCRUSH: { name: 'BITCRUSH', p: [P('bits', 'BITS', 2, 16, 1, v => v >= 16 ? 'AUS' : v + ' BIT'), P('down', 'SAMPLERATE', 1, 32, 1, v => v === 1 ? 'AUS' : '1/' + v, 'RATE')] },
+};
+const FX_KEYS = Object.keys(FX_SUB);
 const PAGES = {
-  FX: { name: 'DELAY + HALL', btn: 2, p: [P('dlyMix', 'DELAY', 0, 100, 1), P('dlyDiv', 'ZEIT', 0, 5, 1, v => DLY_DIV[v][0]), P('dlyFb', 'FEEDBACK', 0, 90, 1, null, 'FEEDBK'), P('rev', 'HALL', 0, 100, 1)] },
-  CRUSH: { name: 'FILTER + BITCRUSH', btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO'), P('bits', 'BITCRUSH', 2, 16, 1, v => v >= 16 ? 'AUS' : v + ' BIT', 'BITS'), P('down', 'SAMPLERATE', 1, 32, 1, v => v === 1 ? 'AUS' : '1/' + v, 'RATE')] },
-  MOD: { name: 'CHORUS + STUTTER', btn: 5, p: [P('choMix', 'CHORUS', 0, 100, 1), P('choDepth', 'TIEFE', 0, 100, 1), P('stutDiv', 'STUTTER', 0, 3, 1, v => '1/' + STUT_DIV[v]), P('revSize', 'HALLRAUM', 0, 100, 2, null, 'RAUM')] },
+  FX: { btn: 2, get name() { return 'FX ' + (S.fxSel + 1) + '/' + FX_KEYS.length + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
+  FILTER: { name: 'FILTER', btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
+  STUTTER: { name: 'STUTTER', btn: 5, p: [P('stutDiv', 'LAENGE', 0, 3, 1, v => '1/' + STUT_DIV[v])] },
   SPUR: { name: 'SPUR', btn: 6, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
   DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1, null, 'DRUMS')] },
   MIKRO: { name: 'MIKRO + AUSGANG', btn: 7, p: [P('inGain', 'EINGANG', 0, 200, 2), P('mon', 'MITHOEREN', 0, 100, 2, null, 'MONITOR'), P('lat', 'LATENZ', 0, 400, 1, v => v + 'ms'), P('glow', 'TASTENLICHT', 0, 8, 1, v => v ? String(v) : 'AUS', 'LICHT')] },
 };
+const ALL_PARAMS = [...Object.values(FX_SUB).flatMap(g => g.p), ...Object.keys(PAGES).filter(k => k !== 'FX').flatMap(k => PAGES[k].p)];
+const WEB_TABS = ['FX', 'FILTER', 'STUTTER', 'SPUR', 'DRUMS'];   // MIKRO lives in the settings on the phone
+function setFx(i) { S.fxSel = (i + FX_KEYS.length) % FX_KEYS.length; save(); setPage('FX'); }
 const PAGE_KEYS = Object.keys(PAGES);
 
 function getP(id) {
@@ -51,7 +62,7 @@ function getP(id) {
   return S[id];
 }
 function setP(id, v) {
-  const p = Object.values(PAGES).flatMap(g => g.p).find(x => x.id === id);
+  const p = ALL_PARAMS.find(x => x.id === id);
   v = Math.max(p.min, Math.min(p.max, v));
   if (id === 'tVol' || id === 'tPan' || id === 'tRev') {
     if (sel > 2) return;
@@ -88,14 +99,14 @@ async function startAudio() {
   fx.lfo = ctx.createOscillator(); fx.lfo.frequency.value = 0.7; fx.lfoAmt = ctx.createGain(); fx.lfo.connect(fx.lfoAmt); fx.lfoAmt.connect(fx.choDel.delayTime); fx.lfo.start();
   fx.mix = ctx.createGain();
   fx.dSend = ctx.createGain(); fx.delay = ctx.createDelay(3); fx.dFb = ctx.createGain(); fx.dTone = ctx.createBiquadFilter(); fx.dTone.frequency.value = 4500;
-  fx.rSend = ctx.createGain(); fx.conv = ctx.createConvolver();
+  fx.rSend = ctx.createGain(); fx.conv = ctx.createConvolver(); fx.rPre = ctx.createDelay(0.2); fx.rDamp = ctx.createBiquadFilter();
   fx.master = ctx.createGain(); fx.lim = ctx.createDynamicsCompressor(); fx.lim.threshold.value = -3; fx.lim.ratio.value = 20; fx.lim.attack.value = 0.002; fx.lim.release.value = 0.1;
   node.connect(fx.filter);
   fx.filter.connect(fx.choDry); fx.filter.connect(fx.choDel); fx.choDel.connect(fx.choWet);
   fx.choDry.connect(fx.mix); fx.choWet.connect(fx.mix);
   fx.mix.connect(fx.master);
   fx.mix.connect(fx.dSend); fx.dSend.connect(fx.delay); fx.delay.connect(fx.dTone); fx.dTone.connect(fx.dFb); fx.dFb.connect(fx.delay); fx.dTone.connect(fx.master);
-  fx.mix.connect(fx.rSend); fx.rSend.connect(fx.conv); fx.conv.connect(fx.master);
+  fx.mix.connect(fx.rSend); fx.rSend.connect(fx.rPre); fx.rPre.connect(fx.conv); fx.conv.connect(fx.rDamp); fx.rDamp.connect(fx.master);
   fx.master.connect(fx.lim); fx.lim.connect(ctx.destination);
   if (S.lat < 0) S.lat = Math.round(((ctx.baseLatency || 0.01) + (ctx.outputLatency || 0.02)) * 1000 + 15);
   for (const k of Object.keys(DEF)) applyParam(k);
@@ -117,6 +128,10 @@ function applyParam(k) {
     case 'dlyMix': set(fx.dSend.gain, v / 100 * 0.8); break;
     case 'dlyDiv': case 'bpm': set(fx.delay.delayTime, Math.min(2.9, beat() * DLY_DIV[S.dlyDiv][1])); if (k === 'bpm') send({ t: 'set', k: 'bpm', v }); break;
     case 'dlyFb': set(fx.dFb.gain, v / 100); break;
+    case 'dlyTone': set(fx.dTone.frequency, 800 * Math.pow(2, v / 100 * 4)); break;
+    case 'revDamp': set(fx.rDamp.frequency, 18000 * Math.pow(2, -v / 100 * 3.2)); break;
+    case 'revPre': set(fx.rPre.delayTime, v / 1000); break;
+    case 'choRate': set(fx.lfo.frequency, 0.1 + v / 100 * 4.9); break;
     case 'rev': set(fx.rSend.gain, v / 100 * 0.9); break;
     case 'revSize': fx.conv.buffer = impulse(0.4 + v / 100 * 4); break;
     case 'filt': case 'res': {
@@ -386,15 +401,16 @@ link.onButton = (b, on) => {
       break;
     case B.LFO:
       if (on) held.stutTimer = setTimeout(() => { held.stutTimer = 0; stutter(true); }, 220);
-      else if (held.stutTimer) { clearTimeout(held.stutTimer); setPage('MOD'); } else stutter(false);
+      else if (held.stutTimer) { clearTimeout(held.stutTimer); setPage('STUTTER'); } else stutter(false);
       break;
     default: {
       const pk = PAGE_KEYS.find(k => PAGES[k].btn === b);
-      if (pk && on) setPage(pk);
+      if (pk && on) { if (pk === 'FX' && page === 'FX') setFx(S.fxSel + 1); else setPage(pk); }
     }
   }
 };
 link.onEncoder = (e, d) => {
+  if (e === 0 && page === 'FX') { setFx(S.fxSel + (d > 0 ? 1 : -1)); reveal('secFx'); return; }
   if (e === 0) { select((sel + (d > 0 ? 1 : 3)) % 4); reveal('secTracks'); return; }
   if (e === 1 || e === 6) reveal('secDrums'); else reveal(page === 'MIKRO' ? 'secSettings' : 'secFx');
   if (e === 6) { setP('pat', (S.pat + (d > 0 ? 1 : PATTERNS.length - 1)) % PATTERNS.length); toast(T('Muster') + ': ' + T(PATTERNS[S.pat].name)); return; }
@@ -476,7 +492,9 @@ function paramsHtml(pg) {
 }
 function renderParams() {
   $('#setParams').innerHTML = paramsHtml(PAGES.MIKRO);
-  $('#pages').innerHTML = PAGE_KEYS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(k)}</button>`).join('');
+  $('#pages').innerHTML = WEB_TABS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(k)}</button>`).join('');
+  $('#fxsubs').hidden = page !== 'FX';
+  $('#fxsubs').innerHTML = FX_KEYS.map((k, i) => `<button data-fx="${i}" class="${i === S.fxSel ? 'on' : ''}">${k}</button>`).join('');
   const pg = PAGES[page];
   $('#params').innerHTML = pg.p.map((p, i) => {
     const disabled = (p.id.startsWith('t') && p.id !== 'tVol' ? sel > 2 : false) || (p.id === 'tVol' && sel > 2) || (p.id === 'bpm' && st && st.master > 0);
@@ -533,6 +551,7 @@ $('#bClear').onpointerup = $('#bClear').onpointerleave = () => { if (clrT) { cle
 $('#stut').onpointerdown = e => { e.preventDefault(); stutter(true); };
 $('#stut').onpointerup = $('#stut').onpointerleave = $('#stut').onpointercancel = () => stutter(false);
 $('#pages').onclick = e => { const b = e.target.closest('button'); if (b) setPage(b.dataset.p); };
+$('#fxsubs').onclick = e => { const b = e.target.closest('button'); if (b) setFx(+b.dataset.fx); };
 $('#params').oninput = $('#setParams').oninput = e => { const i = e.target.closest('input'); if (i) setP(i.dataset.id, +i.value); };
 $('#grid').onpointerdown = e => {
   const b = e.target.closest('button'); if (!b || !st) return;
