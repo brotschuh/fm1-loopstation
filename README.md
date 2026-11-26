@@ -46,8 +46,8 @@ The user interface is in German for now.
 | SAVE (hold) | clear the selected track |
 | ARP | drums on / off |
 | SELECT | choose the track (1, 2, 3, drums) |
-| ALGORITHM | drum pattern |
-| PRESETS | drum sound shown on the step keys |
+| PRESETS | drum pattern |
+| ALGORITHM | drum sound shown on the step keys |
 | FX · ENV · EDIT · GLO · SEQ | pages Delay+Reverb · Filter+Bitcrush · Track · Mic · Drums; K1–K4 set the values |
 | LFO | tap: chorus+stutter page, hold: stutter |
 | Keys 1–16 | the steps of the selected drum sound |

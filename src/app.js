@@ -33,11 +33,11 @@ const fx = {};
 // ---- pages: four parameters each, the same on the phone and on K1..K4 of the FM-1 ---------
 const P = (id, label, min, max, step, fmt, short) => ({ id, label, min, max, step, fmt: fmt || (v => String(v)), short: short || label });
 const PAGES = {
-  FX: { name: 'DELAY + HALL', btn: 2, p: [P('dlyMix', 'DELAY', 0, 100, 1), P('dlyDiv', 'ZEIT', 0, 5, 1, v => DLY_DIV[v][0]), P('dlyFb', 'FEEDBACK', 0, 90, 1), P('rev', 'HALL', 0, 100, 1)] },
+  FX: { name: 'DELAY + HALL', btn: 2, p: [P('dlyMix', 'DELAY', 0, 100, 1), P('dlyDiv', 'ZEIT', 0, 5, 1, v => DLY_DIV[v][0]), P('dlyFb', 'FEEDBACK', 0, 90, 1, null, 'FEEDBK'), P('rev', 'HALL', 0, 100, 1)] },
   CRUSH: { name: 'FILTER + BITCRUSH', btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO'), P('bits', 'BITCRUSH', 2, 16, 1, v => v >= 16 ? 'AUS' : v + ' BIT', 'BITS'), P('down', 'SAMPLERATE', 1, 32, 1, v => v === 1 ? 'AUS' : '1/' + v, 'RATE')] },
   MOD: { name: 'CHORUS + STUTTER', btn: 5, p: [P('choMix', 'CHORUS', 0, 100, 1), P('choDepth', 'TIEFE', 0, 100, 1), P('stutDiv', 'STUTTER', 0, 3, 1, v => '1/' + STUT_DIV[v]), P('revSize', 'HALLRAUM', 0, 100, 2, null, 'RAUM')] },
-  SPUR: { name: 'SPUR', btn: 6, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v)), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY')] },
-  DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1)] },
+  SPUR: { name: 'SPUR', btn: 6, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
+  DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1, null, 'DRUMS')] },
   MIKRO: { name: 'MIKRO + AUSGANG', btn: 7, p: [P('inGain', 'EINGANG', 0, 200, 2), P('mon', 'MITHOEREN', 0, 100, 2, null, 'MONITOR'), P('lat', 'LATENZ', 0, 400, 1, v => v + 'ms'), P('ledAll', 'TASTENLICHT', 0, 1, 1, v => v ? 'IMMER AN' : 'STATUS', 'LICHT')] },
 };
 const PAGE_KEYS = Object.keys(PAGES);
@@ -226,7 +226,7 @@ function bigWord() {
   return STATE_DE[t.state];
 }
 // FM-1 screen, 240 x 240: header, four track tiles, the state, a thin loop line, the page and its four knobs
-const Y = { tiles: 26, word: 78, wave: 104, waveH: 12, line: 118, page: 123, rows: 143, rowH: 23 };
+const Y = { tiles: 28, tileH: 50, word: 84, wave: 110, waveH: 10, line: 123, page: 129, rows: 150, rowH: 42 };
 function drawScreen() {
   if (!link.connected || !st) return;
   const o = FM1.op, ops = [o.clear(C.bg)];
@@ -234,10 +234,10 @@ function drawScreen() {
   ops.push(o.text(174, 4, 2, C.fg, C.bg, String(Math.round(st.bpm)).padStart(3) + ' '));
   for (let i = 0; i < 4; i++) {
     const x = 6 + i * 58, y = Y.tiles, c = tileColor(i);
-    if (i === sel) ops.push(o.rect(x - 2, y - 2, 54, 48, C.fg));
-    ops.push(o.rect(x, y, 50, 44, c));
+    if (i === sel) ops.push(o.rect(x - 3, y - 3, 56, Y.tileH + 6, C.fg));
+    ops.push(o.rect(x, y, 50, Y.tileH, c));
     const lbl = TRACK_NAMES[i];
-    ops.push(o.text(x + 25 - lbl.length * 9, y + 10, 3, c === C.dark ? C.dim : C.bg, c, lbl));
+    ops.push(o.text(x + 25 - lbl.length * 9, y + 13, 3, c === C.dark ? C.dim : C.bg, c, lbl));
   }
   const w = T(bigWord()).slice(0, 13);
   ops.push(o.text(Math.max(0, 120 - w.length * 9), Y.word, 3, C.fg, C.bg, w));
@@ -249,12 +249,12 @@ function drawScreen() {
   link.draw(ops, 'screen');
   drawProgress(true);
 }
-// one knob row: "1 DELAY" left, the value right-aligned, both 2x (12 x 16 px a character)
+// one knob in the 2 x 2 grid: "1 DELAY" over its value, both 2x (12 x 16 px a character)
 function paramOps(p, i) {
-  const o = FM1.op, y = Y.rows + i * Y.rowH;
-  const label = ((i + 1) + ' ' + T(p.short)).slice(0, 10).padEnd(10);
-  const val = TV(p.fmt(getP(p.id))).slice(0, 9).padStart(9);
-  return [o.text(6, y, 2, C.dim, C.bg, label), o.text(126, y, 2, C.fg, C.bg, val)];
+  const o = FM1.op, x = 6 + (i % 2) * 118, y = Y.rows + Math.floor(i / 2) * Y.rowH;
+  const label = ((i + 1) + ' ' + T(p.short).slice(0, 7)).padEnd(9);
+  const val = TV(p.fmt(getP(p.id))).slice(0, 9).padEnd(9);
+  return [o.text(x, y, 2, C.dim, C.bg, label), o.text(x, y + 18, 2, C.fg, C.bg, val)];
 }
 function drawParam(id) {
   if (!link.connected || !st) return;
@@ -396,8 +396,8 @@ link.onButton = (b, on) => {
 link.onEncoder = (e, d) => {
   if (e === 0) { select((sel + (d > 0 ? 1 : 3)) % 4); reveal('secTracks'); return; }
   if (e === 1 || e === 6) reveal('secDrums'); else reveal('secFx');
-  if (e === 1) { setP('pat', (S.pat + (d > 0 ? 1 : PATTERNS.length - 1)) % PATTERNS.length); toast(T('Muster') + ': ' + T(PATTERNS[S.pat].name)); return; }
-  if (e === 6) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); toast('Drum: ' + T(voiceNames()[voice])); return; }
+  if (e === 6) { setP('pat', (S.pat + (d > 0 ? 1 : PATTERNS.length - 1)) % PATTERNS.length); toast(T('Muster') + ': ' + T(PATTERNS[S.pat].name)); return; }
+  if (e === 1) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); toast('Drum: ' + T(voiceNames()[voice])); return; }
   const p = PAGES[page].p[e - 2]; if (!p) return;
   const acc = Math.abs(d) > 2 ? 3 : 1;
   setP(p.id, getP(p.id) + Math.sign(d) * p.step * acc);
