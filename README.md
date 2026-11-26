@@ -1,72 +1,76 @@
 # FM-1 Loop Station
 
-Eine Loop-Station für das **M-VAVE FM-1**, bedient wie ein klassisches Loop-Pedal (inspiriert von Boss).
-Das Handy nimmt über sein Mikrofon auf, rechnet Loops, Drums und Effekte; das FM-1 ist Bedienfeld,
-zweiter Bildschirm und Tonausgang.
+A loop station for the **M-VAVE FM-1** with a classic loop-pedal workflow (Boss-inspired).
+The phone records through its microphone and does the loops, drums and effects; the FM-1 is the
+controller, the second screen and the audio output.
 
-**App öffnen:** https://brotschuh.github.io/fm1-loopstation/ (Chrome auf Android oder am Computer)
+**Open the app:** https://brotschuh.github.io/fm1-loopstation/ (Chrome on Android or on a computer)
 
-*A loop station for the M-VAVE FM-1 with a classic loop-pedal workflow: three loop tracks from the phone
-microphone, a drum track (a real CC0 rock kit and an analogue kit), effects. The FM-1 is the controller,
-the second screen and the audio output; the phone does the sound. German UI.*
+The user interface is in German for now.
 
-## Was sie kann
+## Features
 
-- **3 Loop-Spuren** aus dem Mikrofon: REC → Overdub → Wiedergabe → Overdub … wie am Pedal, Undo/Redo,
-  Spuren stumm schalten, löschen. Die erste Aufnahme legt Länge und Tempo fest, spätere Spuren werden ein
-  Vielfaches davon. Läuft der Rhythmus schon, beginnt und endet die Aufnahme auf dem Takt.
-- **Drum-Spur** mit 16 Schritten: echtes **Rock-Kit** (Big Rusty Drums, CC0), **Analog 808** und
-  **Synth-Akustik** (beide in der App erzeugt), 12 Muster, Pads einspielen (Overdub ins Muster).
-- **Effekte:** Delay (im Tempo), Hall, Chorus, Filter (Tief-/Hochpass auf einem Regler), Bitcrusher,
-  Samplerate-Reduktion, Stutter, Rückwärts pro Spur.
-- **Am FM-1:** die Tasten 1–16 zeigen die Schritte des gewählten Drum-Instruments (mit Lauflicht),
-  die Tasten 17–27 sind die Pads; Display mit Spuren, Status, Fortschritt und den vier Reglerwerten.
+- **3 loop tracks** from the microphone: REC → overdub → play → overdub … as on a loop pedal, undo/redo,
+  mute and clear per track. The first take sets the loop length and the tempo; later tracks become a
+  multiple of it. When the rhythm is already running, recording starts and ends on the bar.
+- **Drum track** with 16 steps: a real **rock kit** (Big Rusty Drums, CC0), an **analogue 808-style kit**
+  and a **synthesised acoustic kit** (both generated in the app), 12 patterns, pads recorded into the
+  pattern (overdub).
+- **Effects:** tempo-synced delay, reverb, chorus, filter (low-pass / high-pass on one knob), bitcrusher,
+  sample-rate reduction, stutter, reverse per track.
+- **On the FM-1:** keys 1–16 show the steps of the selected drum sound (with a running light),
+  keys 17–27 are the drum pads; the display shows the tracks, their state, the loop position and the
+  values of the four knobs. Button lights: all buttons lit with the active ones blinking, or status only.
 
-## Einrichten
+## Setup
 
-1. **Firmware aufs FM-1:** Die Loop Station braucht die Steuer-Firmware von
-   [fm1-sampler](https://github.com/ferluht/fm1-sampler) (ferluht, auf Basis von M-VAVEs offener Firmware
-   FM1 Open, GPL). Deren Flash-Seite `firmware/FM1-Sampler-Workbench.html` in Chrome am Computer öffnen,
-   Reiter **Device update**, Backup-Häkchen, **Connect device**, dann **Force flash**.
-   Zurück zur Original-Firmware jederzeit mit M-VAVEs Updater M-UPGRADE.
-2. **Handy:** FM-1 per USB-C ans Handy, Kopfhörer oder Box ans FM-1, die App-Adresse oben in Chrome öffnen,
-   **Starten**, Mikrofon und MIDI erlauben.
-3. **Computer (zum Testen):** genauso in Chrome; unter Einstellungen als Ausgang das FM-1 wählen.
+1. **Firmware on the FM-1:** the loop station needs the control-surface firmware of
+   [fm1-sampler](https://github.com/ferluht/fm1-sampler) by ferluht, built on M-VAVE's open firmware
+   FM1 Open (GPL). Open its flash page `firmware/FM1-Sampler-Workbench.html` in Chrome on a computer,
+   tab **Device update**, tick the backup box, **Connect device**, then **Force flash**.
+   You can go back to the original firmware at any time with M-VAVE's updater M-UPGRADE.
+2. **Phone:** connect the FM-1 to the phone with a USB-C cable, headphones or a speaker into the FM-1,
+   open the app address above in Chrome, tap **Starten**, allow the microphone and MIDI.
+   If the recording is silent or feeds back, choose the phone's own microphone in the settings
+   (the FM-1 also shows up as an audio input).
+3. **Computer (for testing):** the same in Chrome; in the settings choose the FM-1 as the output.
 
-## Bedienung am FM-1
+## Controls on the FM-1
 
-| Taste / Regler | Funktion |
+| Button / knob | Function |
 |---|---|
-| REC | Aufnahme → Overdub → Wiedergabe → Overdub … Auf der Drum-Spur: Pads ins Muster einspielen |
-| PLAY | alles starten / stoppen |
-| SCL | Undo / Redo der letzten Aufnahme |
-| HOME | gewählte Spur stumm / an |
-| SAVE (halten) | gewählte Spur löschen |
-| ARP | Drums an / aus |
-| SELECT | Spur wählen (1, 2, 3, Drums) |
-| ALGORITHM | Drum-Muster |
-| PRESETS | Drum-Instrument für die Schritt-Tasten |
-| FX · ENV · EDIT · GLO · SEQ | Seiten Delay+Hall · Filter+Bitcrush · Spur · Mikro · Drums; K1–K4 stellen die Werte |
-| LFO | tippen: Chorus+Stutter, halten: Stutter |
-| Tasten 1–16 | Schritte des gewählten Drum-Instruments |
-| Tasten 17–27 | Drum-Pads |
+| REC | record → overdub → play → overdub … On the drum track: record the pads into the pattern |
+| PLAY | start / stop everything |
+| SCL | undo / redo the last take |
+| HOME | mute / unmute the selected track |
+| SAVE (hold) | clear the selected track |
+| ARP | drums on / off |
+| SELECT | choose the track (1, 2, 3, drums) |
+| ALGORITHM | drum pattern |
+| PRESETS | drum sound shown on the step keys |
+| FX · ENV · EDIT · GLO · SEQ | pages Delay+Reverb · Filter+Bitcrush · Track · Mic · Drums; K1–K4 set the values |
+| LFO | tap: chorus+stutter page, hold: stutter |
+| Keys 1–16 | the steps of the selected drum sound |
+| Keys 17–27 | drum pads |
 
-## Entwickeln
+On a computer without the FM-1: space = play, R = rec, Z = undo, 1–4 = track, hold S = stutter.
 
-Alles ist reines JavaScript ohne Abhängigkeiten. `python3 build.py` baut daraus eine einzige Seite
-(`docs/index.html` für GitHub Pages, `dist/fm1-loopstation.html` zum lokalen Öffnen).
+## Development
 
-- `src/engine.js` – Looper, Drum-Sequencer, Bitcrusher, Stutter (läuft im AudioWorklet)
-- `src/drums.js` – die erzeugten Kits und die Muster; `src/rockkit.js` – das Rock-Kit (von `tools/make_rock_kit.py`)
-- `src/fm1.js` – das USB-MIDI-Protokoll der fm1-sampler-Firmware (`PROTOCOL.md` dort)
-- `src/app.js`, `src/index.html` – Oberfläche, Effekte, Tastenbelegung
-- Tests: `node test/engine.test.js`; `node test/e2e.js` (Chrome + Playwright, mit einem nachgebauten FM-1
-  in `test/fm1-sim.js`, das die Befehle wie die Firmware auswertet)
+Plain JavaScript, no dependencies. `python3 build.py` builds one self-contained page
+(`docs/index.html` for GitHub Pages, `dist/fm1-loopstation.html` to open locally).
 
-## Lizenzen und Dank
+- `src/engine.js` – looper, drum sequencer, bitcrusher, stutter (runs in an AudioWorklet)
+- `src/drums.js` – the generated kits and the patterns; `src/rockkit.js` – the rock kit (made by `tools/make_rock_kit.py`)
+- `src/fm1.js` – the USB MIDI protocol of the fm1-sampler firmware (its `PROTOCOL.md`)
+- `src/app.js`, `src/index.html` – user interface, effect chain, FM-1 key mapping
+- Tests: `node test/engine.test.js`; `node test/e2e.js` (Chrome + Playwright, with a software FM-1 in
+  `test/fm1-sim.js` that decodes the commands the way the firmware does)
 
-- Code: GPL-3.0 (siehe `LICENSE`).
-- Rock-Kit: **Big Rusty Drums** von Karoryfer Samples, CC0 1.0 (gemeinfrei),
+## Licenses and credits
+
+- Code: GPL-3.0 (see `LICENSE`).
+- Rock kit: **Big Rusty Drums** by Karoryfer Samples, CC0 1.0 (public domain),
   https://github.com/sfzinstruments/karoryfer.big-rusty-drums
-- Firmware und Protokoll: **fm1-sampler** von ferluht, aufgebaut auf **FM1 Open** von M-VAVE.
-- Nicht verbunden mit M-VAVE oder Roland/Boss. M-VAVE, FM-1 und Boss sind Marken ihrer Inhaber.
+- Firmware and protocol: **fm1-sampler** by ferluht, built on **FM1 Open** by M-VAVE.
+- Not affiliated with M-VAVE or Roland/Boss. M-VAVE, FM-1 and Boss are trademarks of their owners.
