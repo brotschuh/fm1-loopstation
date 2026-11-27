@@ -229,15 +229,14 @@ test('snapshot and load bring a session back, offsets and all', () => {
   assert.ok(!f.running);
 });
 
-test('drums: 2 bars of 12 steps, a preset fills both bars, steps move to the nearest new step', () => {
+test('drums: the length in sixteenths from step 1; shorter keeps the beats, longer brings them back', () => {
   const e = mk(); e.kits = makeKits(SR); e.bpm = 120;
-  e.set('drumBars', 2); e.set('drumSteps', 12);
   const a = new Array(11 * 16).fill(0); a[0] = 1; a[8] = 1; e.set('preset', a);   // kick on 1 and 3
-  assert.equal(e.pattern[0], 1); assert.equal(e.pattern[6], 1); assert.equal(e.pattern[64], 1); assert.equal(e.pattern[64 + 6], 1);
-  e.set('drumSteps', 16); assert.equal(e.pattern[8], 1); assert.equal(e.pattern[64 + 8], 1);
-  // timing: bar = 2 s at 120 BPM; at 3.1 s we are in bar 2, step floor(1.1 / 0.125) = 8
-  e.drumOn = true; e.playButton(); run(e, 3.1);
-  assert.equal(e.currentStep(), 64 + 8);
+  assert.equal(e.pattern[16], 1); assert.equal(e.pattern[56], 1);               // repeated over all 64 steps
+  e.set('drumLen', 12); assert.equal(e.pattern[8], 1); assert.equal(e.pattern[24], 1);   // nothing moved or lost
+  e.drumOn = true; e.playButton(); run(e, 1.6);   // a step = 0.125 s; 1.6 s = step 12.8 -> 12 mod 12 = 0
+  assert.equal(e.currentStep(), 0);
+  e.set('drumLen', 64); run(e, 0.2); assert.equal(e.currentStep(), 14);
 });
 
 test('drum sound: length (gate), pitch and level change what is played', () => {

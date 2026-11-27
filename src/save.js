@@ -167,12 +167,12 @@ const Save = (() => {
     if (snap.drumOn && kits[snap.kit]) {
       // the same drum machine as the engine: bars x steps, and per sound its length, pitch and level
       const D = new Float32Array(n), kit = kits[snap.kit], g = opts.fx ? S.drumVol : 1;
-      const bars = snap.drumBars || 1, steps = snap.drumSteps || 16, old = snap.pattern.length === 11 * 16;
-      const step = bar / steps, sr_ = sr, fade = Math.round(sr_ * 0.006);
+      const dlen = snap.drumLen || 16, old = snap.pattern.length === 11 * 16;
+      const step = bar / 16, sr_ = sr, fade = Math.round(sr_ * 0.006);
       for (let s = 0; s * step < body; s++) {
-        const at = Math.round(s * step), b = Math.floor(s / steps) % bars, st = s % steps;
+        const at = Math.round(s * step), st = s % dlen;
         for (let v = 0; v < 11; v++) {
-          const on = old ? snap.pattern[v * 16 + st] : snap.pattern[v * 256 + b * 64 + st];
+          const on = old ? snap.pattern[v * 16 + st % 16] : snap.pattern[v * 64 + st];
           if (!on || !kit[v]) continue;
           const smp = kit[v], r = Math.pow(2, (snap.tune ? snap.tune[v] : 0) / 12), lvl = snap.level ? snap.level[v] : 1;
           const gate = snap.gate ? snap.gate[v] : 100, len = smp.length / r;

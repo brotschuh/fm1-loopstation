@@ -111,6 +111,10 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .st{min-height:30px;padding:0;border-radius:5px;background:var(--step);border-color:var(--stepline)}
 .st.q{background:var(--stepq)}
 .st.on{background:var(--drum);border-color:var(--drum)}
+.st.out{background:transparent;border:1px solid var(--line);opacity:.6;cursor:default}
+.voices{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;margin-bottom:10px}
+.voices button{min-height:36px;font-size:12px;padding:2px 4px}.voices button.on{background:var(--drum);border-color:var(--drum);color:#fff}
+.lennav b{color:var(--ink);font-size:15px}.lenlbl{display:grid;line-height:1.1}.lenlbl small{font-size:10px}
 .st.now{outline:2px solid var(--now);outline-offset:-2px}
 .set{display:grid;gap:10px}
 .set label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
@@ -166,11 +170,13 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
   #fm1hint{margin:0}
   #params,.params{grid-template-columns:repeat(4,minmax(0,1fr));margin:0}
   #stut{margin:auto 0 0;min-height:0;height:48px}
-  #secDrums{display:grid;grid-template-columns:150px minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:12px}
+  #secDrums{display:grid;grid-template-columns:150px minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr;column-gap:12px}
   #secDrums h2{grid-column:1/-1}
   #secDrums .drumbar{grid-column:1;grid-template-columns:1fr;align-content:start;margin:0}
-  #secDrums .credit{grid-column:1;grid-row:3;align-self:end}
-  #grid{grid-column:2;grid-row:2/4;gap:2px;grid-template-rows:repeat(11,minmax(0,1fr));overflow:hidden}
+  #secDrums .credit{grid-column:1;grid-row:5;align-self:end}
+  #secDrums .pgnav{grid-column:1;margin:4px 0 0}
+  #secSound .voices{grid-template-columns:repeat(6,minmax(0,1fr))}
+  #grid{grid-column:2;grid-row:2/6;gap:2px;grid-template-rows:repeat(11,minmax(0,1fr));overflow:hidden}
   .row{gap:2px}
   .pad,.st{min-height:0}
   #secSave .savegrid{grid-template-columns:1fr 1fr;gap:10px}
@@ -237,12 +243,18 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
     <button id="stut" data-t>STUTTER (halten)</button>
   </section>
 
+  <section id="secSound">
+    <h2 data-t>DRUM-SOUND · ENV am FM-1</h2>
+    <div id="sndVoices" class="voices"></div>
+    <div id="sndParams" class="params"></div>
+  </section>
+
   <section id="secDrums">
-    <h2 data-t>DRUMS · Tasten 1–16 = Schritte, Tasten 17–27 = Pads</h2>
-    <div class="drumbar"><label><small data-t>Muster · Regler PRESETS</small><select id="selPat" aria-label="Muster"></select></label><label><small data-t>Kit · DRUM-SOUND (ENV), K4</small><select id="selKit" aria-label="Kit"></select></label></div>
+    <h2 data-t>DRUM-SEQUENZ</h2>
+    <div class="drumbar"><label><small data-t>Muster · Regler PRESETS</small><select id="selPat" aria-label="Muster"></select></label><label><small data-t>Kit · Regler SELECT</small><select id="selKit" aria-label="Kit"></select></label></div>
     <div class="pgnav"><button id="bPgPrev" aria-label="OCT−" title="OCT−">◀</button><span id="stepPage"></span><button id="bPgNext" aria-label="OCT+" title="OCT+">▶</button></div>
+    <div class="pgnav lennav"><button id="bLenDown" aria-label="−">−</button><span class="lenlbl"><small data-t>Schritte</small><b id="lenVal"></b></span><button id="bLenUp" aria-label="+">+</button></div>
     <div id="grid"></div>
-    <p class="hint" data-t>Regler ALGORITHM waehlt den Sound fuer die Tasten 1–16 und fuer DRUM-SOUND. Takte und Schritte: Seite DRUMS (SEQ), K3 und K4.</p>
     <p class="credit" data-t>ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
   </section>
 
@@ -293,9 +305,9 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
       <tr><td>ALGORITHM</td><td data-t>Drum-Sound waehlen (fuer die Schritt-Tasten und DRUM-SOUND)</td></tr>
       <tr><td>FX</td><td data-t>Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH, FILTER, STUTTER. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte. FX halten: Stutter.</td></tr>
       <tr><td>LFO</td><td data-t>LFO der gewaehlten Spur: K1 Ziel (Lautstaerke, Filter, Panorama), K2 Tempo, K3 Staerke, K4 Form</td></tr>
-      <tr><td>ENV</td><td data-t>DRUM-SOUND: K1 Laenge, K2 Tonhoehe, K3 Lautstaerke des gewaehlten Sounds, K4 Kit</td></tr>
-      <tr><td>SEQ</td><td data-t>DRUMS: K1 Lautstaerke, K2 Tempo (vor der ersten Aufnahme), K3 Takte 1–4, K4 Schritte pro Takt 1–64</td></tr>
-      <tr><td>OCT− · OCT+</td><td data-t>Durch die Drum-Schritte blaettern (Takte, und bei mehr als 16 Schritten die Haelften und Viertel)</td></tr>
+      <tr><td>ENV</td><td data-t>DRUM-SOUND: K1 Gate (Laenge), K2 Tonhoehe, K3 Lautstaerke des gewaehlten Sounds</td></tr>
+      <tr><td>SEQ</td><td data-t>DRUMS: K1 Lautstaerke, K2 BPM (global, vor der ersten Aufnahme), K3 Schritte 1–64 (Sechzehntel, ab Schritt 1). SELECT waehlt das Kit.</td></tr>
+      <tr><td>OCT− · OCT+</td><td data-t>Durch die Drum-Schritte blaettern, je 16</td></tr>
       <tr><td>GLO</td><td data-t>Seite MIKRO (auf dem Handy bei den Einstellungen)</td></tr>
       <tr><td data-t>Tasten 1–16</td><td data-t>Die Schritte des gewaehlten Drum-Sounds auf der aktuellen Seite (leuchtet = Schlag)</td></tr>
       <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>

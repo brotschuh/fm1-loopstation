@@ -112,14 +112,22 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   check(s.texts.some(t => t.startsWith('DRUM: SNARE')), 'ENV shows the drum sound chosen with ALGORITHM: ' + s.texts.filter(t => t.startsWith('DRUM')).join('|'));
   await page.evaluate(() => { for (let i = 0; i < 5; i++) window.__fm1.enc(2, -1); }); await page.waitForTimeout(300);
   check(await page.evaluate(() => JSON.parse(localStorage.getItem('fm1loop')).dsnd.gate[1]) === 95, 'K1 on ENV sets the length of the snare');
-  // SEQ: 2 bars of 12 steps; OCT+ shows bar 2
-  await page.evaluate(() => { window.__fm1.tap(11); window.__fm1.enc(4, 1); for (let i = 0; i < 4; i++) window.__fm1.enc(5, -1); }); await page.waitForTimeout(400);
-  check(await page.evaluate(() => document.querySelectorAll('.row[data-r="0"] .st').length) === 12, '12 steps: 12 keys on the grid');
+  // SEQ: 20 steps (K3); the grid keeps 16 equal columns, steps beyond the length are empty frames; OCT+ shows 17-32
+  await page.evaluate(() => { window.__fm1.tap(11); for (let i = 0; i < 4; i++) window.__fm1.enc(4, 1); }); await page.waitForTimeout(400);
+  check(await page.evaluate(() => document.querySelectorAll('.row[data-r="0"] .st').length) === 16 && (await page.textContent('#lenVal')) === '20', '20 steps, still 16 columns');
+  const kick1 = await page.evaluate(() => document.querySelector('.row[data-r="0"] .st[data-s="8"]').classList.contains('on'));
   await page.evaluate(() => window.__fm1.tap(1)); await page.waitForTimeout(300);
-  check((await page.textContent('#stepPage')).includes('2'), 'OCT+ goes to bar 2: ' + await page.textContent('#stepPage'));
-  check(await page.evaluate(() => document.querySelector('.row[data-r="0"] .st').dataset.s) === '64', 'the grid shows bar 2');
-  await page.evaluate(() => { window.__fm1.tap(0); window.__fm1.enc(4, -1); for (let i = 0; i < 4; i++) window.__fm1.enc(5, 1); }); await page.waitForTimeout(300);
-
+  check((await page.textContent('#stepPage')) === '17-20', 'OCT+ goes to steps 17-20: ' + await page.textContent('#stepPage'));
+  check(await page.evaluate(() => document.querySelectorAll('.row[data-r="0"] .st.out').length) === 12, 'steps 21-32 are frames only');
+  check(await page.evaluate(() => document.querySelector('.row[data-r="0"] .st[data-s="16"]').classList.contains('on')), 'the preset continues past step 16');
+  await page.evaluate(() => { window.__fm1.tap(0); for (let i = 0; i < 4; i++) window.__fm1.enc(4, -1); }); await page.waitForTimeout(300);
+  check(kick1 === await page.evaluate(() => document.querySelector('.row[data-r="0"] .st[data-s="8"]').classList.contains('on')), 'back to 16 steps: nothing moved');
+  // SELECT on the drums page chooses the kit; turning knobs keeps the screen where it is
+  const scrollBefore = await page.evaluate(() => scrollY);
+  await page.evaluate(() => window.__fm1.enc(0, 1)); await page.waitForTimeout(300);
+  check(await page.inputValue('#selKit') === '1', 'SELECT on DRUMS: next kit');
+  await page.evaluate(() => window.__fm1.enc(0, -1)); await page.waitForTimeout(300);
+  check(Math.abs(await page.evaluate(() => scrollY) - scrollBefore) < 2, 'knobs do not scroll the screen');
   // all four knob rows reach the screen (K4 used to go missing)
   await page.evaluate(() => { window.__fm1.st.texts.length = 0; window.__fm1.tap(7); });
   await page.waitForTimeout(1500);

@@ -1,9 +1,9 @@
 // Ouroloops: audio engine.
 // Runs inside an AudioWorklet (one instance), and in Node for the tests.
-// Mono loop tracks (the phone microphone), a drum machine (1-4 bars, 1-64 steps per bar), bitcrusher and stutter.
+// Mono loop tracks (the phone microphone), a drum machine (1-64 sixteenth steps), bitcrusher and stutter.
 
 const NTRACKS = 3, NVOICES = 11, NSTEPS = 16, NOUT = 5;
-const MAXBARS = 4, MAXSTEPS = 64, VSTRIDE = MAXBARS * MAXSTEPS;   // pattern[v * VSTRIDE + bar * MAXSTEPS + step]
+const MAXSTEPS = 64, VSTRIDE = MAXSTEPS;   // pattern[v * 64 + step]; a step is always a sixteenth, drumLen of them loop
 const CHUNK = 4096;   // copy-on-write granularity of the undo snapshot
 const PKB = 1024;     // samples per peak bin of the waveform overview
 
@@ -35,7 +35,7 @@ class LoopEngine {
     // drums
     this.bpm = 100; this.drumOn = false; this.drumVol = 0.8; this.drumRec = false;
     this.pattern = new Uint8Array(NVOICES * VSTRIDE);
-    this.drumBars = 1; this.drumSteps = 16;
+    this.drumLen = 16;   // steps the pattern loops over (steps beyond keep their beats, unplayed)
     // per drum sound: length (gate, % of the sample), pitch (semitones), level (0..1)
     this.gate = new Float32Array(NVOICES).fill(100); this.tune = new Float32Array(NVOICES); this.level = new Float32Array(NVOICES).fill(1);
     this.drumUndo = null; this.drumRedo = null;
@@ -65,12 +65,9 @@ class LoopEngine {
 
   // ---- timing ------------------------------------------------------------------
   barLen() { return this.master > 0 ? this.master / this.masterBars : this.sr * 240 / this.bpm; }
-  stepLen() { return this.barLen() / this.drumSteps; }
-  // the drum step at position p: bar * MAXSTEPS + step (the pattern index without the voice)
-  stepAt(p) {
-    const bl = this.barLen(), pos = mod(p, bl * this.drumBars), bar = Math.floor(pos / bl);
-    return Math.min(bar, this.drumBars - 1) * MAXSTEPS + Math.min(this.drumSteps - 1, Math.floor((pos - bar * bl) / (bl / this.drumSteps)));
-  }
+  stepLen() { return this.barLen() / NSTEPS; }
+  // the drum step at position p (the pattern loops over drumLen sixteenths from the start)
+  stepAt(p) { const sl = this.stepLen(); return Math.min(this.drumLen - 1, Math.floor(mod(p, sl * this.drumLen) / sl)); }
   currentStep() { return this.stepAt(this.p); }
 
   // ---- commands from the UI ----------------------------------------------------
@@ -274,7 +271,7 @@ class LoopEngine {
   snapshot() {
     return {
       master: this.master, masterBars: this.masterBars, bpm: this.bpm, drumOn: this.drumOn, kit: this.kit,
-      pattern: Array.from(this.pattern), drumBars: this.drumBars, drumSteps: this.drumSteps,
+      pattern: Array.from(this.pattern), drumLen: this.drumLen,
       gate: Array.from(this.gate), tune: Array.from(this.tune), level: Array.from(this.level),
       tracks: this.tracks.map(t => ({
         len: t.len, offset: t.len ? mod(t.anchor, t.len) : 0, vol: t.vol, pan: t.pan, rev: t.rev, muted: t.state === 'stop',
@@ -298,11 +295,11 @@ class LoopEngine {
       t.canUndo = t.canRedo = false; t.dk.fill(0); this.repeak(t);
     }
     this.master = p.master || 0; this.masterBars = p.masterBars || 1; this.bpm = p.bpm || this.bpm;
-    this.drumBars = p.drumBars || 1; this.drumSteps = p.drumSteps || 16;
+    this.drumLen = p.drumLen || 16;
     if (p.pattern) {
       this.pattern.fill(0);
       if (p.pattern.length === NVOICES * VSTRIDE) this.pattern.set(p.pattern);
-      else for (let v = 0; v < NVOICES; v++) for (let s = 0; s < NSTEPS; s++) this.pattern[v * VSTRIDE + s] = p.pattern[v * NSTEPS + s] || 0;   // older projects: 16 steps
+      else for (let v = 0; v < NVOICES; v++) for (let s = 0; s < MAXSTEPS; s++) this.pattern[v * VSTRIDE + s] = p.pattern[v * NSTEPS + s % NSTEPS] || 0;   // older projects: 16 steps
     }
     for (const k of ['gate', 'tune', 'level']) if (p[k]) this[k].set(p[k]);
     if (p.drumOn !== undefined) this.drumOn = !!p.drumOn;
@@ -365,34 +362,9 @@ class LoopEngine {
     const len = s.length / r, end = gate >= 100 ? len : Math.max(this.sr * 0.01, len * gate / 100);
     this.playing.push({ s, i: 0, r, g: g * lvl, end, fade: Math.round(this.sr * 0.006) });
   }
-  // a new number of steps per bar: every beat moves to the nearest new step
-  setSteps(m) {
-    m = Math.max(1, Math.min(MAXSTEPS, Math.round(m)));
-    const old = this.drumSteps; if (m === old) return;
-    const np = new Uint8Array(this.pattern.length);
-    for (let v = 0; v < NVOICES; v++) for (let b = 0; b < MAXBARS; b++) for (let s = 0; s < old; s++) {
-      if (!this.pattern[v * VSTRIDE + b * MAXSTEPS + s]) continue;
-      let ns = Math.round(s * m / old), nb = b;
-      if (ns >= m) { ns -= m; nb = (b + 1) % this.drumBars; }
-      np[v * VSTRIDE + nb * MAXSTEPS + ns] = 1;
-    }
-    this.pattern = np; this.drumSteps = m; this.skip.fill(0);
-  }
-  // more bars: the new bars start as copies of the first one
-  setBars(b) {
-    b = Math.max(1, Math.min(MAXBARS, Math.round(b)));
-    for (let k = this.drumBars; k < b; k++) for (let v = 0; v < NVOICES; v++)
-      this.pattern.copyWithin(v * VSTRIDE + k * MAXSTEPS, v * VSTRIDE, v * VSTRIDE + MAXSTEPS);
-    this.drumBars = b;
-  }
-  // a 16-step preset (11 x 16) into every bar at the current resolution
+  // a 16-step preset (11 x 16), repeated over all 64 steps (so a longer pattern keeps the groove)
   setPreset(a) {
-    this.pattern.fill(0);
-    for (let v = 0; v < NVOICES; v++) for (let s = 0; s < NSTEPS; s++) if (a[v * NSTEPS + s]) {
-      const ns = Math.round(s * this.drumSteps / NSTEPS);
-      if (ns >= this.drumSteps) continue;
-      for (let b = 0; b < this.drumBars; b++) this.pattern[v * VSTRIDE + b * MAXSTEPS + ns] = 1;
-    }
+    for (let v = 0; v < NVOICES; v++) for (let s = 0; s < MAXSTEPS; s++) this.pattern[v * VSTRIDE + s] = a[v * NSTEPS + s % NSTEPS] ? 1 : 0;
   }
 
   // ---- parameters ---------------------------------------------------------------
@@ -414,9 +386,8 @@ class LoopEngine {
         break;
       case 'pattern': this.pattern.set(v); break;
       case 'preset': this.setPreset(v); break;
-      case 'step': this.pattern[v.v * VSTRIDE + v.s] = v.on ? 1 : 0; break;   // v.s: bar * 64 + step
-      case 'drumBars': this.setBars(v); break;
-      case 'drumSteps': this.setSteps(v); break;
+      case 'step': this.pattern[v.v * VSTRIDE + v.s] = v.on ? 1 : 0; break;
+      case 'drumLen': this.drumLen = Math.max(1, Math.min(MAXSTEPS, Math.round(v))); break;
       case 'gate': case 'tune': case 'level': this[k][v.v] = v.x; break;   // { v: sound, x }
       case 'kits': this.kits = v; break;
       default: this[k] = v;
@@ -557,7 +528,7 @@ class LoopEngine {
     return {
       wave,
       running: this.running, p: this.p, master: this.master, bars: this.masterBars, bpm: this.bpm,
-      armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1, drumBars: this.drumBars, drumSteps: this.drumSteps,
+      armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1, drumLen: this.drumLen,
       gate: Array.from(this.gate), tune: Array.from(this.tune), level: Array.from(this.level),
       drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit, clickOn: this.clickOn,
       canDrumUndo: !!this.drumUndo, canDrumRedo: !!this.drumRedo,
@@ -574,4 +545,4 @@ class LoopEngine {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT, MAXBARS, MAXSTEPS, VSTRIDE };
+if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT, MAXSTEPS, VSTRIDE };

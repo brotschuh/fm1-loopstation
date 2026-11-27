@@ -107,6 +107,10 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .st{min-height:30px;padding:0;border-radius:5px;background:var(--step);border-color:var(--stepline)}
 .st.q{background:var(--stepq)}
 .st.on{background:var(--drum);border-color:var(--drum)}
+.st.out{background:transparent;border:1px solid var(--line);opacity:.6;cursor:default}
+.voices{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;margin-bottom:10px}
+.voices button{min-height:36px;font-size:12px;padding:2px 4px}.voices button.on{background:var(--drum);border-color:var(--drum);color:#fff}
+.lennav b{color:var(--ink);font-size:15px}.lenlbl{display:grid;line-height:1.1}.lenlbl small{font-size:10px}
 .st.now{outline:2px solid var(--now);outline-offset:-2px}
 .set{display:grid;gap:10px}
 .set label{display:grid;gap:4px;font-size:13px;color:var(--dim)}
@@ -162,11 +166,13 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
   #fm1hint{margin:0}
   #params,.params{grid-template-columns:repeat(4,minmax(0,1fr));margin:0}
   #stut{margin:auto 0 0;min-height:0;height:48px}
-  #secDrums{display:grid;grid-template-columns:150px minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:12px}
+  #secDrums{display:grid;grid-template-columns:150px minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr;column-gap:12px}
   #secDrums h2{grid-column:1/-1}
   #secDrums .drumbar{grid-column:1;grid-template-columns:1fr;align-content:start;margin:0}
-  #secDrums .credit{grid-column:1;grid-row:3;align-self:end}
-  #grid{grid-column:2;grid-row:2/4;gap:2px;grid-template-rows:repeat(11,minmax(0,1fr));overflow:hidden}
+  #secDrums .credit{grid-column:1;grid-row:5;align-self:end}
+  #secDrums .pgnav{grid-column:1;margin:4px 0 0}
+  #secSound .voices{grid-template-columns:repeat(6,minmax(0,1fr))}
+  #grid{grid-column:2;grid-row:2/6;gap:2px;grid-template-rows:repeat(11,minmax(0,1fr));overflow:hidden}
   .row{gap:2px}
   .pad,.st{min-height:0}
   #secSave .savegrid{grid-template-columns:1fr 1fr;gap:10px}
@@ -233,12 +239,18 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
     <button id="stut" data-t>STUTTER (halten)</button>
   </section>
 
+  <section id="secSound">
+    <h2 data-t>DRUM-SOUND · ENV am FM-1</h2>
+    <div id="sndVoices" class="voices"></div>
+    <div id="sndParams" class="params"></div>
+  </section>
+
   <section id="secDrums">
-    <h2 data-t>DRUMS · Tasten 1–16 = Schritte, Tasten 17–27 = Pads</h2>
-    <div class="drumbar"><label><small data-t>Muster · Regler PRESETS</small><select id="selPat" aria-label="Muster"></select></label><label><small data-t>Kit · DRUM-SOUND (ENV), K4</small><select id="selKit" aria-label="Kit"></select></label></div>
+    <h2 data-t>DRUM-SEQUENZ</h2>
+    <div class="drumbar"><label><small data-t>Muster · Regler PRESETS</small><select id="selPat" aria-label="Muster"></select></label><label><small data-t>Kit · Regler SELECT</small><select id="selKit" aria-label="Kit"></select></label></div>
     <div class="pgnav"><button id="bPgPrev" aria-label="OCT−" title="OCT−">◀</button><span id="stepPage"></span><button id="bPgNext" aria-label="OCT+" title="OCT+">▶</button></div>
+    <div class="pgnav lennav"><button id="bLenDown" aria-label="−">−</button><span class="lenlbl"><small data-t>Schritte</small><b id="lenVal"></b></span><button id="bLenUp" aria-label="+">+</button></div>
     <div id="grid"></div>
-    <p class="hint" data-t>Regler ALGORITHM waehlt den Sound fuer die Tasten 1–16 und fuer DRUM-SOUND. Takte und Schritte: Seite DRUMS (SEQ), K3 und K4.</p>
     <p class="credit" data-t>ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
   </section>
 
@@ -289,9 +301,9 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
       <tr><td>ALGORITHM</td><td data-t>Drum-Sound waehlen (fuer die Schritt-Tasten und DRUM-SOUND)</td></tr>
       <tr><td>FX</td><td data-t>Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH, FILTER, STUTTER. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte. FX halten: Stutter.</td></tr>
       <tr><td>LFO</td><td data-t>LFO der gewaehlten Spur: K1 Ziel (Lautstaerke, Filter, Panorama), K2 Tempo, K3 Staerke, K4 Form</td></tr>
-      <tr><td>ENV</td><td data-t>DRUM-SOUND: K1 Laenge, K2 Tonhoehe, K3 Lautstaerke des gewaehlten Sounds, K4 Kit</td></tr>
-      <tr><td>SEQ</td><td data-t>DRUMS: K1 Lautstaerke, K2 Tempo (vor der ersten Aufnahme), K3 Takte 1–4, K4 Schritte pro Takt 1–64</td></tr>
-      <tr><td>OCT− · OCT+</td><td data-t>Durch die Drum-Schritte blaettern (Takte, und bei mehr als 16 Schritten die Haelften und Viertel)</td></tr>
+      <tr><td>ENV</td><td data-t>DRUM-SOUND: K1 Gate (Laenge), K2 Tonhoehe, K3 Lautstaerke des gewaehlten Sounds</td></tr>
+      <tr><td>SEQ</td><td data-t>DRUMS: K1 Lautstaerke, K2 BPM (global, vor der ersten Aufnahme), K3 Schritte 1–64 (Sechzehntel, ab Schritt 1). SELECT waehlt das Kit.</td></tr>
+      <tr><td>OCT− · OCT+</td><td data-t>Durch die Drum-Schritte blaettern, je 16</td></tr>
       <tr><td>GLO</td><td data-t>Seite MIKRO (auf dem Handy bei den Einstellungen)</td></tr>
       <tr><td data-t>Tasten 1–16</td><td data-t>Die Schritte des gewaehlten Drum-Sounds auf der aktuellen Seite (leuchtet = Schlag)</td></tr>
       <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
@@ -306,10 +318,10 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
 <script type="text/plain" id="worklet-src">
 // Ouroloops: audio engine.
 // Runs inside an AudioWorklet (one instance), and in Node for the tests.
-// Mono loop tracks (the phone microphone), a drum machine (1-4 bars, 1-64 steps per bar), bitcrusher and stutter.
+// Mono loop tracks (the phone microphone), a drum machine (1-64 sixteenth steps), bitcrusher and stutter.
 
 const NTRACKS = 3, NVOICES = 11, NSTEPS = 16, NOUT = 5;
-const MAXBARS = 4, MAXSTEPS = 64, VSTRIDE = MAXBARS * MAXSTEPS;   // pattern[v * VSTRIDE + bar * MAXSTEPS + step]
+const MAXSTEPS = 64, VSTRIDE = MAXSTEPS;   // pattern[v * 64 + step]; a step is always a sixteenth, drumLen of them loop
 const CHUNK = 4096;   // copy-on-write granularity of the undo snapshot
 const PKB = 1024;     // samples per peak bin of the waveform overview
 
@@ -341,7 +353,7 @@ class LoopEngine {
     // drums
     this.bpm = 100; this.drumOn = false; this.drumVol = 0.8; this.drumRec = false;
     this.pattern = new Uint8Array(NVOICES * VSTRIDE);
-    this.drumBars = 1; this.drumSteps = 16;
+    this.drumLen = 16;   // steps the pattern loops over (steps beyond keep their beats, unplayed)
     // per drum sound: length (gate, % of the sample), pitch (semitones), level (0..1)
     this.gate = new Float32Array(NVOICES).fill(100); this.tune = new Float32Array(NVOICES); this.level = new Float32Array(NVOICES).fill(1);
     this.drumUndo = null; this.drumRedo = null;
@@ -371,12 +383,9 @@ class LoopEngine {
 
   // ---- timing ------------------------------------------------------------------
   barLen() { return this.master > 0 ? this.master / this.masterBars : this.sr * 240 / this.bpm; }
-  stepLen() { return this.barLen() / this.drumSteps; }
-  // the drum step at position p: bar * MAXSTEPS + step (the pattern index without the voice)
-  stepAt(p) {
-    const bl = this.barLen(), pos = mod(p, bl * this.drumBars), bar = Math.floor(pos / bl);
-    return Math.min(bar, this.drumBars - 1) * MAXSTEPS + Math.min(this.drumSteps - 1, Math.floor((pos - bar * bl) / (bl / this.drumSteps)));
-  }
+  stepLen() { return this.barLen() / NSTEPS; }
+  // the drum step at position p (the pattern loops over drumLen sixteenths from the start)
+  stepAt(p) { const sl = this.stepLen(); return Math.min(this.drumLen - 1, Math.floor(mod(p, sl * this.drumLen) / sl)); }
   currentStep() { return this.stepAt(this.p); }
 
   // ---- commands from the UI ----------------------------------------------------
@@ -580,7 +589,7 @@ class LoopEngine {
   snapshot() {
     return {
       master: this.master, masterBars: this.masterBars, bpm: this.bpm, drumOn: this.drumOn, kit: this.kit,
-      pattern: Array.from(this.pattern), drumBars: this.drumBars, drumSteps: this.drumSteps,
+      pattern: Array.from(this.pattern), drumLen: this.drumLen,
       gate: Array.from(this.gate), tune: Array.from(this.tune), level: Array.from(this.level),
       tracks: this.tracks.map(t => ({
         len: t.len, offset: t.len ? mod(t.anchor, t.len) : 0, vol: t.vol, pan: t.pan, rev: t.rev, muted: t.state === 'stop',
@@ -604,11 +613,11 @@ class LoopEngine {
       t.canUndo = t.canRedo = false; t.dk.fill(0); this.repeak(t);
     }
     this.master = p.master || 0; this.masterBars = p.masterBars || 1; this.bpm = p.bpm || this.bpm;
-    this.drumBars = p.drumBars || 1; this.drumSteps = p.drumSteps || 16;
+    this.drumLen = p.drumLen || 16;
     if (p.pattern) {
       this.pattern.fill(0);
       if (p.pattern.length === NVOICES * VSTRIDE) this.pattern.set(p.pattern);
-      else for (let v = 0; v < NVOICES; v++) for (let s = 0; s < NSTEPS; s++) this.pattern[v * VSTRIDE + s] = p.pattern[v * NSTEPS + s] || 0;   // older projects: 16 steps
+      else for (let v = 0; v < NVOICES; v++) for (let s = 0; s < MAXSTEPS; s++) this.pattern[v * VSTRIDE + s] = p.pattern[v * NSTEPS + s % NSTEPS] || 0;   // older projects: 16 steps
     }
     for (const k of ['gate', 'tune', 'level']) if (p[k]) this[k].set(p[k]);
     if (p.drumOn !== undefined) this.drumOn = !!p.drumOn;
@@ -671,34 +680,9 @@ class LoopEngine {
     const len = s.length / r, end = gate >= 100 ? len : Math.max(this.sr * 0.01, len * gate / 100);
     this.playing.push({ s, i: 0, r, g: g * lvl, end, fade: Math.round(this.sr * 0.006) });
   }
-  // a new number of steps per bar: every beat moves to the nearest new step
-  setSteps(m) {
-    m = Math.max(1, Math.min(MAXSTEPS, Math.round(m)));
-    const old = this.drumSteps; if (m === old) return;
-    const np = new Uint8Array(this.pattern.length);
-    for (let v = 0; v < NVOICES; v++) for (let b = 0; b < MAXBARS; b++) for (let s = 0; s < old; s++) {
-      if (!this.pattern[v * VSTRIDE + b * MAXSTEPS + s]) continue;
-      let ns = Math.round(s * m / old), nb = b;
-      if (ns >= m) { ns -= m; nb = (b + 1) % this.drumBars; }
-      np[v * VSTRIDE + nb * MAXSTEPS + ns] = 1;
-    }
-    this.pattern = np; this.drumSteps = m; this.skip.fill(0);
-  }
-  // more bars: the new bars start as copies of the first one
-  setBars(b) {
-    b = Math.max(1, Math.min(MAXBARS, Math.round(b)));
-    for (let k = this.drumBars; k < b; k++) for (let v = 0; v < NVOICES; v++)
-      this.pattern.copyWithin(v * VSTRIDE + k * MAXSTEPS, v * VSTRIDE, v * VSTRIDE + MAXSTEPS);
-    this.drumBars = b;
-  }
-  // a 16-step preset (11 x 16) into every bar at the current resolution
+  // a 16-step preset (11 x 16), repeated over all 64 steps (so a longer pattern keeps the groove)
   setPreset(a) {
-    this.pattern.fill(0);
-    for (let v = 0; v < NVOICES; v++) for (let s = 0; s < NSTEPS; s++) if (a[v * NSTEPS + s]) {
-      const ns = Math.round(s * this.drumSteps / NSTEPS);
-      if (ns >= this.drumSteps) continue;
-      for (let b = 0; b < this.drumBars; b++) this.pattern[v * VSTRIDE + b * MAXSTEPS + ns] = 1;
-    }
+    for (let v = 0; v < NVOICES; v++) for (let s = 0; s < MAXSTEPS; s++) this.pattern[v * VSTRIDE + s] = a[v * NSTEPS + s % NSTEPS] ? 1 : 0;
   }
 
   // ---- parameters ---------------------------------------------------------------
@@ -720,9 +704,8 @@ class LoopEngine {
         break;
       case 'pattern': this.pattern.set(v); break;
       case 'preset': this.setPreset(v); break;
-      case 'step': this.pattern[v.v * VSTRIDE + v.s] = v.on ? 1 : 0; break;   // v.s: bar * 64 + step
-      case 'drumBars': this.setBars(v); break;
-      case 'drumSteps': this.setSteps(v); break;
+      case 'step': this.pattern[v.v * VSTRIDE + v.s] = v.on ? 1 : 0; break;
+      case 'drumLen': this.drumLen = Math.max(1, Math.min(MAXSTEPS, Math.round(v))); break;
       case 'gate': case 'tune': case 'level': this[k][v.v] = v.x; break;   // { v: sound, x }
       case 'kits': this.kits = v; break;
       default: this[k] = v;
@@ -863,7 +846,7 @@ class LoopEngine {
     return {
       wave,
       running: this.running, p: this.p, master: this.master, bars: this.masterBars, bpm: this.bpm,
-      armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1, drumBars: this.drumBars, drumSteps: this.drumSteps,
+      armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1, drumLen: this.drumLen,
       gate: Array.from(this.gate), tune: Array.from(this.tune), level: Array.from(this.level),
       drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit, clickOn: this.clickOn,
       canDrumUndo: !!this.drumUndo, canDrumRedo: !!this.drumRedo,
@@ -880,7 +863,7 @@ class LoopEngine {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT, MAXBARS, MAXSTEPS, VSTRIDE };
+if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT, MAXSTEPS, VSTRIDE };
 
 // AudioWorklet wrapper around LoopEngine (engine.js is prepended to this file when the page is built)
 class LoopProcessor extends AudioWorkletProcessor {
@@ -1011,6 +994,11 @@ const EN = {
   'Durch die Drum-Schritte blaettern (Takte, und bei mehr als 16 Schritten die Haelften und Viertel)': 'Page through the drum steps (bars, and with more than 16 steps their halves and quarters)',
   'Seite MIKRO (auf dem Handy bei den Einstellungen)': 'Page MIC (on the phone in the settings)',
   'Die Schritte des gewaehlten Drum-Sounds auf der aktuellen Seite (leuchtet = Schlag)': 'The steps of the selected drum sound on the current page (lit = hit)',
+  'DRUM-SOUND · ENV am FM-1': 'DRUM-SOUND · ENV on the FM-1', 'DRUM-SEQUENZ': 'DRUM SEQUENCE', 'Schritte': 'Steps', 'Kit · Regler SELECT': 'Kit · SELECT knob',
+  'GATE (LAENGE)': 'GATE (LENGTH)', 'BPM (GLOBAL)': 'BPM (GLOBAL)',
+  'DRUM-SOUND: K1 Gate (Laenge), K2 Tonhoehe, K3 Lautstaerke des gewaehlten Sounds': 'DRUM-SOUND: K1 gate (length), K2 pitch, K3 volume of the selected sound',
+  'DRUMS: K1 Lautstaerke, K2 BPM (global, vor der ersten Aufnahme), K3 Schritte 1–64 (Sechzehntel, ab Schritt 1). SELECT waehlt das Kit.': 'DRUMS: K1 volume, K2 BPM (global, before the first recording), K3 steps 1–64 (sixteenths, from step 1). SELECT chooses the kit.',
+  'Durch die Drum-Schritte blaettern, je 16': 'Page through the drum steps, 16 at a time',
   'fuer': 'for', 'SPUREN': 'TRACKS',
   'Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an': 'Tap: main page (SELECT chooses the track). Hold: mute / unmute the selected track',
   'Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.': 'Effects of the selected track: DELAY, REVERB, CHORUS, BITCRUSH. Scroll with SELECT (or FX again), K1–K4 set the values.',
@@ -1333,12 +1321,12 @@ const Save = (() => {
     if (snap.drumOn && kits[snap.kit]) {
       // the same drum machine as the engine: bars x steps, and per sound its length, pitch and level
       const D = new Float32Array(n), kit = kits[snap.kit], g = opts.fx ? S.drumVol : 1;
-      const bars = snap.drumBars || 1, steps = snap.drumSteps || 16, old = snap.pattern.length === 11 * 16;
-      const step = bar / steps, sr_ = sr, fade = Math.round(sr_ * 0.006);
+      const dlen = snap.drumLen || 16, old = snap.pattern.length === 11 * 16;
+      const step = bar / 16, sr_ = sr, fade = Math.round(sr_ * 0.006);
       for (let s = 0; s * step < body; s++) {
-        const at = Math.round(s * step), b = Math.floor(s / steps) % bars, st = s % steps;
+        const at = Math.round(s * step), st = s % dlen;
         for (let v = 0; v < 11; v++) {
-          const on = old ? snap.pattern[v * 16 + st] : snap.pattern[v * 256 + b * 64 + st];
+          const on = old ? snap.pattern[v * 16 + st % 16] : snap.pattern[v * 64 + st];
           if (!on || !kit[v]) continue;
           const smp = kit[v], r = Math.pow(2, (snap.tune ? snap.tune[v] : 0) / 12), lvl = snap.level ? snap.level[v] : 1;
           const gate = snap.gate ? snap.gate[v] : 100, len = smp.length / r;
@@ -1665,7 +1653,7 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
-  stutDiv: 2, revSize: 50, lfoTgt: 0, lfoRate: 2, lfoDepth: 50, lfoShape: 0, bpm: 100, drumBars: 1, drumSteps: 16, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
+  stutDiv: 2, revSize: 50, lfoTgt: 0, lfoRate: 2, lfoDepth: 50, lfoShape: 0, bpm: 100, drumLen: 16, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
   recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, projId: '', projName: '', v: 4 };
 // kept by a reset: the device, its look and its connections, not the sound
 const KEEP = ['lang', 'theme', 'micId', 'outId', 'glow', 'lat'];
@@ -1718,31 +1706,26 @@ const PAGES = {
   FX: { btn: 2, get name() { return chName() + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name + ' ' + (S.fxSel + 1) + '/' + FX_KEYS.length; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
   LFO: { get name() { return chName() + ' LFO'; }, btn: 5, p: [P('lfoTgt', 'ZIEL', 0, 3, 1, v => LFO_TGT[v]), P('lfoRate', 'TEMPO', 0, 6, 1, v => LFO_DIV[v][0], 'RATE'),
     P('lfoDepth', 'STAERKE', 0, 100, 1), P('lfoShape', 'FORM', 0, 4, 1, v => LFO_SHAPE[v])] },
-  ENV: { get name() { return 'DRUM: ' + T(voiceNames()[voice]); }, btn: 4, p: [P('dGate', 'LAENGE', 5, 100, 1, v => v >= 100 ? 'VOLL' : v + '%'),
-    P('dTune', 'TONHOEHE', -12, 12, 1, v => (v > 0 ? '+' : '') + v + (LANG === 'en' ? ' ST' : ' HT'), 'TON'), P('dLevel', 'LAUTST.', 0, 100, 1), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0])] },
+  ENV: { get name() { return 'DRUM: ' + T(voiceNames()[voice]); }, btn: 4, p: [P('dGate', 'GATE (LAENGE)', 5, 100, 1, v => v >= 100 ? 'VOLL' : v + '%', 'GATE'),
+    P('dTune', 'TONHOEHE', -12, 12, 1, v => (v > 0 ? '+' : '') + v + (LANG === 'en' ? ' ST' : ' HT'), 'TON'), P('dLevel', 'LAUTST.', 0, 100, 1)] },
   SPUR: { name: 'SPUREN', btn: 8, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
-  DRUMS: { get name() { return 'DRUMS ' + stepPageName(); }, btn: 11, p: [P('drumVol', 'LAUTST.', 0, 100, 1), P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''),
-    P('drumBars', 'TAKTE', 1, 4, 1), P('drumSteps', 'SCHRITTE', 1, 64, 1)] },
+  DRUMS: { get name() { return 'DRUMS ' + T(KITS[S.kit]).split(' ')[0] + ' ' + stepPageName(); }, btn: 11, p: [P('drumVol', 'LAUTST.', 0, 100, 1),
+    P('bpm', 'BPM (GLOBAL)', 50, 200, 1, v => Math.round(v) + '', 'BPM'), P('drumLen', 'SCHRITTE', 1, 64, 1)] },
   SAVE: { btn: 9, get name() { return 'SAVE ' + Save.safe(S.projName).toUpperCase(); },
     p: [P('saveAct', 'AKTION', 0, SAVE_ACTS.length - 1, 1, v => SAVE_ACTS[v]), P('saveLoops', 'LOOPS', 1, 16, 1, v => v + 'X'),
       P('saveProj', 'PROJEKT', 0, 99, 1, v => (projList[v] ? Save.safe(projList[v].name).toUpperCase() : '-'))] },
   MIKRO: { name: 'MIKRO + AUSGANG', btn: 7, p: [P('inGain', 'EINGANG', 0, 200, 2), P('mon', 'MITHOEREN', 0, 100, 2, null, 'MONITOR'), P('lat', 'LATENZ', 0, 400, 1, v => v + 'ms'), P('glow', 'TASTENLICHT', 0, 8, 1, v => v ? String(v) : 'AUS', 'LICHT')] },
 };
 function chName() { return sel < 3 ? 'S' + (sel + 1) : 'DR'; }
-const ALL_PARAMS = [...Object.values(FX_SUB).flatMap(g => g.p), ...Object.keys(PAGES).filter(k => k !== 'FX').flatMap(k => PAGES[k].p)];
-const WEB_TABS = ['FX', 'LFO', 'SPUR', 'DRUMS', 'ENV'];   // MIKRO lives in the settings on the phone
-const TAB_NAME = { ENV: 'DRUM-SOUND' };
-// the 16 step keys show one page: a bar, and within it 16 steps (more than 16 steps: OCT- / OCT+)
+const ALL_PARAMS = [...Object.values(FX_SUB).flatMap(g => g.p), ...Object.keys(PAGES).filter(k => k !== 'FX').flatMap(k => PAGES[k].p),
+  P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v])), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name))];   // chosen with SELECT / PRESETS and on the screen
+const WEB_TABS = ['FX', 'LFO', 'SPUR', 'DRUMS'];   // MIKRO: in the settings, ENV: its own DRUM-SOUND window
+let webTab = 'FX';   // the page the FX window on the screen shows (the FM-1 may be on another one)
+// the pattern: up to 64 sixteenths, drumLen of them loop; the 16 step keys show one page of 16 (OCT- / OCT+)
 let stepPage = 0;
-const subPages = () => Math.ceil(S.drumSteps / 16), nPages = () => S.drumBars * subPages();
-function pageStep(k) {   // key k on the current page -> pattern index without the voice (bar * 64 + step), or -1
-  const bar = Math.floor(stepPage / subPages()), s = (stepPage % subPages()) * 16 + k;
-  return bar < S.drumBars && s < S.drumSteps ? bar * 64 + s : -1;
-}
-function stepPageName() {
-  const sp = subPages(), bar = Math.floor(stepPage / sp) + 1, a = (stepPage % sp) * 16 + 1, b = Math.min(S.drumSteps, a + 15);
-  return 'T' + bar + '/' + S.drumBars + (sp > 1 ? ' ' + a + '-' + b : '');
-}
+const nPages = () => Math.ceil(S.drumLen / 16);
+function pageStep(k) { const s = stepPage * 16 + k; return s < S.drumLen ? s : -1; }   // key k -> step, or -1 beyond the length
+function stepPageName() { const a = stepPage * 16 + 1; return a + '-' + Math.min(S.drumLen, a + 15); }
 function setStepPage(n) { stepPage = Math.max(0, Math.min(nPages() - 1, n)); $('#grid').innerHTML = ''; renderGrid(); updateLeds(); lastSig = ''; drawScreen(); }
 function setFx(i) { S.fxSel = (i + FX_KEYS.length) % FX_KEYS.length; save(); setPage('FX'); }
 const PAGE_KEYS = Object.keys(PAGES);
@@ -1830,7 +1813,7 @@ function applyParam(k) {
   const beat = () => 60 / (st ? st.bpm : S.bpm);
   switch (k) {
     case 'bpm': for (let c = 0; c < 4; c++) { applyFx(c, 'dlyDiv'); applyFx(c, 'lfoRate'); } send({ t: 'set', k: 'bpm', v }); break;
-    case 'drumBars': case 'drumSteps': send({ t: 'set', k, v }); stepPage = Math.min(stepPage, nPages() - 1); $('#grid').innerHTML = ''; renderGrid(); break;
+    case 'drumLen': send({ t: 'set', k, v }); stepPage = Math.min(stepPage, nPages() - 1); $('#grid').innerHTML = ''; renderGrid(); updateLeds(); break;
     case 'dsnd': for (let i = 0; i < 11; i++) for (const q of ['gate', 'tune', 'level']) send({ t: 'set', k: q, v: { v: i, x: q === 'level' ? S.dsnd[q][i] / 100 : S.dsnd[q][i] } }); break;
     case 'stutDiv': send({ t: 'set', k: 'stutDiv', v: STUT_DIV[v] }); break;
     case 'pat': send({ t: 'set', k: 'preset', v: patternArray(v) }); break;
@@ -1902,7 +1885,7 @@ function onStatus(s) {
   if (prev && (s.master !== prev.master || s.tracks.some((t, i) => t.state !== prev.tracks[i].state && (t.state === 'play' || t.state === 'dub')))) changed = true;
   if (s.wave) { wave = s.wave; fmWaveDirty = true; }
   for (const ev of s.events) if (ev.t === 'loop') { toast(`Loop: ${ev.bars} ${T(ev.bars > 1 ? 'Takte' : 'Takt')}, ${Math.round(ev.bpm)} BPM`); for (let c = 0; c < 4; c++) applyFx(c, 'dlyDiv'); }
-  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo, t.len]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0, s.drumBars, s.drumSteps]);
+  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo, t.len]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0, s.drumLen]);
   if (sig !== lastSig) { lastSig = sig; renderTracks(); drawScreen(); renderParams(); }
   const pat = s.pattern.join('');
   if (pat !== lastPat) { if (lastPat) changed = true; lastPat = pat; renderGrid(); fmWaveDirty = true; }
@@ -2002,7 +1985,7 @@ function drawProgress(force) {
   const t = sel < 3 ? st.tracks[sel] : null;
   if (t && t.state === 'rec') { f = st.master ? (t.rec % st.master) / st.master : Math.min(1, t.rec / (ctx.sampleRate * 8)); c = C.rec; }
   else if (t && t.len) { f = t.pos; c = t.state === 'dub' ? C.dub : C.play; }
-  else if (sel === 3 && st.step >= 0) { f = (stepLinear(st.step) + 1) / (st.drumBars * st.drumSteps); c = C.drum; }
+  else if (sel === 3 && st.step >= 0) { f = (st.step + 1) / st.drumLen; c = C.drum; }
   const w = Math.round(f * 228), o = FM1.op;
   link.draw([o.rect(6, Y.line, Math.max(1, w), 2, c), o.rect(6 + w, Y.line, Math.max(1, 228 - w), 2, C.dark)], 'prog');
 }
@@ -2018,12 +2001,11 @@ function waveCols(n) {
   }
   return cols;
 }
-const stepLinear = g => Math.floor(g / 64) * st.drumSteps + (g % 64);
 // DR selected: the selected drum sound over the whole pattern instead of a waveform
 function drumStripOps() {
-  const o = FM1.op, ops = [o.rect(6, Y.wave, 228, Y.waveH, C.bg)], n = st.drumBars * st.drumSteps, w = 228 / n;
+  const o = FM1.op, ops = [o.rect(6, Y.wave, 228, Y.waveH, C.bg)], n = st.drumLen, w = 228 / n;
   for (let i = 0; i < n; i++) {
-    const g = Math.floor(i / st.drumSteps) * 64 + i % st.drumSteps, on = st.pattern[voice * 256 + g];
+    const on = st.pattern[voice * 64 + i];
     const x = 6 + Math.floor(i * w), cw = Math.max(1, Math.floor((i + 1) * w) - Math.floor(i * w) - (w >= 3 ? 1 : 0));
     ops.push(on ? o.rect(x, Y.wave, cw, Y.waveH, C.drum) : o.rect(x, Y.wave + Y.waveH / 2 - 1, cw, 2, C.dark));
   }
@@ -2059,18 +2041,17 @@ function drawWave() {
   const t = sel < 3 ? st.tracks[sel] : null;
   const label = $('#waveLabel');
   if (!t) {   // DR: a small read-only view of the whole drum pattern, with the play position
-    const n = st.drumBars * st.drumSteps, cw = W / n, rh = (H - 22) / 11;
-    label.textContent = 'DRUMS · ' + st.drumBars + ' ' + T(st.drumBars > 1 ? 'Takte' : 'Takt') + ' × ' + st.drumSteps;
+    const n = st.drumLen, cw = W / n, rh = (H - 22) / 11;
+    label.textContent = 'DRUMS · ' + n + ' ' + T('Schritte');
     g.clearRect(0, 0, W, H);
     for (let v = 0; v < 11; v++) for (let i = 0; i < n; i++) {
-      const gi = Math.floor(i / st.drumSteps) * 64 + i % st.drumSteps;
-      if (!st.pattern[v * 256 + gi]) continue;
+      if (!st.pattern[v * 64 + i]) continue;
       g.fillStyle = v === voice ? col('--drum') : col('--dim');
       g.fillRect(i * cw + 0.5, 20 + v * rh + 0.5, Math.max(1, cw - 1), Math.max(1, rh - 1));
     }
     g.fillStyle = col('--line');
-    for (let b = 1; b < st.drumBars; b++) g.fillRect(b * st.drumSteps * cw, 18, 1, H - 18);
-    if (st.step >= 0) { g.globalAlpha = 0.28; g.fillStyle = col('--now'); g.fillRect(stepLinear(st.step) * cw, 18, Math.max(2, cw), H - 18); g.globalAlpha = 1; }
+    for (let b = 16; b < n; b += 16) g.fillRect(b * cw, 18, 1, H - 18);   // bar lines
+    if (st.step >= 0) { g.globalAlpha = 0.28; g.fillStyle = col('--now'); g.fillRect(st.step * cw, 18, Math.max(2, cw), H - 18); g.globalAlpha = 1; }
     return;
   }
   const n = Math.max(40, Math.floor(W / 3)), cols = waveCols(n);
@@ -2103,7 +2084,7 @@ function updateLeds() {
   if (st.running) bit(FM1.BTN.PLAY);
   if (st.drumOn) bit(FM1.BTN.ARP);
   bit(PAGES[page].btn);
-  for (let k = 0; k < 16; k++) { const g = pageStep(k); if (g < 0) continue; let on = !!st.pattern[voice * 256 + g]; if (g === st.step) on = !on; if (on) bit(14 + k); }
+  for (let k = 0; k < 16; k++) { const g = pageStep(k); if (g < 0) continue; let on = !!st.pattern[voice * 64 + g]; if (g === st.step) on = !on; if (on) bit(14 + k); }
   bit(14 + 16 + voice);
   if (m !== lastLed) { lastLed = m; link.leds(m); }
 }
@@ -2118,7 +2099,7 @@ link.onKey = (k, on) => {
   }
   if (!on) return;                     // keys 1..16: the steps of the selected drum voice on the current page
   const g = pageStep(k); if (g < 0) return;
-  const idx = voice * 256 + g, v = st.pattern[idx] ? 0 : 1;
+  const idx = voice * 64 + g, v = st.pattern[idx] ? 0 : 1;
   st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s: g, on: v } }); renderGrid(); updateLeds(); fmWaveDirty = true; drawFmWave(true);
 };
 function reveal(id) {
@@ -2127,7 +2108,7 @@ function reveal(id) {
   if (r.top < 60 || r.top > h * 0.5) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 // ARP (10) jumps nowhere; GLO (7) goes to the settings, where the MIKRO knobs are too
-const BTN_SECTION = { 0: 'secDrums', 1: 'secDrums', 9: 'secSave', 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secHelp', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks' };
+const BTN_SECTION = { 0: 'secDrums', 1: 'secDrums', 9: 'secSave', 2: 'secFx', 4: 'secSound', 5: 'secFx', 6: 'secHelp', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks' };
 link.onButton = (b, on) => {
   const B = FM1.BTN;
   if (on && BTN_SECTION[b]) reveal(sel === 3 && (b === 12 || b === 13) ? 'secDrums' : BTN_SECTION[b]);
@@ -2170,11 +2151,12 @@ link.onButton = (b, on) => {
   }
 };
 link.onEncoder = (e, d) => {
-  if (e === 0 && page === 'FX') { setFx(S.fxSel + (d > 0 ? 1 : -1)); reveal('secFx'); return; }
+  // knobs never move the screen to another window (only the buttons do)
+  if (e === 0 && page === 'FX') { setFx(S.fxSel + (d > 0 ? 1 : -1)); return; }
+  if (e === 0 && (page === 'DRUMS' || page === 'ENV')) { setP('kit', (S.kit + (d > 0 ? 1 : KITS.length - 1)) % KITS.length); lastSig = ''; drawScreen(); toast('Kit: ' + T(KITS[S.kit])); return; }
   if (e === 0) { select((sel + (d > 0 ? 1 : 3)) % 4); reveal('secTracks'); return; }
-  if (e === 1 || e === 6) reveal('secDrums'); else reveal(page === 'MIKRO' ? 'secSettings' : page === 'SAVE' ? 'secSave' : 'secFx');
   if (e === 6) { setP('pat', (S.pat + (d > 0 ? 1 : PATTERNS.length - 1)) % PATTERNS.length); toast(T('Muster') + ': ' + T(PATTERNS[S.pat].name)); return; }
-  if (e === 1) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); renderParams(); fmWaveDirty = true; drawFmWave(true); if (page === 'ENV') { lastSig = ''; drawScreen(); } toast('Drum: ' + T(voiceNames()[voice])); return; }
+  if (e === 1) { setVoice((voice + (d > 0 ? 1 : 10)) % 11); toast('Drum: ' + T(voiceNames()[voice])); return; }
   const p = PAGES[page].p[e - 2]; if (!p) return;
   const acc = Math.abs(d) > 2 ? 3 : 1;
   setP(p.id, getP(p.id) + Math.sign(d) * p.step * acc);
@@ -2229,7 +2211,7 @@ function applyProject(p) {
   if (g.tfx) S.tfx = g.tfx;
   for (const k of ['drumVol', 'pat', 'kit', 'master', 'recToDub', 'dsnd']) if (g[k] !== undefined) S[k] = g[k];
   for (const t of S.tfx) for (const k of FX_IDS) if (t[k] === undefined) t[k] = DEF[k];
-  S.drumBars = p.snap.drumBars || 1; S.drumSteps = p.snap.drumSteps || 16; stepPage = 0;
+  S.drumLen = p.snap.drumLen || 16; stepPage = 0;
   if (p.snap.gate) S.dsnd = { gate: p.snap.gate, tune: p.snap.tune, level: p.snap.level.map(x => Math.round(x * 100)) };
   save();
   const snap = p.snap, transfer = snap.tracks.filter(t => t.data).map(t => t.data.buffer);
@@ -2334,7 +2316,8 @@ function toggleClick() { const on = !(st && st.clickOn); send({ t: 'set', k: 'cl
 function clearSel() { send({ t: 'clear', i: sel }); toast(sel === 3 ? T('Drum-Muster geloescht') : T('SPUR') + ' ' + (sel + 1) + ' ' + T('geloescht')); }
 function stutter(on) { send({ t: 'set', k: 'stut', v: on }); $('#stut').classList.toggle('on', on); }
 function select(i) { sel = i; lastSig = ''; wave = null; send({ t: 'wave', i: i < 3 ? i : -1, bins: 400 }); renderTracks(); renderParams(); drawScreen(); updateLeds(); }
-function setPage(k) { page = k; renderParams(); drawScreen(); updateLeds(); }
+function setPage(k) { page = k; if (WEB_TABS.includes(k)) webTab = k; renderParams(); drawScreen(); updateLeds(); }
+function setVoice(v) { voice = v; renderGrid(); updateLeds(); renderParams(); fmWaveDirty = true; drawFmWave(true); lastSig = ''; drawScreen(); }
 
 // ---- phone UI --------------------------------------------------------------------------------
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -2349,8 +2332,8 @@ function renderTracks() {
     else { const t = st.tracks[i]; cls = st.armed === i ? 'rec armed' : t.state; state = T(st.armed === i ? 'WARTET AUF TAKT' : t.pending ? 'REC BIS TAKTENDE' : STATE_DE[t.state]); }
     const t = st.tracks[i];
     const len = i < 3 && t.len ? (t.len / ctx.sampleRate).toFixed(1) + ' s' : i === 3 ? T(KITS[S.kit]) : '';
-    const bars = i < 3 && t.len && st.master ? t.len / (st.master / st.bars) : i === 3 ? st.drumBars : 0;
-    const barTxt = bars ? (Math.abs(bars - Math.round(bars)) < 0.01 ? Math.round(bars) : bars.toFixed(1)) + ' ' + T(bars > 1 ? 'Takte' : 'Takt') : '';
+    const bars = i < 3 && t.len && st.master ? t.len / (st.master / st.bars) : i === 3 && st.drumLen % 16 === 0 ? st.drumLen / 16 : 0;
+    const barTxt = bars ? (Math.abs(bars - Math.round(bars)) < 0.01 ? Math.round(bars) : bars.toFixed(1)) + ' ' + T(bars > 1 ? 'Takte' : 'Takt') : i === 3 ? st.drumLen + ' ' + T('Schritte') : '';
     return `<button class="track ${cls} ${i === sel ? 'sel' : ''}" data-i="${i}">
       <span class="tn">${i === 3 ? 'DRUMS' : T('SPUR') + ' ' + (i + 1)}</span><span class="ts">${state}</span>
       <span class="tl">${esc(len)}</span><span class="tl">${esc(barTxt)}</span><span class="bar"><i id="pb${i}"></i></span><span class="lv"><i id="lv${i}"></i></span></button>`;
@@ -2381,7 +2364,7 @@ function updateMeters() {
     if (pb) pb.style.width = (t.state === 'rec' ? (st.master ? (t.rec % st.master) / st.master : Math.min(1, t.rec / (ctx.sampleRate * 8))) : t.pos) * 100 + '%';
     if (l) l.style.width = lv(t.peak);
   });
-  const pb = $('#pb3'); if (pb) pb.style.width = st.step >= 0 ? (stepLinear(st.step) + 1) / (st.drumBars * st.drumSteps) * 100 + '%' : '0%';
+  const pb = $('#pb3'); if (pb) pb.style.width = st.step >= 0 ? (st.step + 1) / st.drumLen * 100 + '%' : '0%';
 }
 
 function paramsHtml(pg) {
@@ -2393,11 +2376,13 @@ function paramsHtml(pg) {
 }
 function renderParams() {
   $('#setParams').innerHTML = paramsHtml(PAGES.MIKRO);
-  $('#pages').innerHTML = WEB_TABS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(TAB_NAME[k] || k)}</button>`).join('');
-  $('#fxsubs').hidden = page !== 'FX';
+  $('#sndParams').innerHTML = paramsHtml(PAGES.ENV);
+  $('#sndVoices').innerHTML = voiceNames().map((n, i) => `<button data-v="${i}" class="${i === voice ? 'on' : ''}">${esc(T(n))}</button>`).join('');
+  $('#pages').innerHTML = WEB_TABS.map(k => `<button data-p="${k}" class="${k === webTab ? 'on' : ''}">${T(k)}</button>`).join('');
+  $('#fxsubs').hidden = webTab !== 'FX'; $('#stut').hidden = webTab === 'DRUMS';
   $('#fxsubs').innerHTML = FX_KEYS.map((k, i) => `<button data-fx="${i}" class="${i === S.fxSel ? 'on' : ''}">${k}</button>`).join('');
-  $('#fxFor').textContent = page === 'ENV' ? T('fuer') + ' ' + T(voiceNames()[voice]) + ' (ALGORITHM)' : page === 'DRUMS' ? '' : T('fuer') + ' ' + (sel < 3 ? T('SPUR') + ' ' + (sel + 1) : 'DRUMS');
-  const pg = PAGES[page];
+  $('#fxFor').textContent = webTab === 'DRUMS' ? '' : T('fuer') + ' ' + (sel < 3 ? T('SPUR') + ' ' + (sel + 1) : 'DRUMS');
+  const pg = PAGES[webTab];
   $('#params').innerHTML = pg.p.map((p, i) => {
     const disabled = (p.id.startsWith('t') && p.id !== 'tVol' ? sel > 2 : false) || (p.id === 'tVol' && sel > 2) || (p.id === 'bpm' && st && st.master > 0);
     return `<label class="prm"><span>K${i + 1} ${esc(T(p.label))}</span><b>${esc(TV(p.fmt(getP(p.id))))}</b>
@@ -2408,14 +2393,15 @@ function renderParams() {
 function renderGrid() {
   const g = $('#grid');
   if (!g.firstChild) {
-    const keys = Array.from({ length: 16 }, (_, k) => pageStep(k)).filter(x => x >= 0), q = Math.max(1, Math.round(S.drumSteps / 4));
-    g.innerHTML = voiceNames().map((v, r) => `<div class="row" data-r="${r}" style="grid-template-columns:76px repeat(${keys.length},minmax(16px,1fr))"><button class="pad" data-v="${r}">${esc(T(v))}</button>${
-      keys.map(s => `<button class="st ${(s % 64) % q === 0 ? 'q' : ''}" data-v="${r}" data-s="${s}"></button>`).join('')}</div>`).join('');
-    $('#stepPage').textContent = T('Takt') + ' ' + stepPageName().slice(1);
+    g.innerHTML = voiceNames().map((v, r) => `<div class="row" data-r="${r}"><button class="pad" data-v="${r}">${esc(T(v))}</button>${
+      Array.from({ length: 16 }, (_, k) => { const s = stepPage * 16 + k, out = s >= S.drumLen;
+        return `<button class="st ${k % 4 === 0 ? 'q' : ''} ${out ? 'out' : ''}" data-v="${r}" data-s="${s}" ${out ? 'disabled' : ''}></button>`; }).join('')}</div>`).join('');
+    $('#stepPage').textContent = stepPageName();
     $('#bPgPrev').disabled = stepPage <= 0; $('#bPgNext').disabled = stepPage >= nPages() - 1;
+    $('#lenVal').textContent = S.drumLen;
   }
   const pat = st ? st.pattern : [];
-  g.querySelectorAll('.st').forEach(b => b.classList.toggle('on', !!pat[b.dataset.v * 256 + +b.dataset.s]));
+  g.querySelectorAll('.st').forEach(b => b.classList.toggle('on', !b.disabled && !!pat[b.dataset.v * 64 + +b.dataset.s]));
   g.querySelectorAll('.row').forEach(r => r.classList.toggle('cur', +r.dataset.r === voice));
   $('#selPat').value = S.pat; $('#selKit').value = S.kit;
 }
@@ -2466,11 +2452,15 @@ $('#grid').onpointerdown = e => {
   const b = e.target.closest('button'); if (!b || !st) return;
   voice = +b.dataset.v;
   if (b.classList.contains('pad')) { send({ t: 'pad', v: voice }); flashPad(voice); }
-  else { const s = +b.dataset.s, idx = voice * 256 + s, v = st.pattern[idx] ? 0 : 1; st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s, on: v } }); fmWaveDirty = true; }
+  else { const s = +b.dataset.s, idx = voice * 64 + s, v = st.pattern[idx] ? 0 : 1; st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s, on: v } }); fmWaveDirty = true; }
   renderGrid(); updateLeds();
 };
 $('#selPat').onchange = e => setP('pat', +e.target.value);
 $('#bPgPrev').onclick = () => setStepPage(stepPage - 1);
+$('#bLenDown').onclick = () => setP('drumLen', S.drumLen - 1);
+$('#bLenUp').onclick = () => setP('drumLen', S.drumLen + 1);
+$('#sndVoices').onclick = e => { const b = e.target.closest('button'); if (b) setVoice(+b.dataset.v); };
+$('#sndParams').oninput = e => { const i = e.target.closest('input'); if (i) setP(i.dataset.id, +i.value); };
 $('#bPgNext').onclick = () => setStepPage(stepPage + 1);
 $('#selKit').onchange = e => setP('kit', +e.target.value);
 $('#projName').onchange = e => { S.projName = e.target.value.trim() || S.projName; save(); changed = true; if (S.projId) saveProject(true); };
