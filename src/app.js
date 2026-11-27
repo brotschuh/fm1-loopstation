@@ -10,7 +10,7 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
   stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
-  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, projId: '', projName: '', v: 3 };
+  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, micMode: 0, projId: '', projName: '', v: 3 };
 let S = { ...DEF };
 try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0 }); } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
@@ -162,7 +162,9 @@ async function decodeRock() {
 async function openMic() {
   if (mic) mic.getTracks().forEach(t => t.stop());
   if (micSrc) micSrc.disconnect();
-  const audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
+  // micMode 1: Android only follows the chosen microphone in voice mode (echo cancellation on);
+  // in raw mode it records from a plugged-in USB audio device (the FM-1) whatever is chosen
+  const audio = { echoCancellation: S.micMode === 1, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
   if (S.micId) audio.deviceId = { exact: S.micId };
   try { mic = await navigator.mediaDevices.getUserMedia({ audio }); }
   catch (e) {
@@ -620,7 +622,7 @@ function renderTracks() {
 
 function updateMeters() {
   const lv = x => Math.min(100, Math.round(Math.sqrt(x) * 100)) + '%';
-  $('#mIn').style.width = lv(st.meterIn); $('#mOut').style.width = lv(st.meterOut);
+  $('#mIn').style.width = lv(st.meterIn); $('#mIn2').style.width = lv(st.meterIn); $('#mOut').style.width = lv(st.meterOut);
   $('#mIn').classList.toggle('clip', st.meterIn > 0.98);
   st.tracks.forEach((t, i) => {
     const pb = $('#pb' + i), l = $('#lv' + i);
@@ -733,6 +735,8 @@ $('#bStemsDry').onclick = () => exportAudio('dry');
 $('#bStemsFx').onclick = () => exportAudio('fx');
 $('#bFolder').onclick = async () => { try { await Save.chooseFolder(); renderSave(); toast(T('Speicherort') + ': ' + Save.folderName()); } catch (e) { } };
 $('#selLoops').innerHTML = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}x</option>`).join('');
+$('#selMicMode').onchange = e => { S.micMode = +e.target.value; save(); openMic(); };
+$('#selMicMode').value = S.micMode;
 $('#selMic').onchange = e => { S.micId = e.target.value; save(); openMic(); };
 $('#selOut').onchange = e => setOutput(e.target.value);
 $('#bClearAll').onclick = () => { if ($('#bClearAll').dataset.arm) { send({ t: 'clearAll' }); delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); } else { $('#bClearAll').dataset.arm = 1; $('#bClearAll').textContent = T('Wirklich alles loeschen?'); setTimeout(() => { delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); }, 3000); } };

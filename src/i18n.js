@@ -46,6 +46,7 @@ const EN = {
   'Nichts zum Exportieren': 'Nothing to export', 'Rechnet …': 'Rendering …', 'Live-Mitschnitt laeuft': 'Live recording', 'noch keine Projekte': 'no projects yet',
   'Projekt geloescht': 'Project deleted', 'Speicherort': 'Save folder', 'GESPEICHERT': 'SAVED', 'GELADEN': 'LOADED', 'NEU': 'NEW', 'RECHNET': 'RENDERING',
   'AKTION': 'ACTION', 'SPEICHERN': 'SAVE', 'LADEN': 'LOAD', 'PROJEKT': 'PROJECT',
+  'Mikro-Modus': 'Mic mode', 'Studio (unbearbeitet)': 'Studio (unprocessed)', 'Sprachmodus (falls das Handy-Mikro stumm bleibt)': 'Voice mode (if the phone mic stays silent)',
   'fuer': 'for', 'SPUREN': 'TRACKS',
   'Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an': 'Tap: main page (SELECT chooses the track). Hold: mute / unmute the selected track',
   'Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.': 'Effects of the selected track: DELAY, REVERB, CHORUS, BITCRUSH. Scroll with SELECT (or FX again), K1–K4 set the values.',
