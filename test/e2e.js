@@ -182,10 +182,25 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.waitForSelector('#app:not([hidden])', { timeout: 10000 }); await page.waitForTimeout(2000);
   const ts0 = await page.textContent('.track[data-i="0"] .ts');
   check(ts0 !== 'LEER' && ts0 !== '' , 'after a reload track 1 is back: ' + len0 + ' -> ' + ts0);
-  await page.click('#bNewProj'); await page.waitForTimeout(800);
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('fm1loop')); s.tfx[0].rev = 60; s.tfx[3].dlyMix = 40; localStorage.setItem('fm1loop', JSON.stringify(s)); });
+  await page.click('#bNewProj'); await page.waitForTimeout(200);
+  check(await page.isVisible('#newAsk'), 'new project asks about the effects');
+  await page.click('#bNewOff'); await page.waitForTimeout(800);
+  const fxAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('fm1loop')).tfx);
+  check(fxAfter.every(f => f.rev === 0 && f.dlyMix === 0 && f.choMix === 0 && f.bits === 16 && f.filt === 0), 'new project with all effects off');
   check(await page.inputValue('#projName') === 'Session 2', 'new project: ' + await page.inputValue('#projName'));
   await page.setInputFiles('#fileProj', projPath); await page.waitForTimeout(1200);
   check(await page.inputValue('#projName') === 'Session 1' && (await page.textContent('.track[data-i="0"] .ts')) !== 'LEER', 'project file loads back');
+  // the reset button, twice tapped
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('fm1loop')); s.tfx[1].choMix = 70; localStorage.setItem('fm1loop', JSON.stringify(s)); });
+  await page.reload(); await page.click('#start'); await page.waitForSelector('#app:not([hidden])'); await page.waitForTimeout(1200);
+  await page.click('#bReset'); await page.click('#bReset'); await page.waitForTimeout(300);
+  check(await page.evaluate(() => JSON.parse(localStorage.getItem('fm1loop')).tfx.every(f => f.choMix === 0 && f.rev === 0)), 'reset everything: effects off');
+  // the update from settings v3: effects reset, language and design kept
+  await page.evaluate(() => localStorage.setItem('fm1loop', JSON.stringify({ v: 3, lang: 'de', theme: 'paper', dlyMix: 50, tfx: [0, 1, 2, 3].map(() => ({ rev: 70, dlyMix: 30 })) })));
+  await page.reload(); await page.waitForTimeout(500);
+  const mig = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('fm1loop') || '{}'); return { theme: document.documentElement.dataset.theme, s }; });
+  check(mig.theme === 'paper' && (!mig.s.tfx || mig.s.tfx.every(f => f.rev === 0 && f.dlyMix === 0)), 'update to v4 starts with effects off, keeps the design');
   check(errors.length === 0, 'no page errors: ' + errors.slice(0, 3).join(' | '));
   await browser.close();
   console.log(fails ? fails + ' failed' : 'all passed');

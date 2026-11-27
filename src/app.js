@@ -10,14 +10,21 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
   stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
-  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, micMode: 0, projId: '', projName: '', v: 3 };
+  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, micMode: 0, projId: '', projName: '', v: 4 };
+// kept by a reset: the device, its look and its connections, not the sound
+const KEEP = ['lang', 'theme', 'micId', 'outId', 'glow', 'micMode', 'lat'];
 let S = { ...DEF };
-try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0 }); } catch (e) { }
+try {
+  const o = JSON.parse(localStorage.getItem('fm1loop') || '{}');
+  if (o.v === 4) Object.assign(S, o);
+  else for (const k of KEEP) if (o[k] !== undefined) S[k] = o[k];   // the update to v4 starts with everything off
+} catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
 // effects are per channel: tracks 1-3 and the drums (index 3), each with its own settings
 const FX_IDS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'bits', 'down', 'filt', 'res'];
 if (!Array.isArray(S.tfx) || S.tfx.length !== 4) S.tfx = [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, S[k] !== undefined ? S[k] : DEF[k]])));
 for (const t of S.tfx) for (const k of FX_IDS) if (t[k] === undefined) t[k] = DEF[k];
+try { if (JSON.parse(localStorage.getItem('fm1loop') || '{}').v !== 4) localStorage.setItem('fm1loop', JSON.stringify(S)); } catch (e) { }
 LANG = S.lang || ((navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en');
 function applyLang() {
   document.documentElement.lang = LANG;
@@ -44,7 +51,7 @@ const FX_SUB = {
   BITCRUSH: { name: 'BITCRUSH', p: [P('bits', 'BITS', 2, 16, 1, v => v >= 16 ? 'AUS' : v + ' BIT'), P('down', 'SAMPLERATE', 1, 32, 1, v => v === 1 ? 'AUS' : '1/' + v, 'RATE')] },
 };
 const FX_KEYS = Object.keys(FX_SUB);
-const SAVE_ACTS = ['SPEICHERN', 'LADEN', 'NEU', 'LIVE', 'MIX', 'STEMS DRY', 'STEMS FX'];
+const SAVE_ACTS = ['SPEICHERN', 'LADEN', 'NEU', 'NEU+FX', 'LIVE', 'MIX', 'STEMS DRY', 'STEMS FX'];
 let projList = [];
 const PAGES = {
   FX: { btn: 2, get name() { return chName() + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name + ' ' + (S.fxSel + 1) + '/' + FX_KEYS.length; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
@@ -501,9 +508,18 @@ function applyProject(p) {
   send({ t: 'set', k: 'clickOn', v: !!g.clickOn });
   $('#grid').innerHTML = ''; renderGrid(); renderParams(); changed = false; refreshProjects();
 }
-async function newProject() {
+// back to the start values (effects off); the device settings (KEEP) and the loops stay
+function freshFx() { return [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, DEF[k]]))); }
+function resetSettings(fxOnly) {
+  if (!fxOnly) for (const k of Object.keys(DEF)) if (!KEEP.includes(k) && !['projId', 'projName', 'v', 'bpm'].includes(k)) S[k] = DEF[k];
+  S.tfx = freshFx(); save();
+  if (ctx) { for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k); if (!fxOnly) for (const k of Object.keys(DEF)) if (!FX_IDS.includes(k)) applyParam(k); }
+  $('#grid').innerHTML = ''; renderGrid(); renderParams(); lastSig = ''; if (st) drawScreen(); changed = true;
+}
+async function newProject(keepFx) {
   if (changed && S.projId) await saveProject(true);
   send({ t: 'clearAll' });
+  if (!keepFx) resetSettings(true);
   await refreshProjects();
   S.projId = newId(); S.projName = 'Session ' + (projList.length + 1); changed = false; save();
   renderSave(); toast(T('Neues Projekt') + ': ' + S.projName); fmSay(T('NEU'));
@@ -558,7 +574,8 @@ function saveAction() {
   const a = SAVE_ACTS[S.saveAct];
   if (a === 'SPEICHERN') saveProject(false);
   else if (a === 'LADEN') { const p = projList[S.saveProj || 0]; if (p) loadProject(p.id); }
-  else if (a === 'NEU') newProject();
+  else if (a === 'NEU') newProject(false);
+  else if (a === 'NEU+FX') newProject(true);
   else if (a === 'LIVE') liveToggle();
   else if (a === 'MIX') exportAudio('mix');
   else if (a === 'STEMS DRY') exportAudio('dry');
@@ -718,7 +735,14 @@ $('#selPat').onchange = e => setP('pat', +e.target.value);
 $('#selKit').onchange = e => setP('kit', +e.target.value);
 $('#projName').onchange = e => { S.projName = e.target.value.trim() || S.projName; save(); changed = true; if (S.projId) saveProject(true); };
 $('#bSaveProj').onclick = () => saveProject(false);
-$('#bNewProj').onclick = () => newProject();
+$('#bNewProj').onclick = () => { $('#newAsk').hidden = !$('#newAsk').hidden; };
+$('#bNewOff').onclick = () => { $('#newAsk').hidden = true; newProject(false); };
+$('#bNewKeep').onclick = () => { $('#newAsk').hidden = true; newProject(true); };
+$('#bReset').onclick = () => {
+  const b = $('#bReset');
+  if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = T('Wirklich zuruecksetzen?'); setTimeout(() => { delete b.dataset.arm; b.textContent = T('Alles zuruecksetzen'); }, 3000); return; }
+  delete b.dataset.arm; b.textContent = T('Alles zuruecksetzen'); resetSettings(false); toast(T('Alles zurueckgesetzt, Effekte aus'));
+};
 $('#bLoadProj').onclick = () => { const id = $('#projList').value; if (id) loadProject(id); };
 $('#bDelProj').onclick = async () => {
   const b = $('#bDelProj'), id = $('#projList').value; if (!id) return;

@@ -128,6 +128,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 #liveTime{font-size:14px;color:var(--rec);min-height:18px}
 .folder{margin:0;font-size:13px;color:var(--dim);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .note{margin:0;font-size:12px;color:var(--dim)}
+.ask{display:grid;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--dim)}
 .setmeter{display:block;height:8px;margin-top:6px}
 .hidden-feature{font-size:12px;color:var(--dim);margin:14px 0 0}
 .credit{font-size:12px;color:var(--dim);margin:4px 0 0}
@@ -244,6 +245,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <div class="col">
         <label><span data-t>Projekt</span><input id="projName" type="text" maxlength="60" autocomplete="off"></label>
         <div class="btnrow"><button id="bSaveProj" data-t>Speichern</button><button id="bNewProj" data-t>Neues Projekt</button></div>
+        <div id="newAsk" class="ask" hidden><span data-t>Effekte fuer das neue Projekt:</span><div class="btnrow"><button id="bNewOff" data-t>Alle aus</button><button id="bNewKeep" data-t>Uebernehmen</button></div></div>
         <select id="projList" aria-label="Projekte"></select>
         <div class="btnrow"><button id="bLoadProj" data-t>Laden</button><button id="bDelProj" data-t>Loeschen</button></div>
         <div class="btnrow"><button id="bExportProj" data-t>Als Datei sichern</button><label class="filebtn"><input id="fileProj" type="file" accept=".ouroloops,.zip"><span data-t>Datei laden</span></label></div>
@@ -264,6 +266,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     <label><span data-t>Sprache</span><select id="selLang"><option value="de">Deutsch</option><option value="en">English</option></select></label>
     <label><span data-t>Mikrofon</span> <small id="micName"></small><select id="selMic"></select><span class="meter setmeter"><i id="mIn2"></i></span></label>
     <label><span data-t>Mikro-Modus</span><select id="selMicMode"><option value="0" data-t>Studio (unbearbeitet)</option><option value="1" data-t>Sprachmodus (falls das Handy-Mikro stumm bleibt)</option></select></label>
+    <label><span data-t>Klang und Effekte</span><button id="bReset" data-t>Alles zuruecksetzen</button></label>
     <label id="outRow" hidden><span data-t>Ausgang (am Computer: das FM-1 waehlen)</span><select id="selOut"></select></label>
   </section>
 
@@ -274,7 +277,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td>PLAY</td><td data-t>Alles starten / stoppen</td></tr>
       <tr><td>EDIT</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
       <tr><td>HOME</td><td data-t>Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an</td></tr>
-      <tr><td>SAVE</td><td data-t>Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.</td></tr>
+      <tr><td>SAVE</td><td data-t>Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu ohne / mit Effekten, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.</td></tr>
       <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
       <tr><td>ARP</td><td data-t>Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)</td></tr>
       <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
