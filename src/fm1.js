@@ -88,6 +88,9 @@ const FM1 = (() => {
       const st = d[0] & 0xf0, ch = d[0] & 0x0f;
       if (d[0] === 0xf0) {
         if (d[6] === 0x42 && this.onRedraw) this.onRedraw();
+        // the firmware keeps OCT- / OCT+ for itself (it shifts the keys by an octave) and reports the new
+        // octave: we take that as the button and put the plain keyboard back at once
+        if (d[6] === 0x41 && d.length > 10 && d[9] !== 3) { const dir = d[9] > 3 ? 1 : -1; this.send(scaleFrame(), 'scale'); if (this.onOct) this.onOct(dir); }
         if (d[6] === 0x40 && d.length >= 30) {   // PONG: did the FM-1 drop frames since the last one?
           const v = o => ((d[o] & 15) << 28 | d[o + 1] << 21 | d[o + 2] << 14 | d[o + 3] << 7 | d[o + 4]) >>> 0;
           const dropped = v(24);

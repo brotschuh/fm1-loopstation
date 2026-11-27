@@ -27,12 +27,13 @@ window.__fm1 = (() => {
         st.texts.push(t); if (st.texts.length > 400) st.texts.splice(0, 200);
         break;
       }
-      case 6: st.scale = Array.from(p.slice(0, 4)); break;
+      case 6: st.scale = Array.from(p.slice(0, 4)); reportScale(); break;
       case 11: { let m = 0n; for (let i = 0; i < 6; i++) m |= BigInt(p[i] & 127) << BigInt(7 * i); st.glow = m; st.glowLevel = p[6]; break; }
       case 10: { let i = 0; while (i + 3 <= p.length) { const l = n14(p.slice(i)); if (l < 1 || i + 2 + l > p.length) { st.errors.push('bad batch'); break; } cmd(p[i + 2], p.slice(i + 3, i + 3 + l - 1)); i += 2 + l; } break; }
     }
   }
   let inputPort = null;
+  const reportScale = () => setTimeout(() => reply([0xf0, 0x7d, 68, 65, 87, 1, 0x41, ...st.scale, 0xf7]), 5);
   const reply = bytes => inputPort && inputPort.onmidimessage && inputPort.onmidimessage({ data: new Uint8Array(bytes) });
   const out = {
     name: 'FM-1 SAMPLER', state: 'connected', send(d) {
@@ -54,7 +55,10 @@ window.__fm1 = (() => {
   return {
     canvas: cv, st,
     key(k, on = true) { reply([on ? 0x90 : 0x80, 53 + k, on ? 100 : 0]); },
-    button(b, on = true) { reply([on ? 0x91 : 0x81, b, on ? 100 : 0]); },
+    button(b, on = true) {
+      if (b <= 1) { if (on && st.scale) { st.scale[2] = Math.max(0, Math.min(6, st.scale[2] + (b ? 1 : -1))); reportScale(); } return; }   // OCT: handled in the firmware
+      reply([on ? 0x91 : 0x81, b, on ? 100 : 0]);
+    },
     tap(b) { this.button(b, true); this.button(b, false); },
     enc(e, d) { reply([0xb0, 16 + e, 64 + d]); },
     led(k) { return !!(st.leds >> BigInt(k) & 1n); },

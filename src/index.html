@@ -136,8 +136,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .setmeter{display:block;height:8px;margin-top:6px}
 button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top:2px;letter-spacing:0}
 .drumbar label{display:grid;gap:3px}.drumbar small{font-size:11px;color:var(--dim)}
-.pgnav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
-.pgnav span{text-align:center;font-size:13px;color:var(--dim);white-space:nowrap}.pgnav button{min-height:36px;min-width:40px;padding:0 8px;font-size:14px}
+.navrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px}
+.pgnav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+.pgnav span{text-align:center;font-size:13px;color:var(--dim);white-space:nowrap}.pgnav button{min-height:32px;min-width:40px;padding:0 8px;font-size:14px}
 .hint{margin:8px 0 0;font-size:12px;color:var(--dim)}
 .hidden-feature{font-size:12px;color:var(--dim);margin:14px 0 0}
 .credit{font-size:12px;color:var(--dim);margin:4px 0 0}
@@ -170,13 +171,14 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
   #fm1hint{margin:0}
   #params,.params{grid-template-columns:repeat(4,minmax(0,1fr));margin:0}
   #stut{margin:auto 0 0;min-height:0;height:48px}
-  #secDrums{display:grid;grid-template-columns:150px minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr;column-gap:12px}
+  #secDrums{display:grid;grid-template-columns:150px minmax(0,1fr);grid-template-rows:auto auto 1fr;column-gap:12px}
   #secDrums h2{grid-column:1/-1}
   #secDrums .drumbar{grid-column:1;grid-template-columns:1fr;align-content:start;margin:0}
-  #secDrums .credit{grid-column:1;grid-row:5;align-self:end}
-  #secDrums .pgnav{grid-column:1;margin:4px 0 0}
+  #secDrums .credit{grid-column:1;grid-row:3;align-self:end}
+  #secDrums .navrow{grid-column:2;grid-row:2;margin:0 0 4px}
+  #secDrums .drumbar{grid-row:2/4;align-self:start}
   #secSound .voices{grid-template-columns:repeat(6,minmax(0,1fr))}
-  #grid{grid-column:2;grid-row:2/6;gap:2px;grid-template-rows:repeat(11,minmax(0,1fr));overflow:hidden}
+  #grid{grid-column:2;grid-row:3;gap:2px;grid-template-rows:repeat(11,minmax(0,1fr));overflow:hidden}
   .row{gap:2px}
   .pad,.st{min-height:0}
   #secSave .savegrid{grid-template-columns:1fr 1fr;gap:10px}
@@ -236,7 +238,7 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
   </section>
 
   <section id="secFx">
-    <h2><span data-t>EFFEKTE · die vier Regler K1–K4 am FM-1</span> <span id="fxFor" class="fxfor"></span></h2>
+    <h2><span data-t>EFFEKTE</span> <span id="fxFor" class="fxfor"></span></h2>
     <div id="pages"></div>
     <div id="fxsubs" hidden></div>
     <div id="params"></div>
@@ -244,7 +246,7 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
   </section>
 
   <section id="secSound">
-    <h2 data-t>DRUM-SOUND · ENV am FM-1</h2>
+    <h2>DRUM-SOUND</h2>
     <div id="sndVoices" class="voices"></div>
     <div id="sndParams" class="params"></div>
   </section>
@@ -252,8 +254,10 @@ button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top
   <section id="secDrums">
     <h2 data-t>DRUM-SEQUENZ</h2>
     <div class="drumbar"><label><small data-t>Muster · Regler PRESETS</small><select id="selPat" aria-label="Muster"></select></label><label><small data-t>Kit · Regler SELECT</small><select id="selKit" aria-label="Kit"></select></label></div>
-    <div class="pgnav"><button id="bPgPrev" aria-label="OCT−" title="OCT−">◀</button><span id="stepPage"></span><button id="bPgNext" aria-label="OCT+" title="OCT+">▶</button></div>
-    <div class="pgnav lennav"><button id="bLenDown" aria-label="−">−</button><span class="lenlbl"><small data-t>Schritte</small><b id="lenVal"></b></span><button id="bLenUp" aria-label="+">+</button></div>
+    <div class="navrow">
+      <div class="pgnav"><button id="bPgPrev" aria-label="OCT−" title="OCT−">◀</button><span id="stepPage"></span><button id="bPgNext" aria-label="OCT+" title="OCT+">▶</button></div>
+      <div class="pgnav lennav"><button id="bLenDown" aria-label="−">−</button><span class="lenlbl"><small data-t>Schritte (K3)</small><b id="lenVal"></b></span><button id="bLenUp" aria-label="+">+</button></div>
+    </div>
     <div id="grid"></div>
     <p class="credit" data-t>ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
   </section>

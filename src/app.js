@@ -519,6 +519,7 @@ link.onEncoder = (e, d) => {
   const acc = Math.abs(d) > 2 ? 3 : 1;
   setP(p.id, getP(p.id) + Math.sign(d) * p.step * acc);
 };
+link.onOct = dir => link.onButton(dir > 0 ? FM1.BTN.OCTP : FM1.BTN.OCTM, true);   // OCT comes as an octave report (see fm1.js)
 link.onRedraw = () => { lastLed = -1n; drawScreen(); updateLeds(); sendGlow(); };
 let dropFixAt = 0;
 link.onFeatures = () => { lastSig = ''; if (st) drawScreen(); };

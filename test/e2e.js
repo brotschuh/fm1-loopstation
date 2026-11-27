@@ -118,6 +118,7 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   const kick1 = await page.evaluate(() => document.querySelector('.row[data-r="0"] .st[data-s="8"]').classList.contains('on'));
   await page.evaluate(() => window.__fm1.tap(1)); await page.waitForTimeout(300);
   check((await page.textContent('#stepPage')) === '17-20', 'OCT+ goes to steps 17-20: ' + await page.textContent('#stepPage'));
+  check((await S()).scale[2] === 3, 'after OCT the keyboard is back at the plain octave: ' + (await S()).scale);
   check(await page.evaluate(() => document.querySelectorAll('.row[data-r="0"] .st.out').length) === 12, 'steps 21-32 are frames only');
   check(await page.evaluate(() => document.querySelector('.row[data-r="0"] .st[data-s="16"]').classList.contains('on')), 'the preset continues past step 16');
   await page.evaluate(() => { window.__fm1.tap(0); for (let i = 0; i < 4; i++) window.__fm1.enc(4, -1); }); await page.waitForTimeout(300);
