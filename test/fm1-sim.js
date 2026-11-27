@@ -3,7 +3,7 @@
 // and lets the test press keys, buttons and turn encoders.
 window.__fm1 = (() => {
   const W = 240, cv = document.createElement('canvas'); cv.width = W; cv.height = W; cv.id = 'fm1screen';
-  const g = cv.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, W, W);
+  const g = cv.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, W, W); g.fillStyle = '#777'; g.font = '8px monospace'; g.textBaseline = 'top'; g.fillText('HARDWARE MEETS SMARTPHONE', 45, 120);   // the splash
   const n14 = p => (p[0] & 127) << 7 | (p[1] & 127);
   const color = p => ((p[0] & 3) << 14) | ((p[1] & 127) << 7) | (p[2] & 127);
   const css = c => `rgb(${(c >> 11 & 31) * 255 / 31 | 0},${(c >> 5 & 63) * 255 / 63 | 0},${(c & 31) * 255 / 31 | 0})`;

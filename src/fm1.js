@@ -74,7 +74,7 @@ const FM1 = (() => {
         ins.forEach(i => { if (i !== inp) i.onmidimessage = null; });
         this.inp = inp; this.out = found; this.name = inp.name;
         inp.onmidimessage = ev => this.recv(ev.data);
-        this.connected = true; this.dropped = -1;
+        this.connected = true; this.dropped = -1; this.session = (this.session || 0) + 1;   // a new connection: the screen is the firmware's
         this.send(scaleFrame());
         clearInterval(this.pinger);
         this.pinger = setInterval(() => { if (this.connected) this.send(pingFrame(1), 'ping'); }, 1500);

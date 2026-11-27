@@ -10,9 +10,9 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
   stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
-  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, micMode: 0, projId: '', projName: '', v: 4 };
+  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, projId: '', projName: '', v: 4 };
 // kept by a reset: the device, its look and its connections, not the sound
-const KEEP = ['lang', 'theme', 'micId', 'outId', 'glow', 'micMode', 'lat'];
+const KEEP = ['lang', 'theme', 'micId', 'outId', 'glow', 'lat'];
 let S = { ...DEF };
 try {
   const o = JSON.parse(localStorage.getItem('fm1loop') || '{}');
@@ -169,9 +169,7 @@ async function decodeRock() {
 async function openMic() {
   if (mic) mic.getTracks().forEach(t => t.stop());
   if (micSrc) micSrc.disconnect();
-  // micMode 1: Android only follows the chosen microphone in voice mode (echo cancellation on);
-  // in raw mode it records from a plugged-in USB audio device (the FM-1) whatever is chosen
-  const audio = { echoCancellation: S.micMode === 1, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
+  const audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
   if (S.micId) audio.deviceId = { exact: S.micId };
   try { mic = await navigator.mediaDevices.getUserMedia({ audio }); }
   catch (e) {
@@ -207,7 +205,7 @@ async function listDevices() {
 async function setOutput(id) { try { await ctx.setSinkId(id); S.outId = id; save(); } catch (e) { toast(T('Ausgang nicht verfuegbar')); } }
 
 // ---- engine status -> UI, FM-1 screen and LEDs ------------------------------------------------
-let lastSig = '', lastLed = -1n, lastProg = 0, lastPat = '';
+let painted = '', lastSig = '', lastLed = -1n, lastProg = 0, lastPat = '';
 function onStatus(s) {
   if (s.t === 'snapshot') { if (snapWait) { snapWait(s.snap); snapWait = null; } return; }
   const prev = st; st = s;
@@ -265,7 +263,11 @@ const Y = { tiles: 28, tileH: 50, word: 84, wave: 110, waveH: 10, line: 123, pag
 function drawScreen() {
   if (!link.connected || !st) return;
   // no clear (that flashed black): every region is painted over, the texts are opaque cells
-  const o = FM1.op, ops = [o.rect(0, 0, 240, 4, C.bg), o.rect(150, 4, 24, 16, C.bg), o.rect(0, Y.tiles - 6, 240, Y.tileH + 10, C.bg)];
+  const o = FM1.op, ops = [];
+  // once per connection and design: the whole screen in the background colour (the gaps between the
+  // regions and what the splash left there); after that only the regions, so nothing flashes
+  if (painted !== link.session + S.theme) { ops.push(o.rect(0, 0, 240, 240, C.bg)); painted = link.session + S.theme; }
+  ops.push(o.rect(0, 0, 240, 4, C.bg), o.rect(150, 4, 24, 16, C.bg), o.rect(0, Y.tiles - 6, 240, Y.tileH + 10, C.bg));
   ops.push(o.text(6, 4, 2, C.accent, C.bg, 'OUROLOOPS'));
   ops.push(o.text(174, 4, 2, C.fg, C.bg, String(Math.round(st.bpm)).padStart(3) + ' '));
   ops.push(o.text(120, 4, 2, C.rec, C.bg, live.on ? 'LIVE' : '    '));
@@ -759,8 +761,6 @@ $('#bStemsDry').onclick = () => exportAudio('dry');
 $('#bStemsFx').onclick = () => exportAudio('fx');
 $('#bFolder').onclick = async () => { try { await Save.chooseFolder(); renderSave(); toast(T('Speicherort') + ': ' + Save.folderName()); } catch (e) { } };
 $('#selLoops').innerHTML = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}x</option>`).join('');
-$('#selMicMode').onchange = e => { S.micMode = +e.target.value; save(); openMic(); };
-$('#selMicMode').value = S.micMode;
 $('#selMic').onchange = e => { S.micId = e.target.value; save(); openMic(); };
 $('#selOut').onchange = e => setOutput(e.target.value);
 $('#bClearAll').onclick = () => { if ($('#bClearAll').dataset.arm) { send({ t: 'clearAll' }); delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); } else { $('#bClearAll').dataset.arm = 1; $('#bClearAll').textContent = T('Wirklich alles loeschen?'); setTimeout(() => { delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); }, 3000); } };

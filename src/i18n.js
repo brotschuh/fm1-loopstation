@@ -46,7 +46,6 @@ const EN = {
   'Nichts zum Exportieren': 'Nothing to export', 'Rechnet …': 'Rendering …', 'Live-Mitschnitt laeuft': 'Live recording', 'noch keine Projekte': 'no projects yet',
   'Projekt geloescht': 'Project deleted', 'Speicherort': 'Save folder', 'GESPEICHERT': 'SAVED', 'GELADEN': 'LOADED', 'NEU': 'NEW', 'RECHNET': 'RENDERING',
   'AKTION': 'ACTION', 'SPEICHERN': 'SAVE', 'LADEN': 'LOAD', 'PROJEKT': 'PROJECT',
-  'Mikro-Modus': 'Mic mode', 'Studio (unbearbeitet)': 'Studio (unprocessed)', 'Sprachmodus (falls das Handy-Mikro stumm bleibt)': 'Voice mode (if the phone mic stays silent)',
   'NEU+FX': 'NEW+FX', 'Effekte fuer das neue Projekt:': 'Effects for the new project:', 'Alle aus': 'All off', 'Uebernehmen': 'Keep them',
   'Klang und Effekte': 'Sound and effects', 'Alles zuruecksetzen': 'Reset everything', 'Wirklich zuruecksetzen?': 'Really reset?', 'Alles zurueckgesetzt, Effekte aus': 'Everything reset, effects off',
   'Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu ohne / mit Effekten, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.': 'Tap: page SAVE. K1 chooses what (save, load, new without / with effects, live, mix, stems), K2 the loops, K3 the project to load; SAVE again = do it.',
