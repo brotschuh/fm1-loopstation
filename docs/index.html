@@ -128,8 +128,6 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 #liveTime{font-size:14px;color:var(--rec);min-height:18px}
 .folder{margin:0;font-size:13px;color:var(--dim);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .note{margin:0;font-size:12px;color:var(--dim)}
-.ask{display:grid;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--dim)}
-.setmeter{display:block;height:8px;margin-top:6px}
 .hidden-feature{font-size:12px;color:var(--dim);margin:14px 0 0}
 .credit{font-size:12px;color:var(--dim);margin:4px 0 0}
 .help table{width:100%;border-collapse:collapse}
@@ -245,7 +243,6 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <div class="col">
         <label><span data-t>Projekt</span><input id="projName" type="text" maxlength="60" autocomplete="off"></label>
         <div class="btnrow"><button id="bSaveProj" data-t>Speichern</button><button id="bNewProj" data-t>Neues Projekt</button></div>
-        <div id="newAsk" class="ask" hidden><span data-t>Effekte fuer das neue Projekt:</span><div class="btnrow"><button id="bNewOff" data-t>Alle aus</button><button id="bNewKeep" data-t>Uebernehmen</button></div></div>
         <select id="projList" aria-label="Projekte"></select>
         <div class="btnrow"><button id="bLoadProj" data-t>Laden</button><button id="bDelProj" data-t>Loeschen</button></div>
         <div class="btnrow"><button id="bExportProj" data-t>Als Datei sichern</button><label class="filebtn"><input id="fileProj" type="file" accept=".ouroloops,.zip"><span data-t>Datei laden</span></label></div>
@@ -264,9 +261,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     <h2 data-t>EINSTELLUNGEN</h2>
     <div id="setParams" class="params"></div>
     <label><span data-t>Sprache</span><select id="selLang"><option value="de">Deutsch</option><option value="en">English</option></select></label>
-    <label><span data-t>Mikrofon</span> <small id="micName"></small><select id="selMic"></select><span class="meter setmeter"><i id="mIn2"></i></span></label>
-    <label><span data-t>Mikro-Modus</span><select id="selMicMode"><option value="0" data-t>Studio (unbearbeitet)</option><option value="1" data-t>Sprachmodus (falls das Handy-Mikro stumm bleibt)</option></select></label>
-    <label><span data-t>Klang und Effekte</span><button id="bReset" data-t>Alles zuruecksetzen</button></label>
+    <label><span data-t>Mikrofon</span> <small id="micName"></small><select id="selMic"></select></label>
     <label id="outRow" hidden><span data-t>Ausgang (am Computer: das FM-1 waehlen)</span><select id="selOut"></select></label>
   </section>
 
@@ -277,7 +272,7 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
       <tr><td>PLAY</td><td data-t>Alles starten / stoppen</td></tr>
       <tr><td>EDIT</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
       <tr><td>HOME</td><td data-t>Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an</td></tr>
-      <tr><td>SAVE</td><td data-t>Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu ohne / mit Effekten, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.</td></tr>
+      <tr><td>SAVE</td><td data-t>Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.</td></tr>
       <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
       <tr><td>ARP</td><td data-t>Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)</td></tr>
       <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
@@ -896,10 +891,6 @@ const EN = {
   'Nichts zum Exportieren': 'Nothing to export', 'Rechnet …': 'Rendering …', 'Live-Mitschnitt laeuft': 'Live recording', 'noch keine Projekte': 'no projects yet',
   'Projekt geloescht': 'Project deleted', 'Speicherort': 'Save folder', 'GESPEICHERT': 'SAVED', 'GELADEN': 'LOADED', 'NEU': 'NEW', 'RECHNET': 'RENDERING',
   'AKTION': 'ACTION', 'SPEICHERN': 'SAVE', 'LADEN': 'LOAD', 'PROJEKT': 'PROJECT',
-  'Mikro-Modus': 'Mic mode', 'Studio (unbearbeitet)': 'Studio (unprocessed)', 'Sprachmodus (falls das Handy-Mikro stumm bleibt)': 'Voice mode (if the phone mic stays silent)',
-  'NEU+FX': 'NEW+FX', 'Effekte fuer das neue Projekt:': 'Effects for the new project:', 'Alle aus': 'All off', 'Uebernehmen': 'Keep them',
-  'Klang und Effekte': 'Sound and effects', 'Alles zuruecksetzen': 'Reset everything', 'Wirklich zuruecksetzen?': 'Really reset?', 'Alles zurueckgesetzt, Effekte aus': 'Everything reset, effects off',
-  'Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu ohne / mit Effekten, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.': 'Tap: page SAVE. K1 chooses what (save, load, new without / with effects, live, mix, stems), K2 the loops, K3 the project to load; SAVE again = do it.',
   'fuer': 'for', 'SPUREN': 'TRACKS',
   'Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an': 'Tap: main page (SELECT chooses the track). Hold: mute / unmute the selected track',
   'Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.': 'Effects of the selected track: DELAY, REVERB, CHORUS, BITCRUSH. Scroll with SELECT (or FX again), K1–K4 set the values.',
@@ -1506,21 +1497,14 @@ const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'S
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
   stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
-  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, micMode: 0, projId: '', projName: '', v: 4 };
-// kept by a reset: the device, its look and its connections, not the sound
-const KEEP = ['lang', 'theme', 'micId', 'outId', 'glow', 'micMode', 'lat'];
+  recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, projId: '', projName: '', v: 3 };
 let S = { ...DEF };
-try {
-  const o = JSON.parse(localStorage.getItem('fm1loop') || '{}');
-  if (o.v === 4) Object.assign(S, o);
-  else for (const k of KEEP) if (o[k] !== undefined) S[k] = o[k];   // the update to v4 starts with everything off
-} catch (e) { }
+try { const o = JSON.parse(localStorage.getItem('fm1loop') || '{}'); if (o.v === 3) Object.assign(S, o); else Object.assign(S, o, { mon: 0, v: 3 }, o.v === 2 ? {} : { kit: 0, pat: 0 }); } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
 // effects are per channel: tracks 1-3 and the drums (index 3), each with its own settings
 const FX_IDS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'bits', 'down', 'filt', 'res'];
 if (!Array.isArray(S.tfx) || S.tfx.length !== 4) S.tfx = [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, S[k] !== undefined ? S[k] : DEF[k]])));
 for (const t of S.tfx) for (const k of FX_IDS) if (t[k] === undefined) t[k] = DEF[k];
-try { if (JSON.parse(localStorage.getItem('fm1loop') || '{}').v !== 4) localStorage.setItem('fm1loop', JSON.stringify(S)); } catch (e) { }
 LANG = S.lang || ((navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en');
 function applyLang() {
   document.documentElement.lang = LANG;
@@ -1547,7 +1531,7 @@ const FX_SUB = {
   BITCRUSH: { name: 'BITCRUSH', p: [P('bits', 'BITS', 2, 16, 1, v => v >= 16 ? 'AUS' : v + ' BIT'), P('down', 'SAMPLERATE', 1, 32, 1, v => v === 1 ? 'AUS' : '1/' + v, 'RATE')] },
 };
 const FX_KEYS = Object.keys(FX_SUB);
-const SAVE_ACTS = ['SPEICHERN', 'LADEN', 'NEU', 'NEU+FX', 'LIVE', 'MIX', 'STEMS DRY', 'STEMS FX'];
+const SAVE_ACTS = ['SPEICHERN', 'LADEN', 'NEU', 'LIVE', 'MIX', 'STEMS DRY', 'STEMS FX'];
 let projList = [];
 const PAGES = {
   FX: { btn: 2, get name() { return chName() + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name + ' ' + (S.fxSel + 1) + '/' + FX_KEYS.length; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
@@ -1665,9 +1649,7 @@ async function decodeRock() {
 async function openMic() {
   if (mic) mic.getTracks().forEach(t => t.stop());
   if (micSrc) micSrc.disconnect();
-  // micMode 1: Android only follows the chosen microphone in voice mode (echo cancellation on);
-  // in raw mode it records from a plugged-in USB audio device (the FM-1) whatever is chosen
-  const audio = { echoCancellation: S.micMode === 1, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
+  const audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
   if (S.micId) audio.deviceId = { exact: S.micId };
   try { mic = await navigator.mediaDevices.getUserMedia({ audio }); }
   catch (e) {
@@ -2004,18 +1986,9 @@ function applyProject(p) {
   send({ t: 'set', k: 'clickOn', v: !!g.clickOn });
   $('#grid').innerHTML = ''; renderGrid(); renderParams(); changed = false; refreshProjects();
 }
-// back to the start values (effects off); the device settings (KEEP) and the loops stay
-function freshFx() { return [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, DEF[k]]))); }
-function resetSettings(fxOnly) {
-  if (!fxOnly) for (const k of Object.keys(DEF)) if (!KEEP.includes(k) && !['projId', 'projName', 'v', 'bpm'].includes(k)) S[k] = DEF[k];
-  S.tfx = freshFx(); save();
-  if (ctx) { for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k); if (!fxOnly) for (const k of Object.keys(DEF)) if (!FX_IDS.includes(k)) applyParam(k); }
-  $('#grid').innerHTML = ''; renderGrid(); renderParams(); lastSig = ''; if (st) drawScreen(); changed = true;
-}
-async function newProject(keepFx) {
+async function newProject() {
   if (changed && S.projId) await saveProject(true);
   send({ t: 'clearAll' });
-  if (!keepFx) resetSettings(true);
   await refreshProjects();
   S.projId = newId(); S.projName = 'Session ' + (projList.length + 1); changed = false; save();
   renderSave(); toast(T('Neues Projekt') + ': ' + S.projName); fmSay(T('NEU'));
@@ -2070,8 +2043,7 @@ function saveAction() {
   const a = SAVE_ACTS[S.saveAct];
   if (a === 'SPEICHERN') saveProject(false);
   else if (a === 'LADEN') { const p = projList[S.saveProj || 0]; if (p) loadProject(p.id); }
-  else if (a === 'NEU') newProject(false);
-  else if (a === 'NEU+FX') newProject(true);
+  else if (a === 'NEU') newProject();
   else if (a === 'LIVE') liveToggle();
   else if (a === 'MIX') exportAudio('mix');
   else if (a === 'STEMS DRY') exportAudio('dry');
@@ -2135,7 +2107,7 @@ function renderTracks() {
 
 function updateMeters() {
   const lv = x => Math.min(100, Math.round(Math.sqrt(x) * 100)) + '%';
-  $('#mIn').style.width = lv(st.meterIn); $('#mIn2').style.width = lv(st.meterIn); $('#mOut').style.width = lv(st.meterOut);
+  $('#mIn').style.width = lv(st.meterIn); $('#mOut').style.width = lv(st.meterOut);
   $('#mIn').classList.toggle('clip', st.meterIn > 0.98);
   st.tracks.forEach((t, i) => {
     const pb = $('#pb' + i), l = $('#lv' + i);
@@ -2231,14 +2203,7 @@ $('#selPat').onchange = e => setP('pat', +e.target.value);
 $('#selKit').onchange = e => setP('kit', +e.target.value);
 $('#projName').onchange = e => { S.projName = e.target.value.trim() || S.projName; save(); changed = true; if (S.projId) saveProject(true); };
 $('#bSaveProj').onclick = () => saveProject(false);
-$('#bNewProj').onclick = () => { $('#newAsk').hidden = !$('#newAsk').hidden; };
-$('#bNewOff').onclick = () => { $('#newAsk').hidden = true; newProject(false); };
-$('#bNewKeep').onclick = () => { $('#newAsk').hidden = true; newProject(true); };
-$('#bReset').onclick = () => {
-  const b = $('#bReset');
-  if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = T('Wirklich zuruecksetzen?'); setTimeout(() => { delete b.dataset.arm; b.textContent = T('Alles zuruecksetzen'); }, 3000); return; }
-  delete b.dataset.arm; b.textContent = T('Alles zuruecksetzen'); resetSettings(false); toast(T('Alles zurueckgesetzt, Effekte aus'));
-};
+$('#bNewProj').onclick = () => newProject();
 $('#bLoadProj').onclick = () => { const id = $('#projList').value; if (id) loadProject(id); };
 $('#bDelProj').onclick = async () => {
   const b = $('#bDelProj'), id = $('#projList').value; if (!id) return;
@@ -2255,8 +2220,6 @@ $('#bStemsDry').onclick = () => exportAudio('dry');
 $('#bStemsFx').onclick = () => exportAudio('fx');
 $('#bFolder').onclick = async () => { try { await Save.chooseFolder(); renderSave(); toast(T('Speicherort') + ': ' + Save.folderName()); } catch (e) { } };
 $('#selLoops').innerHTML = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}x</option>`).join('');
-$('#selMicMode').onchange = e => { S.micMode = +e.target.value; save(); openMic(); };
-$('#selMicMode').value = S.micMode;
 $('#selMic').onchange = e => { S.micId = e.target.value; save(); openMic(); };
 $('#selOut').onchange = e => setOutput(e.target.value);
 $('#bClearAll').onclick = () => { if ($('#bClearAll').dataset.arm) { send({ t: 'clearAll' }); delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); } else { $('#bClearAll').dataset.arm = 1; $('#bClearAll').textContent = T('Wirklich alles loeschen?'); setTimeout(() => { delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); }, 3000); } };
