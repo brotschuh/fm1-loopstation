@@ -126,6 +126,11 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .note{margin:0;font-size:12px;color:var(--dim)}
 .ask{display:grid;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--dim)}
 .setmeter{display:block;height:8px;margin-top:6px}
+button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top:2px;letter-spacing:0}
+.drumbar label{display:grid;gap:3px}.drumbar small{font-size:11px;color:var(--dim)}
+.pgnav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.pgnav span{text-align:center;font-size:13px;color:var(--dim);white-space:nowrap}.pgnav button{min-height:36px;min-width:40px;padding:0 8px;font-size:14px}
+.hint{margin:8px 0 0;font-size:12px;color:var(--dim)}
 .hidden-feature{font-size:12px;color:var(--dim);margin:14px 0 0}
 .credit{font-size:12px;color:var(--dim);margin:4px 0 0}
 .help table{width:100%;border-collapse:collapse}
@@ -211,9 +216,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     </div>
     <div class="row2">
       <button id="bStop">SPUR STUMM</button>
-      <button id="bClick" data-t>KLICK</button>
-      <button id="bClear" data-t>LOESCHEN (halten)</button>
-      <button id="bClearAll" data-t>Alles loeschen</button>
+      <button id="bClick"><span data-t>KLICK</span><small data-t>ARP halten</small></button>
+      <button id="bClear"><span data-t>LOESCHEN (halten)</span><small data-t>SAVE halten</small></button>
+      <button id="bClearAll"><span id="bClearAllT" data-t>Alles loeschen</span><small data-t>PLAY 2 s halten</small></button>
     </div>
     </div>
     <div class="meters"><span data-t>Mikro</span><div class="meter"><i id="mIn"></i></div><span data-t>Ausgang</span><div class="meter"><i id="mOut"></i></div></div>
@@ -230,8 +235,10 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 
   <section id="secDrums">
     <h2 data-t>DRUMS · Tasten 1–16 = Schritte, Tasten 17–27 = Pads</h2>
-    <div class="drumbar"><select id="selPat" aria-label="Muster"></select><select id="selKit" aria-label="Kit"></select></div>
+    <div class="drumbar"><label><small data-t>Muster · Regler PRESETS</small><select id="selPat" aria-label="Muster"></select></label><label><small data-t>Kit · DRUM-SOUND (ENV), K4</small><select id="selKit" aria-label="Kit"></select></label></div>
+    <div class="pgnav"><button id="bPgPrev" aria-label="OCT−" title="OCT−">◀</button><span id="stepPage"></span><button id="bPgNext" aria-label="OCT+" title="OCT+">▶</button></div>
     <div id="grid"></div>
+    <p class="hint" data-t>Regler ALGORITHM waehlt den Sound fuer die Tasten 1–16 und fuer DRUM-SOUND. Takte und Schritte: Seite DRUMS (SEQ), K3 und K4.</p>
     <p class="credit" data-t>ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
   </section>
 
@@ -265,23 +272,28 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     <label id="outRow" hidden><span data-t>Ausgang (am Computer: das FM-1 waehlen)</span><select id="selOut"></select></label>
   </section>
 
-  <section class="help">
+  <section class="help" id="secHelp">
     <h2 data-t>BEDIENUNG AM FM-1</h2>
     <table>
       <tr><td>REC</td><td data-t>Aufnahme → Overdub → Wiedergabe → Overdub … (wie am Loop-Pedal). Auf der Drum-Spur: Pads ins Muster einspielen.</td></tr>
+      <tr><td data-t>REC halten</td><td data-t>Undo / Redo der letzten Aufnahme (1 Sekunde halten)</td></tr>
       <tr><td>PLAY</td><td data-t>Alles starten / stoppen</td></tr>
-      <tr><td>EDIT</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
+      <tr><td data-t>PLAY halten</td><td data-t>2 Sekunden: alles loeschen</td></tr>
+      <tr><td>EDIT</td><td data-t>Diese Legende zeigen</td></tr>
       <tr><td>HOME</td><td data-t>Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an</td></tr>
       <tr><td>SAVE</td><td data-t>Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu ohne / mit Effekten, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.</td></tr>
       <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
       <tr><td>ARP</td><td data-t>Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)</td></tr>
       <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
       <tr><td>PRESETS</td><td data-t>Drum-Muster waehlen</td></tr>
-      <tr><td>ALGORITHM</td><td data-t>Drum-Instrument fuer die Schritt-Tasten waehlen</td></tr>
-      <tr><td>FX</td><td data-t>Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.</td></tr>
-      <tr><td>ENV · EDIT · GLO · SEQ</td><td data-t>Seiten FILTER · SPUR · MIKRO (auf dem Handy bei den Einstellungen) · DRUMS</td></tr>
-      <tr><td>LFO</td><td data-t>Tippen: Seite STUTTER. Halten: Stutter</td></tr>
-      <tr><td data-t>Tasten 1–16</td><td data-t>Die 16 Schritte des gewaehlten Drum-Instruments (leuchtet = Schlag)</td></tr>
+      <tr><td>ALGORITHM</td><td data-t>Drum-Sound waehlen (fuer die Schritt-Tasten und DRUM-SOUND)</td></tr>
+      <tr><td>FX</td><td data-t>Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH, FILTER, STUTTER. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte. FX halten: Stutter.</td></tr>
+      <tr><td>LFO</td><td data-t>LFO der gewaehlten Spur: K1 Ziel (Lautstaerke, Filter, Panorama), K2 Tempo, K3 Staerke, K4 Form</td></tr>
+      <tr><td>ENV</td><td data-t>DRUM-SOUND: K1 Laenge, K2 Tonhoehe, K3 Lautstaerke des gewaehlten Sounds, K4 Kit</td></tr>
+      <tr><td>SEQ</td><td data-t>DRUMS: K1 Lautstaerke, K2 Tempo (vor der ersten Aufnahme), K3 Takte 1–4, K4 Schritte pro Takt 1–64</td></tr>
+      <tr><td>OCT− · OCT+</td><td data-t>Durch die Drum-Schritte blaettern (Takte, und bei mehr als 16 Schritten die Haelften und Viertel)</td></tr>
+      <tr><td>GLO</td><td data-t>Seite MIKRO (auf dem Handy bei den Einstellungen)</td></tr>
+      <tr><td data-t>Tasten 1–16</td><td data-t>Die Schritte des gewaehlten Drum-Sounds auf der aktuellen Seite (leuchtet = Schlag)</td></tr>
       <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
       <tr><td data-t>Tastenlicht</td><td data-t>Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Ouroloops-Firmware).</td></tr>
     </table>
@@ -294,9 +306,10 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 <script type="text/plain" id="worklet-src">
 // Ouroloops: audio engine.
 // Runs inside an AudioWorklet (one instance), and in Node for the tests.
-// Mono loop tracks (the phone microphone), a 16-step drum machine, bitcrusher and stutter on the sum.
+// Mono loop tracks (the phone microphone), a drum machine (1-4 bars, 1-64 steps per bar), bitcrusher and stutter.
 
 const NTRACKS = 3, NVOICES = 11, NSTEPS = 16, NOUT = 5;
+const MAXBARS = 4, MAXSTEPS = 64, VSTRIDE = MAXBARS * MAXSTEPS;   // pattern[v * VSTRIDE + bar * MAXSTEPS + step]
 const CHUNK = 4096;   // copy-on-write granularity of the undo snapshot
 const PKB = 1024;     // samples per peak bin of the waveform overview
 
@@ -309,7 +322,7 @@ class LoopEngine {
     this.tracks = [];
     for (let i = 0; i < NTRACKS; i++) {
       this.tracks.push({
-        buf: new Float32Array(this.maxLen), undo: null, copied: null, copyNext: 0,
+        buf: new Float32Array(this.maxLen), undo: null, undoB: null, canUndoB: false, press: '', copied: null, copyNext: 0,
         len: 0, hi: 0, anchor: 0, state: 'empty', recEnd: -1, tail: 0,
         vol: 0.8, pan: 0, rev: false, canUndo: false, canRedo: false, peak: 0,
         pk: new Float32Array(Math.ceil(this.maxLen / PKB)),   // waveform overview: max |sample| per bin
@@ -327,12 +340,15 @@ class LoopEngine {
     this.armed = -1; this.armAt = 0; this.armGrid = false;
     // drums
     this.bpm = 100; this.drumOn = false; this.drumVol = 0.8; this.drumRec = false;
-    this.pattern = new Uint8Array(NVOICES * NSTEPS);
+    this.pattern = new Uint8Array(NVOICES * VSTRIDE);
+    this.drumBars = 1; this.drumSteps = 16;
+    // per drum sound: length (gate, % of the sample), pitch (semitones), level (0..1)
+    this.gate = new Float32Array(NVOICES).fill(100); this.tune = new Float32Array(NVOICES); this.level = new Float32Array(NVOICES).fill(1);
     this.drumUndo = null; this.drumRedo = null;
     this.kits = [];           // kits[k][v] = Float32Array
     this.kit = 0;
-    this.playing = [];        // {s: Float32Array, i, g}
-    this.lastStep = -1; this.skip = new Uint8Array(NVOICES * NSTEPS);
+    this.playing = [];        // {s: Float32Array, i (position, may be fractional), r (rate), g, end}
+    this.lastStep = -1; this.skip = new Uint8Array(NVOICES * VSTRIDE);
     // metronome: only in the output, never in a recording (the loops record the microphone only)
     this.clickOn = false; this.clickVol = 0.5; this.lastBeat = -1;
     this.monCh = 4;   // the output the microphone monitor goes to: a track (its effects) or 4 (dry)
@@ -355,14 +371,20 @@ class LoopEngine {
 
   // ---- timing ------------------------------------------------------------------
   barLen() { return this.master > 0 ? this.master / this.masterBars : this.sr * 240 / this.bpm; }
-  stepLen() { return this.barLen() / NSTEPS; }
-  currentStep() { return Math.floor(mod(this.p, this.barLen()) / this.stepLen()) % NSTEPS; }
+  stepLen() { return this.barLen() / this.drumSteps; }
+  // the drum step at position p: bar * MAXSTEPS + step (the pattern index without the voice)
+  stepAt(p) {
+    const bl = this.barLen(), pos = mod(p, bl * this.drumBars), bar = Math.floor(pos / bl);
+    return Math.min(bar, this.drumBars - 1) * MAXSTEPS + Math.min(this.drumSteps - 1, Math.floor((pos - bar * bl) / (bl / this.drumSteps)));
+  }
+  currentStep() { return this.stepAt(this.p); }
 
   // ---- commands from the UI ----------------------------------------------------
   // REC button on track i (Boss cycle: empty -> REC -> DUB (or PLAY) -> PLAY -> DUB ...)
   recButton(i) {
     const t = this.tracks[i];
     if (this.armed === i) { this.armed = -1; this.dirty = true; return; }   // second press while waiting: cancel
+    t.press = t.state;   // what this press did, for REC hold (= undo)
     switch (t.state) {
       case 'empty': this.startRec(i); break;
       case 'rec': this.finishRecPress(i); break;
@@ -395,9 +417,11 @@ class LoopEngine {
       if (this.armAt - this.p < 1) this.armAt = this.p;
       return;
     }
-    // a loop exists: record now, the length becomes a multiple of the loop
+    // a loop exists: record now from the start of this bar; the length becomes a whole-bar part
+    // of the loop (1, 2 bars of a 4-bar loop) or a multiple of it
     if (!this.running) { this.running = true; this.p = 0; this.lastStep = -1; }
-    this.beginRec(i, Math.floor(this.p / this.master) * this.master);
+    const bl = this.barLen();
+    this.beginRec(i, Math.floor(this.p / bl + 1e-9) * bl);
     t.gridRec = false;
   }
 
@@ -427,22 +451,32 @@ class LoopEngine {
       this.events.push({ t: 'loop', len, bars, bpm: this.bpm });
       return;
     }
-    const unit = this.master > 0 ? this.master : this.barLen();
-    const k = Math.max(1, Math.round(n / unit));
-    len = Math.round(k * unit);
     if (this.master === 0) {   // first loop on the drum grid
+      const bl = this.barLen(), k = Math.max(1, Math.round(n / bl));
+      len = Math.round(k * bl);
       this.masterBars = k; this.master = len;
       this.events.push({ t: 'loop', len, bars: k, bpm: this.bpm });
-    }
+    } else len = this.fitLen(n);
     if (n >= len) this.setLen(i, len);
     else { t.recEnd = t.anchor + len; t.pendingLen = len; }   // keep recording to the end of the bar / loop
+  }
+
+  // the allowed length nearest to n: whole-bar divisions of the loop (1, 2 of 4 bars) or multiples of it
+  fitLen(n) {
+    const M = this.master, B = this.masterBars, cand = [];
+    for (let d = 1; d < B; d++) if (B % d === 0) cand.push(M * d / B);
+    for (let k = 1; k * M <= this.maxLen; k++) cand.push(k * M);
+    let best = cand[0];
+    for (const c of cand) if (Math.abs(Math.log(c / Math.max(1, n))) < Math.abs(Math.log(best / Math.max(1, n)))) best = c;
+    return Math.round(best);
   }
 
   setLen(i, len) {
     const t = this.tracks[i];
     t.len = len; t.recEnd = -1;
     if (t.hi > len) { t.buf.fill(0, len, t.hi); t.hi = len; this.repeak(t); }
-    t.undo = new Float32Array(len); t.copied = new Uint8Array(Math.ceil(len / CHUNK)); t.copied.fill(1); t.copyNext = 0;
+    t.undo = new Float32Array(len); t.undoB = new Float32Array(len); t.canUndoB = false;
+    t.copied = new Uint8Array(Math.ceil(len / CHUNK)); t.copied.fill(1); t.copyNext = 0;
     t.canUndo = false; t.canRedo = false;
     if (this.recToDub) this.startDub(i, true);
     else { t.state = 'play'; t.tail = this.latency; }
@@ -452,7 +486,10 @@ class LoopEngine {
   startDub(i, fromRec) {
     const t = this.tracks[i];
     if (t.len === 0) return;
-    // snapshot for UNDO: copy-on-write, chunk by chunk, the rest in the background
+    // snapshot for UNDO: copy-on-write, chunk by chunk, the rest in the background.
+    // The one before stays in undoB, so a held REC can cancel this new layer and undo the last one.
+    this.ensureSnapshot(t);
+    const keep = t.undo; t.undo = t.undoB; t.undoB = keep; t.canUndoB = t.canUndo && !t.canRedo;
     t.copied.fill(0); t.copyNext = 0; t.canUndo = true; t.canRedo = false;
     if (!fromRec) { t.dk.fill(0); t.pkVer++; }
     t.state = 'dub'; t.tail = 0; this.dirty = true;
@@ -486,12 +523,30 @@ class LoopEngine {
     t.tail = 0; this.dirty = true;
   }
 
+  // REC held: undo what the press before it led to (Boss: hold REC/DUB/PLAY = undo)
+  recHold(i) {
+    const t = this.tracks[i], did = t.press; t.press = '';
+    if (did === 'empty' || did === 'rec' || t.state === 'rec' || this.armed === i) { this.clear(i); return; }   // a new take: cancel it
+    if (did === 'play' || did === 'stop') {
+      // the press started a new layer: drop it (back to undoB's partner), then undo the layer before
+      if (t.state === 'dub') {
+        this.ensureSnapshot(t); t.buf.set(t.undo); t.state = 'play'; t.tail = 0;
+        const x = t.undo; t.undo = t.undoB; t.undoB = x; t.copied.fill(1); t.copyNext = t.copied.length;
+        t.canUndo = t.canUndoB; t.canRedo = false; t.canUndoB = false;
+        t.dk.fill(0); this.repeak(t);
+      }
+      if (t.canUndo) this.undoButton(i);
+      this.dirty = true; return;
+    }
+    this.undoButton(i);   // the press ended a layer: undo it
+  }
+
   clear(i) {
     if (i === 3) { this.pattern.fill(0); this.dirty = true; return; }
     const t = this.tracks[i];
     if (this.armed === i) this.armed = -1;
     t.buf.fill(0, 0, Math.max(t.hi, t.len)); t.pk.fill(0); t.dk.fill(0); t.pkVer++;
-    t.state = 'empty'; t.len = 0; t.hi = 0; t.recEnd = -1; t.tail = 0; t.undo = null; t.copied = null;
+    t.state = 'empty'; t.len = 0; t.hi = 0; t.recEnd = -1; t.tail = 0; t.undo = null; t.undoB = null; t.canUndoB = false; t.copied = null;
     t.canUndo = t.canRedo = false;
     if (this.tracks.every(x => x.state === 'empty')) { this.master = 0; this.masterBars = 1; }
     this.dirty = true;
@@ -525,7 +580,8 @@ class LoopEngine {
   snapshot() {
     return {
       master: this.master, masterBars: this.masterBars, bpm: this.bpm, drumOn: this.drumOn, kit: this.kit,
-      pattern: Array.from(this.pattern),
+      pattern: Array.from(this.pattern), drumBars: this.drumBars, drumSteps: this.drumSteps,
+      gate: Array.from(this.gate), tune: Array.from(this.tune), level: Array.from(this.level),
       tracks: this.tracks.map(t => ({
         len: t.len, offset: t.len ? mod(t.anchor, t.len) : 0, vol: t.vol, pan: t.pan, rev: t.rev, muted: t.state === 'stop',
         data: t.len ? t.buf.slice(0, t.len) : null,
@@ -544,11 +600,17 @@ class LoopEngine {
       t.len = n; t.hi = n; t.anchor = n ? (s.offset || 0) % n : 0; t.recEnd = -1; t.tail = 0;
       t.vol = s.vol !== undefined ? s.vol : 0.8; t.pan = s.pan || 0; t.rev = !!s.rev;
       t.state = n ? (s.muted ? 'stop' : 'play') : 'empty';
-      t.undo = n ? new Float32Array(n) : null; t.copied = n ? new Uint8Array(Math.ceil(n / CHUNK)).fill(1) : null; t.copyNext = 0;
+      t.undo = n ? new Float32Array(n) : null; t.undoB = n ? new Float32Array(n) : null; t.canUndoB = false; t.copied = n ? new Uint8Array(Math.ceil(n / CHUNK)).fill(1) : null; t.copyNext = 0;
       t.canUndo = t.canRedo = false; t.dk.fill(0); this.repeak(t);
     }
     this.master = p.master || 0; this.masterBars = p.masterBars || 1; this.bpm = p.bpm || this.bpm;
-    if (p.pattern) this.pattern.set(p.pattern);
+    this.drumBars = p.drumBars || 1; this.drumSteps = p.drumSteps || 16;
+    if (p.pattern) {
+      this.pattern.fill(0);
+      if (p.pattern.length === NVOICES * VSTRIDE) this.pattern.set(p.pattern);
+      else for (let v = 0; v < NVOICES; v++) for (let s = 0; s < NSTEPS; s++) this.pattern[v * VSTRIDE + s] = p.pattern[v * NSTEPS + s] || 0;   // older projects: 16 steps
+    }
+    for (const k of ['gate', 'tune', 'level']) if (p[k]) this[k].set(p[k]);
     if (p.drumOn !== undefined) this.drumOn = !!p.drumOn;
     if (p.kit !== undefined) this.kit = p.kit;
     this.dirty = true;
@@ -581,16 +643,12 @@ class LoopEngine {
   // ---- drums --------------------------------------------------------------------
   pad(v, vel = 1) {
     const s = this.kits[this.kit] && this.kits[this.kit][v];
-    if (s) this.trigger(s, vel);
+    if (s) this.triggerVoice(v, s, vel);
     if (this.drumRec && this.running) {
-      const sl = this.stepLen();
-      const pos = mod(this.p - this.latencyPad(), this.barLen());
-      let st = Math.round(pos / sl) % NSTEPS;
-      const idx = v * NSTEPS + st;
+      const sl = this.stepLen(), p = this.p - this.latencyPad();
+      const near = this.stepAt(p + sl / 2), idx = v * VSTRIDE + near;   // the nearest step
       if (!this.pattern[idx]) { this.pattern[idx] = 1; this.dirty = true; }
-      // the step is about to play: don't sound it twice
-      const cur = Math.floor(pos / sl) % NSTEPS;
-      if (st !== cur) this.skip[idx] = 1;
+      if (near !== this.stepAt(p)) this.skip[idx] = 1;   // the step is about to play: don't sound it twice
     }
   }
   latencyPad() { return 0; }   // the pads arrive over MIDI with ~1 ms; nothing to take back
@@ -604,9 +662,43 @@ class LoopEngine {
     else if (this.drumRedo) { const cur = this.pattern.slice(); this.pattern.set(this.drumRedo); this.drumUndo = cur; this.drumRedo = null; }
     this.dirty = true;
   }
-  trigger(s, g) {
+  trigger(s, g) { this.triggerVoice(-1, s, g); }
+  // a drum sound with its length (gate), pitch and level
+  triggerVoice(v, s, g) {
     if (this.playing.length > 24) this.playing.shift();
-    this.playing.push({ s, i: 0, g });
+    const r = v >= 0 ? Math.pow(2, this.tune[v] / 12) : 1;
+    const lvl = v >= 0 ? this.level[v] : 1, gate = v >= 0 ? this.gate[v] : 100;
+    const len = s.length / r, end = gate >= 100 ? len : Math.max(this.sr * 0.01, len * gate / 100);
+    this.playing.push({ s, i: 0, r, g: g * lvl, end, fade: Math.round(this.sr * 0.006) });
+  }
+  // a new number of steps per bar: every beat moves to the nearest new step
+  setSteps(m) {
+    m = Math.max(1, Math.min(MAXSTEPS, Math.round(m)));
+    const old = this.drumSteps; if (m === old) return;
+    const np = new Uint8Array(this.pattern.length);
+    for (let v = 0; v < NVOICES; v++) for (let b = 0; b < MAXBARS; b++) for (let s = 0; s < old; s++) {
+      if (!this.pattern[v * VSTRIDE + b * MAXSTEPS + s]) continue;
+      let ns = Math.round(s * m / old), nb = b;
+      if (ns >= m) { ns -= m; nb = (b + 1) % this.drumBars; }
+      np[v * VSTRIDE + nb * MAXSTEPS + ns] = 1;
+    }
+    this.pattern = np; this.drumSteps = m; this.skip.fill(0);
+  }
+  // more bars: the new bars start as copies of the first one
+  setBars(b) {
+    b = Math.max(1, Math.min(MAXBARS, Math.round(b)));
+    for (let k = this.drumBars; k < b; k++) for (let v = 0; v < NVOICES; v++)
+      this.pattern.copyWithin(v * VSTRIDE + k * MAXSTEPS, v * VSTRIDE, v * VSTRIDE + MAXSTEPS);
+    this.drumBars = b;
+  }
+  // a 16-step preset (11 x 16) into every bar at the current resolution
+  setPreset(a) {
+    this.pattern.fill(0);
+    for (let v = 0; v < NVOICES; v++) for (let s = 0; s < NSTEPS; s++) if (a[v * NSTEPS + s]) {
+      const ns = Math.round(s * this.drumSteps / NSTEPS);
+      if (ns >= this.drumSteps) continue;
+      for (let b = 0; b < this.drumBars; b++) this.pattern[v * VSTRIDE + b * MAXSTEPS + ns] = 1;
+    }
   }
 
   // ---- parameters ---------------------------------------------------------------
@@ -627,7 +719,11 @@ class LoopEngine {
         } else if (!v) this.stut = false;
         break;
       case 'pattern': this.pattern.set(v); break;
-      case 'step': this.pattern[v.v * NSTEPS + v.s] = v.on ? 1 : 0; break;
+      case 'preset': this.setPreset(v); break;
+      case 'step': this.pattern[v.v * VSTRIDE + v.s] = v.on ? 1 : 0; break;   // v.s: bar * 64 + step
+      case 'drumBars': this.setBars(v); break;
+      case 'drumSteps': this.setSteps(v); break;
+      case 'gate': case 'tune': case 'level': this[k][v.v] = v.x; break;   // { v: sound, x }
       case 'kits': this.kits = v; break;
       default: this[k] = v;
     }
@@ -643,7 +739,7 @@ class LoopEngine {
     for (const t of tr) if (t.copied && t.copyNext < t.copied.length) {
       for (let c = 0; c < 48 && t.copyNext < t.copied.length; c++, t.copyNext++) if (!t.copied[t.copyNext]) this.copyChunk(t, t.copyNext);
     }
-    const bl = this.barLen(), sl = bl / NSTEPS;
+    const bl = this.barLen();
     const crushQ = this.bits.map(b => (b < 16 ? Math.pow(2, b - 1) : 0));
     for (let s = 0; s < n; s++) {
       oL.fill(0); oR.fill(0);
@@ -692,14 +788,14 @@ class LoopEngine {
         }
         // drum sequencer
         if (this.drumOn) {
-          const st = Math.floor(mod(this.p, bl) / sl) % NSTEPS;
+          const st = this.stepAt(this.p);
           if (st !== this.lastStep) {
             this.lastStep = st;
             const kit = this.kits[this.kit];
             if (kit) for (let v = 0; v < NVOICES; v++) {
-              const idx = v * NSTEPS + st;
+              const idx = v * VSTRIDE + st;
               if (this.skip[idx]) { this.skip[idx] = 0; continue; }
-              if (this.pattern[idx] && kit[v]) this.trigger(kit[v], 1);
+              if (this.pattern[idx] && kit[v]) this.triggerVoice(v, kit[v], 1);
             }
             this.dirty = true;
           }
@@ -709,9 +805,11 @@ class LoopEngine {
       // drum voices -> channel 3, click -> channel 4
       let d = 0;
       for (let k = this.playing.length - 1; k >= 0; k--) {
-        const pv = this.playing[k];
-        d += pv.s[pv.i++] * pv.g;
-        if (pv.i >= pv.s.length) this.playing.splice(k, 1);
+        const pv = this.playing[k], pos = pv.i * pv.r, j = pos | 0;
+        if (j + 1 >= pv.s.length || pv.i >= pv.end) { this.playing.splice(k, 1); continue; }
+        let x = pv.r === 1 ? pv.s[j] : pv.s[j] + (pv.s[j + 1] - pv.s[j]) * (pos - j);   // pitched: linear interpolation
+        const left = pv.end - pv.i; if (left < pv.fade) x *= left / pv.fade;              // gate: a short fade, no click
+        d += x * pv.g; pv.i++;
       }
       d *= this.drumVol; oL[3] += d; oR[3] += d;
       for (let k = this.clicks.length - 1; k >= 0; k--) {
@@ -765,7 +863,8 @@ class LoopEngine {
     return {
       wave,
       running: this.running, p: this.p, master: this.master, bars: this.masterBars, bpm: this.bpm,
-      armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1,
+      armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1, drumBars: this.drumBars, drumSteps: this.drumSteps,
+      gate: Array.from(this.gate), tune: Array.from(this.tune), level: Array.from(this.level),
       drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit, clickOn: this.clickOn,
       canDrumUndo: !!this.drumUndo, canDrumRedo: !!this.drumRedo,
       pattern: Array.from(this.pattern), latency: Math.round(this.latency * 1000 / this.sr),
@@ -781,7 +880,7 @@ class LoopEngine {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT };
+if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT, MAXBARS, MAXSTEPS, VSTRIDE };
 
 // AudioWorklet wrapper around LoopEngine (engine.js is prepended to this file when the page is built)
 class LoopProcessor extends AudioWorkletProcessor {
@@ -798,6 +897,7 @@ class LoopProcessor extends AudioWorkletProcessor {
       case 'play': e.playButton(); break;
       case 'stop': e.trackStop(m.i); break;
       case 'undo': e.undoButton(m.i); break;
+      case 'recHold': e.recHold(m.i); break;
       case 'clear': e.clear(m.i); break;
       case 'clearAll': e.clearAll(); break;
       case 'pad': e.pad(m.v, m.g || 1); break;
@@ -894,6 +994,23 @@ const EN = {
   'NEU+FX': 'NEW+FX', 'Effekte fuer das neue Projekt:': 'Effects for the new project:', 'Alle aus': 'All off', 'Uebernehmen': 'Keep them',
   'Klang und Effekte': 'Sound and effects', 'Alles zuruecksetzen': 'Reset everything', 'Wirklich zuruecksetzen?': 'Really reset?', 'Alles zurueckgesetzt, Effekte aus': 'Everything reset, effects off',
   'Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu ohne / mit Effekten, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.': 'Tap: page SAVE. K1 chooses what (save, load, new without / with effects, live, mix, stems), K2 the loops, K3 the project to load; SAVE again = do it.',
+  'ZIEL': 'TARGET', 'STAERKE': 'DEPTH', 'FORM': 'SHAPE', 'SINUS': 'SINE', 'DREIECK': 'TRIANGLE', 'RECHTECK': 'SQUARE', 'SAEGE': 'SAW', 'ZUFALL': 'RANDOM',
+  'TONHOEHE': 'PITCH', 'TON': 'PITCH', 'VOLL': 'FULL', 'TAKTE': 'BARS', 'SCHRITTE': 'STEPS',
+  'Tempo ist durch die Aufnahme festgelegt (vor der ersten Aufnahme einstellen)': 'The tempo is set by the recording (set it before the first recording)',
+  'Alles geloescht': 'Everything cleared', 'GELOESCHT': 'CLEARED', 'LEGENDE': 'LEGEND',
+  'REC halten': 'hold REC', 'HOME halten': 'hold HOME', 'ARP tippen': 'tap ARP', 'ARP halten': 'hold ARP', 'SAVE halten': 'hold SAVE', 'PLAY 2 s halten': 'hold PLAY 2 s',
+  'Muster · Regler PRESETS': 'Pattern · PRESETS knob', 'Kit · DRUM-SOUND (ENV), K4': 'Kit · DRUM-SOUND (ENV), K4',
+  'Regler ALGORITHM waehlt den Sound fuer die Tasten 1–16 und fuer DRUM-SOUND. Takte und Schritte: Seite DRUMS (SEQ), K3 und K4.': 'The ALGORITHM knob chooses the sound for keys 1–16 and for DRUM-SOUND. Bars and steps: page DRUMS (SEQ), K3 and K4.',
+  'PLAY halten': 'Hold PLAY', 'Undo / Redo der letzten Aufnahme (1 Sekunde halten)': 'Undo / redo the last recording (hold for 1 second)',
+  '2 Sekunden: alles loeschen': '2 seconds: clear everything', 'Diese Legende zeigen': 'Show this legend',
+  'Drum-Sound waehlen (fuer die Schritt-Tasten und DRUM-SOUND)': 'Choose the drum sound (for the step keys and DRUM-SOUND)',
+  'Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH, FILTER, STUTTER. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte. FX halten: Stutter.': 'Effects of the selected track: DELAY, REVERB, CHORUS, BITCRUSH, FILTER, STUTTER. SELECT (or FX again) goes through them, K1–K4 set the values. Hold FX: stutter.',
+  'LFO der gewaehlten Spur: K1 Ziel (Lautstaerke, Filter, Panorama), K2 Tempo, K3 Staerke, K4 Form': 'LFO of the selected track: K1 target (volume, filter, pan), K2 rate, K3 depth, K4 shape',
+  'DRUM-SOUND: K1 Laenge, K2 Tonhoehe, K3 Lautstaerke des gewaehlten Sounds, K4 Kit': 'DRUM-SOUND: K1 length, K2 pitch, K3 volume of the selected sound, K4 kit',
+  'DRUMS: K1 Lautstaerke, K2 Tempo (vor der ersten Aufnahme), K3 Takte 1–4, K4 Schritte pro Takt 1–64': 'DRUMS: K1 volume, K2 tempo (before the first recording), K3 bars 1–4, K4 steps per bar 1–64',
+  'Durch die Drum-Schritte blaettern (Takte, und bei mehr als 16 Schritten die Haelften und Viertel)': 'Page through the drum steps (bars, and with more than 16 steps their halves and quarters)',
+  'Seite MIKRO (auf dem Handy bei den Einstellungen)': 'Page MIC (on the phone in the settings)',
+  'Die Schritte des gewaehlten Drum-Sounds auf der aktuellen Seite (leuchtet = Schlag)': 'The steps of the selected drum sound on the current page (lit = hit)',
   'fuer': 'for', 'SPUREN': 'TRACKS',
   'Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an': 'Tap: main page (SELECT chooses the track). Hold: mute / unmute the selected track',
   'Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.': 'Effects of the selected track: DELAY, REVERB, CHORUS, BITCRUSH. Scroll with SELECT (or FX again), K1–K4 set the values.',
@@ -937,6 +1054,8 @@ const TV = s => { s = String(s); if (LANG !== 'en') return s; if (EN[s] !== unde
 // or on the samples before the chain (export, FXChain.crush).
 const FXChain = (() => {
   const DLY_DIV = [0.25, 0.5, 0.75, 1, 1.5, 2];   // beats: 1/16, 1/8, 1/8., 1/4, 1/4., 1/2
+  const LFO_DIV = [0.25, 0.5, 1, 2, 4, 8, 16];      // beats: 1/16 ... 4 bars
+  const LFO_WAVE = ['sine', 'triangle', 'square', 'sawtooth'];   // 4 = random (sample & hold)
 
   function impulse(ctx, sec) {
     const n = Math.max(1, Math.floor(ctx.sampleRate * sec)), b = ctx.createBuffer(2, n, ctx.sampleRate);
@@ -953,8 +1072,17 @@ const FXChain = (() => {
     f.mix = ctx.createGain();
     f.dSend = ctx.createGain(); f.delay = ctx.createDelay(3); f.dFb = ctx.createGain(); f.dTone = ctx.createBiquadFilter();
     f.rSend = ctx.createGain(); f.conv = ctx.createConvolver(); f.rPre = ctx.createDelay(0.2); f.rDamp = ctx.createBiquadFilter();
-    f.input.connect(f.filter);
-    f.filter.connect(f.choDry); f.filter.connect(f.choDel); f.choDel.connect(f.choWet);
+    // LFO: one oscillator (or random steps) into the volume, the filter or the panorama
+    f.trem = ctx.createGain(); f.pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    f.lfo2 = ctx.createOscillator(); f.lfoRnd = ctx.createConstantSource(); f.lfoRnd.offset.value = 0;
+    f.lfoSrc = ctx.createGain(); f.lfo2.connect(f.lfoSrc); f.lfo2.start(); f.lfoRnd.start();
+    f.toAmp = ctx.createGain(); f.toFil = ctx.createGain(); f.toPan = ctx.createGain();
+    for (const g of [f.toAmp, f.toFil, f.toPan]) { g.gain.value = 0; f.lfoSrc.connect(g); }
+    f.toAmp.connect(f.trem.gain); f.toFil.connect(f.filter.detune); if (f.pan) f.toPan.connect(f.pan.pan);
+    f.rndOn = false; f.rndUntil = 0;
+    f.input.connect(f.filter); f.filter.connect(f.trem);
+    const pre = f.pan ? (f.trem.connect(f.pan), f.pan) : f.trem;
+    pre.connect(f.choDry); pre.connect(f.choDel); f.choDel.connect(f.choWet);
     f.choDry.connect(f.mix); f.choWet.connect(f.mix);
     f.mix.connect(dest);
     f.mix.connect(f.dSend); f.dSend.connect(f.delay); f.delay.connect(f.dTone); f.dTone.connect(f.dFb); f.dFb.connect(f.delay); f.dTone.connect(dest);
@@ -978,6 +1106,19 @@ const FXChain = (() => {
       case 'choMix': put(f.choWet.gain, v / 100); put(f.choDry.gain, 1 - v / 200); break;
       case 'choDepth': put(f.lfoAmt.gain, 0.0005 + v / 100 * 0.006); break;
       case 'choRate': put(f.lfo.frequency, 0.1 + v / 100 * 4.9); break;
+      case 'lfoTgt': case 'lfoRate': case 'lfoDepth': case 'lfoShape': {
+        const tgt = S2.lfoTgt || 0, d = (S2.lfoDepth || 0) / 100, hz = bpm / 60 / LFO_DIV[S2.lfoRate || 0], rnd = S2.lfoShape === 4;
+        put(f.lfo2.frequency, hz);
+        if (!rnd) f.lfo2.type = LFO_WAVE[S2.lfoShape || 0];
+        if (rnd !== f.rndOn) {   // switch the source: oscillator or random steps
+          f.rndOn = rnd;
+          if (rnd) { f.lfo2.disconnect(); f.lfoRnd.connect(f.lfoSrc); f.rndUntil = 0; } else { f.lfoRnd.disconnect(); f.lfo2.connect(f.lfoSrc); }
+        }
+        put(f.toAmp.gain, tgt === 1 ? d / 2 : 0); put(f.trem.gain, tgt === 1 ? 1 - d / 2 : 1);   // tremolo: 1 - d .. 1
+        put(f.toFil.gain, tgt === 2 ? d * 3600 : 0);                                         // wah: +-3 octaves
+        put(f.toPan.gain, tgt === 3 ? d : 0);                                                // auto-pan
+        break;
+      }
       case 'filt': case 'res': {
         const fl = S2.filt, q = 0.7 + S2.res / 100 * 14;
         if (fl <= 0) { f.filter.type = 'lowpass'; put(f.filter.frequency, fl === 0 ? 22000 : 20000 * Math.pow(2, fl / 100 * 9)); }
@@ -986,8 +1127,17 @@ const FXChain = (() => {
       }
     }
   }
-  const KEYS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'filt'];
+  const KEYS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'filt', 'lfoTgt'];
   function setAll(ctx, f, S2, bpm, instant) { for (const k of KEYS) set(ctx, f, k, S2, bpm, instant); }
+  // random LFO: a new value every LFO step, scheduled up to `ahead` seconds (live: called every 250 ms;
+  // offline: once with the whole length)
+  function tick(ctx, f, S2, bpm, ahead = 1) {
+    if (!f.rndOn) return;
+    const step = 60 / bpm * LFO_DIV[S2.lfoRate || 0], now = ctx.currentTime;
+    let t = Math.max(f.rndUntil, now);
+    while (t < now + ahead) { f.lfoRnd.offset.setValueAtTime(Math.random() * 2 - 1, t); t += step; }
+    f.rndUntil = t;
+  }
 
   // the engine's bitcrusher on a block of samples (sample & hold, then quantise), in place
   function crush(arrs, bits, down) {
@@ -1009,7 +1159,7 @@ const FXChain = (() => {
     return { input: g, gain: g, lim };
   }
 
-  return { make, set, setAll, crush, master, impulse };
+  return { make, set, setAll, tick, crush, master, impulse };
 })();
 
 if (typeof module !== 'undefined') module.exports = FXChain;
@@ -1181,11 +1331,24 @@ const Save = (() => {
       return { name: `Track${i + 1}`, ch: i, L, R };
     });
     if (snap.drumOn && kits[snap.kit]) {
-      const D = new Float32Array(n), kit = kits[snap.kit], step = bar / 16, g = opts.fx ? S.drumVol : 1;
+      // the same drum machine as the engine: bars x steps, and per sound its length, pitch and level
+      const D = new Float32Array(n), kit = kits[snap.kit], g = opts.fx ? S.drumVol : 1;
+      const bars = snap.drumBars || 1, steps = snap.drumSteps || 16, old = snap.pattern.length === 11 * 16;
+      const step = bar / steps, sr_ = sr, fade = Math.round(sr_ * 0.006);
       for (let s = 0; s * step < body; s++) {
-        const at = Math.round(s * step), st = s % 16;
-        for (let v = 0; v < 11; v++) if (snap.pattern[v * 16 + st] && kit[v]) {
-          const smp = kit[v]; for (let i = 0; i < smp.length && at + i < n; i++) D[at + i] += smp[i] * g;
+        const at = Math.round(s * step), b = Math.floor(s / steps) % bars, st = s % steps;
+        for (let v = 0; v < 11; v++) {
+          const on = old ? snap.pattern[v * 16 + st] : snap.pattern[v * 256 + b * 64 + st];
+          if (!on || !kit[v]) continue;
+          const smp = kit[v], r = Math.pow(2, (snap.tune ? snap.tune[v] : 0) / 12), lvl = snap.level ? snap.level[v] : 1;
+          const gate = snap.gate ? snap.gate[v] : 100, len = smp.length / r;
+          const end = gate >= 100 ? len : Math.max(sr_ * 0.01, len * gate / 100);
+          for (let i = 0; i < end && at + i < n; i++) {
+            const pos = i * r, j = pos | 0; if (j + 1 >= smp.length) break;
+            let x = smp[j] + (smp[j + 1] - smp[j]) * (pos - j);
+            if (end - i < fade) x *= (end - i) / fade;
+            D[at + i] += x * g * lvl;
+          }
         }
       }
       src.push({ name: 'Drums', ch: 3, L: D, R: D.slice() });
@@ -1202,6 +1365,7 @@ const Save = (() => {
         const b = oc.createBuffer(2, n, sr); b.copyToChannel(s.L, 0); b.copyToChannel(s.R, 1);
         const node = oc.createBufferSource(); node.buffer = b;
         const f = FXChain.make(oc, m.input); FXChain.setAll(oc, f, set, snap.bpm, true);
+        FXChain.tick(oc, f, set, snap.bpm, n / sr + 1);
         node.connect(f.input); node.start();
       }
       const out = await oc.startRendering();
@@ -1495,11 +1659,13 @@ const $ = s => document.querySelector(s);
 const TRACK_NAMES = ['1', '2', '3', 'DR'];
 const DLY_DIV = [['1/16', 0.25], ['1/8', 0.5], ['1/8.', 0.75], ['1/4', 1], ['1/4.', 1.5], ['1/2', 2]];
 const STUT_DIV = [4, 8, 16, 32];
+const LFO_DIV = [['1/16', 0.25], ['1/8', 0.5], ['1/4', 1], ['1/2', 2], ['1 T', 4], ['2 T', 8], ['4 T', 16]];   // beats
+const LFO_TGT = ['AUS', 'LAUTST.', 'FILTER', 'PAN'], LFO_SHAPE = ['SINUS', 'DREIECK', 'RECHTECK', 'SAEGE', 'ZUFALL'];
 const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'STOP' };
 
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
-  stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
+  stutDiv: 2, revSize: 50, lfoTgt: 0, lfoRate: 2, lfoDepth: 50, lfoShape: 0, bpm: 100, drumBars: 1, drumSteps: 16, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
   recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, projId: '', projName: '', v: 4 };
 // kept by a reset: the device, its look and its connections, not the sound
 const KEEP = ['lang', 'theme', 'micId', 'outId', 'glow', 'lat'];
@@ -1511,7 +1677,10 @@ try {
 } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
 // effects are per channel: tracks 1-3 and the drums (index 3), each with its own settings
-const FX_IDS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'bits', 'down', 'filt', 'res'];
+const FX_IDS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'bits', 'down', 'filt', 'res', 'lfoTgt', 'lfoRate', 'lfoDepth', 'lfoShape'];
+// per drum sound (the 11 of a kit): length (gate, %), pitch (semitones), level (%)
+const freshSnd = () => ({ gate: Array(11).fill(100), tune: Array(11).fill(0), level: Array(11).fill(100) });
+if (!S.dsnd || !Array.isArray(S.dsnd.gate)) S.dsnd = freshSnd();
 if (!Array.isArray(S.tfx) || S.tfx.length !== 4) S.tfx = [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, S[k] !== undefined ? S[k] : DEF[k]])));
 for (const t of S.tfx) for (const k of FX_IDS) if (t[k] === undefined) t[k] = DEF[k];
 try { if (JSON.parse(localStorage.getItem('fm1loop') || '{}').v !== 4) localStorage.setItem('fm1loop', JSON.stringify(S)); } catch (e) { }
@@ -1539,16 +1708,21 @@ const FX_SUB = {
   REVERB: { name: 'REVERB', p: [P('rev', 'MIX', 0, 100, 1), P('revSize', 'RAUM', 0, 100, 2), P('revDamp', 'DAEMPFUNG', 0, 100, 1, null, 'DAEMPF'), P('revPre', 'PRE-DELAY', 0, 100, 1, v => v + 'ms', 'PRE')] },
   CHORUS: { name: 'CHORUS', p: [P('choMix', 'MIX', 0, 100, 1), P('choDepth', 'TIEFE', 0, 100, 1), P('choRate', 'TEMPO', 0, 100, 1, v => (0.1 + v / 100 * 4.9).toFixed(1) + 'HZ', 'RATE')] },
   BITCRUSH: { name: 'BITCRUSH', p: [P('bits', 'BITS', 2, 16, 1, v => v >= 16 ? 'AUS' : v + ' BIT'), P('down', 'SAMPLERATE', 1, 32, 1, v => v === 1 ? 'AUS' : '1/' + v, 'RATE')] },
+  FILTER: { name: 'FILTER', p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
+  STUTTER: { name: 'STUTTER', p: [P('stutDiv', 'LAENGE', 0, 3, 1, v => '1/' + STUT_DIV[v])] },   // all tracks; FX held = stutter
 };
 const FX_KEYS = Object.keys(FX_SUB);
 const SAVE_ACTS = ['SPEICHERN', 'LADEN', 'NEU', 'NEU+FX', 'LIVE', 'MIX', 'STEMS DRY', 'STEMS FX'];
 let projList = [];
 const PAGES = {
   FX: { btn: 2, get name() { return chName() + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name + ' ' + (S.fxSel + 1) + '/' + FX_KEYS.length; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
-  FILTER: { get name() { return chName() + ' FILTER'; }, btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
-  STUTTER: { name: 'STUTTER', btn: 5, p: [P('stutDiv', 'LAENGE', 0, 3, 1, v => '1/' + STUT_DIV[v])] },
+  LFO: { get name() { return chName() + ' LFO'; }, btn: 5, p: [P('lfoTgt', 'ZIEL', 0, 3, 1, v => LFO_TGT[v]), P('lfoRate', 'TEMPO', 0, 6, 1, v => LFO_DIV[v][0], 'RATE'),
+    P('lfoDepth', 'STAERKE', 0, 100, 1), P('lfoShape', 'FORM', 0, 4, 1, v => LFO_SHAPE[v])] },
+  ENV: { get name() { return 'DRUM: ' + T(voiceNames()[voice]); }, btn: 4, p: [P('dGate', 'LAENGE', 5, 100, 1, v => v >= 100 ? 'VOLL' : v + '%'),
+    P('dTune', 'TONHOEHE', -12, 12, 1, v => (v > 0 ? '+' : '') + v + (LANG === 'en' ? ' ST' : ' HT'), 'TON'), P('dLevel', 'LAUTST.', 0, 100, 1), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0])] },
   SPUR: { name: 'SPUREN', btn: 8, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
-  DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1, null, 'DRUMS')] },
+  DRUMS: { get name() { return 'DRUMS ' + stepPageName(); }, btn: 11, p: [P('drumVol', 'LAUTST.', 0, 100, 1), P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''),
+    P('drumBars', 'TAKTE', 1, 4, 1), P('drumSteps', 'SCHRITTE', 1, 64, 1)] },
   SAVE: { btn: 9, get name() { return 'SAVE ' + Save.safe(S.projName).toUpperCase(); },
     p: [P('saveAct', 'AKTION', 0, SAVE_ACTS.length - 1, 1, v => SAVE_ACTS[v]), P('saveLoops', 'LOOPS', 1, 16, 1, v => v + 'X'),
       P('saveProj', 'PROJEKT', 0, 99, 1, v => (projList[v] ? Save.safe(projList[v].name).toUpperCase() : '-'))] },
@@ -1556,7 +1730,20 @@ const PAGES = {
 };
 function chName() { return sel < 3 ? 'S' + (sel + 1) : 'DR'; }
 const ALL_PARAMS = [...Object.values(FX_SUB).flatMap(g => g.p), ...Object.keys(PAGES).filter(k => k !== 'FX').flatMap(k => PAGES[k].p)];
-const WEB_TABS = ['FX', 'FILTER', 'STUTTER', 'SPUR', 'DRUMS'];   // MIKRO lives in the settings on the phone
+const WEB_TABS = ['FX', 'LFO', 'SPUR', 'DRUMS', 'ENV'];   // MIKRO lives in the settings on the phone
+const TAB_NAME = { ENV: 'DRUM-SOUND' };
+// the 16 step keys show one page: a bar, and within it 16 steps (more than 16 steps: OCT- / OCT+)
+let stepPage = 0;
+const subPages = () => Math.ceil(S.drumSteps / 16), nPages = () => S.drumBars * subPages();
+function pageStep(k) {   // key k on the current page -> pattern index without the voice (bar * 64 + step), or -1
+  const bar = Math.floor(stepPage / subPages()), s = (stepPage % subPages()) * 16 + k;
+  return bar < S.drumBars && s < S.drumSteps ? bar * 64 + s : -1;
+}
+function stepPageName() {
+  const sp = subPages(), bar = Math.floor(stepPage / sp) + 1, a = (stepPage % sp) * 16 + 1, b = Math.min(S.drumSteps, a + 15);
+  return 'T' + bar + '/' + S.drumBars + (sp > 1 ? ' ' + a + '-' + b : '');
+}
+function setStepPage(n) { stepPage = Math.max(0, Math.min(nPages() - 1, n)); $('#grid').innerHTML = ''; renderGrid(); updateLeds(); lastSig = ''; drawScreen(); }
 function setFx(i) { S.fxSel = (i + FX_KEYS.length) % FX_KEYS.length; save(); setPage('FX'); }
 const PAGE_KEYS = Object.keys(PAGES);
 
@@ -1567,6 +1754,9 @@ function getP(id) {
   if (id === 'tRev') return t && t.rev ? 1 : 0;
   if (id === 'bpm') return st ? Math.round(st.bpm) : S.bpm;
   if (id === 'saveProj') return S.saveProj || 0;
+  if (id === 'dGate') return S.dsnd.gate[voice];
+  if (id === 'dTune') return S.dsnd.tune[voice];
+  if (id === 'dLevel') return S.dsnd.level[voice];
   if (FX_IDS.includes(id)) return S.tfx[sel][id];
   return S[id];
 }
@@ -1579,7 +1769,13 @@ function setP(id, v) {
     send({ t: 'set', k, v: { i: sel, v: id === 'tRev' ? v : v / 100 } });
     if (st) st.tracks[sel][k] = id === 'tRev' ? !!v : v / 100;
   } else {
-    if (id === 'bpm' && st && st.master > 0) { toast(T('Tempo kommt vom Loop')); return; }
+    if (id === 'bpm' && st && st.master > 0) { toast(T('Tempo ist durch die Aufnahme festgelegt (vor der ersten Aufnahme einstellen)')); return; }
+    if (id === 'dGate' || id === 'dTune' || id === 'dLevel') {
+      const k = { dGate: 'gate', dTune: 'tune', dLevel: 'level' }[id];
+      S.dsnd[k][voice] = v; save(); changed = true;
+      send({ t: 'set', k, v: { v: voice, x: k === 'level' ? v / 100 : v } });
+      renderParams(); drawParam(id); return;
+    }
     if (id === 'saveProj') v = Math.min(v, Math.max(0, projList.length - 1));
     if (FX_IDS.includes(id)) { S.tfx[sel][id] = v; save(); applyFx(sel, id); changed = true; }
     else { S[id] = v; save(); applyParam(id); }
@@ -1613,7 +1809,7 @@ async function startAudio() {
   // drums
   kits = [await decodeRock(), ...makeKits(ctx.sampleRate)];
   send({ t: 'set', k: 'kits', v: kits });
-  send({ t: 'set', k: 'pattern', v: patternArray(S.pat) });
+  applyParam('dsnd');
   await openMic();
   await listDevices();
   if (S.outId) setOutput(S.outId);
@@ -1625,15 +1821,19 @@ function applyFx(c, k) {
   if (k === 'bits' || k === 'down') { send({ t: 'set', k, v: { i: c, v: S.tfx[c][k] } }); return; }
   FXChain.set(ctx, fx.ch[c], k, S.tfx[c], st ? st.bpm : S.bpm);
 }
+// the random LFO shape: new values, scheduled a little ahead
+setInterval(() => { if (ctx && fx.ch) for (let c = 0; c < 4; c++) FXChain.tick(ctx, fx.ch[c], S.tfx[c], st ? st.bpm : S.bpm); }, 250);
 
 function applyParam(k) {
   if (!ctx) return;
   const v = S[k], now = ctx.currentTime, set = (prm, x) => prm.setTargetAtTime(x, now, 0.02);
   const beat = () => 60 / (st ? st.bpm : S.bpm);
   switch (k) {
-    case 'bpm': for (let c = 0; c < 4; c++) applyFx(c, 'dlyDiv'); send({ t: 'set', k: 'bpm', v }); break;
+    case 'bpm': for (let c = 0; c < 4; c++) { applyFx(c, 'dlyDiv'); applyFx(c, 'lfoRate'); } send({ t: 'set', k: 'bpm', v }); break;
+    case 'drumBars': case 'drumSteps': send({ t: 'set', k, v }); stepPage = Math.min(stepPage, nPages() - 1); $('#grid').innerHTML = ''; renderGrid(); break;
+    case 'dsnd': for (let i = 0; i < 11; i++) for (const q of ['gate', 'tune', 'level']) send({ t: 'set', k: q, v: { v: i, x: q === 'level' ? S.dsnd[q][i] / 100 : S.dsnd[q][i] } }); break;
     case 'stutDiv': send({ t: 'set', k: 'stutDiv', v: STUT_DIV[v] }); break;
-    case 'pat': send({ t: 'set', k: 'pattern', v: patternArray(v) }); break;
+    case 'pat': send({ t: 'set', k: 'preset', v: patternArray(v) }); break;
     case 'kit': send({ t: 'set', k: 'kit', v }); $('#grid').innerHTML = ''; renderGrid(); break;
     case 'glow': sendGlow(); break;
     case 'drumVol': send({ t: 'set', k: 'drumVol', v: v / 100 }); break;
@@ -1702,10 +1902,10 @@ function onStatus(s) {
   if (prev && (s.master !== prev.master || s.tracks.some((t, i) => t.state !== prev.tracks[i].state && (t.state === 'play' || t.state === 'dub')))) changed = true;
   if (s.wave) { wave = s.wave; fmWaveDirty = true; }
   for (const ev of s.events) if (ev.t === 'loop') { toast(`Loop: ${ev.bars} ${T(ev.bars > 1 ? 'Takte' : 'Takt')}, ${Math.round(ev.bpm)} BPM`); for (let c = 0; c < 4; c++) applyFx(c, 'dlyDiv'); }
-  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0]);
+  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo, t.len]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0, s.drumBars, s.drumSteps]);
   if (sig !== lastSig) { lastSig = sig; renderTracks(); drawScreen(); renderParams(); }
   const pat = s.pattern.join('');
-  if (pat !== lastPat) { if (lastPat) changed = true; lastPat = pat; renderGrid(); }
+  if (pat !== lastPat) { if (lastPat) changed = true; lastPat = pat; renderGrid(); fmWaveDirty = true; }
   updateMeters();
   updateLeds();
   const now = performance.now();
@@ -1802,7 +2002,7 @@ function drawProgress(force) {
   const t = sel < 3 ? st.tracks[sel] : null;
   if (t && t.state === 'rec') { f = st.master ? (t.rec % st.master) / st.master : Math.min(1, t.rec / (ctx.sampleRate * 8)); c = C.rec; }
   else if (t && t.len) { f = t.pos; c = t.state === 'dub' ? C.dub : C.play; }
-  else if (sel === 3 && st.step >= 0) { f = (st.step + 1) / 16; c = C.drum; }
+  else if (sel === 3 && st.step >= 0) { f = (stepLinear(st.step) + 1) / (st.drumBars * st.drumSteps); c = C.drum; }
   const w = Math.round(f * 228), o = FM1.op;
   link.draw([o.rect(6, Y.line, Math.max(1, w), 2, c), o.rect(6 + w, Y.line, Math.max(1, 228 - w), 2, C.dark)], 'prog');
 }
@@ -1818,7 +2018,19 @@ function waveCols(n) {
   }
   return cols;
 }
+const stepLinear = g => Math.floor(g / 64) * st.drumSteps + (g % 64);
+// DR selected: the selected drum sound over the whole pattern instead of a waveform
+function drumStripOps() {
+  const o = FM1.op, ops = [o.rect(6, Y.wave, 228, Y.waveH, C.bg)], n = st.drumBars * st.drumSteps, w = 228 / n;
+  for (let i = 0; i < n; i++) {
+    const g = Math.floor(i / st.drumSteps) * 64 + i % st.drumSteps, on = st.pattern[voice * 256 + g];
+    const x = 6 + Math.floor(i * w), cw = Math.max(1, Math.floor((i + 1) * w) - Math.floor(i * w) - (w >= 3 ? 1 : 0));
+    ops.push(on ? o.rect(x, Y.wave, cw, Y.waveH, C.drum) : o.rect(x, Y.wave + Y.waveH / 2 - 1, cw, 2, C.dark));
+  }
+  return ops;
+}
 function waveOps() {
+  if (sel === 3 && st) return drumStripOps();
   const o = FM1.op, ops = [o.rect(6, Y.wave, 228, Y.waveH, C.bg)], cols = waveCols(114);
   if (!cols) return ops;
   const t = st.tracks[sel], base = t.state === 'rec' ? C.rec : C.play;
@@ -1846,7 +2058,21 @@ function drawWave() {
   g.fillStyle = col('--line'); g.fillRect(0, H / 2, W, 1);
   const t = sel < 3 ? st.tracks[sel] : null;
   const label = $('#waveLabel');
-  if (!t) { label.textContent = T('Drums: keine Wellenform'); return; }
+  if (!t) {   // DR: a small read-only view of the whole drum pattern, with the play position
+    const n = st.drumBars * st.drumSteps, cw = W / n, rh = (H - 22) / 11;
+    label.textContent = 'DRUMS · ' + st.drumBars + ' ' + T(st.drumBars > 1 ? 'Takte' : 'Takt') + ' × ' + st.drumSteps;
+    g.clearRect(0, 0, W, H);
+    for (let v = 0; v < 11; v++) for (let i = 0; i < n; i++) {
+      const gi = Math.floor(i / st.drumSteps) * 64 + i % st.drumSteps;
+      if (!st.pattern[v * 256 + gi]) continue;
+      g.fillStyle = v === voice ? col('--drum') : col('--dim');
+      g.fillRect(i * cw + 0.5, 20 + v * rh + 0.5, Math.max(1, cw - 1), Math.max(1, rh - 1));
+    }
+    g.fillStyle = col('--line');
+    for (let b = 1; b < st.drumBars; b++) g.fillRect(b * st.drumSteps * cw, 18, 1, H - 18);
+    if (st.step >= 0) { g.globalAlpha = 0.28; g.fillStyle = col('--now'); g.fillRect(stepLinear(st.step) * cw, 18, Math.max(2, cw), H - 18); g.globalAlpha = 1; }
+    return;
+  }
   const n = Math.max(40, Math.floor(W / 3)), cols = waveCols(n);
   label.textContent = cols ? T('SPUR') + ' ' + (sel + 1) + ' · ' + (wave.span / ctx.sampleRate).toFixed(1) + ' s' : T('SPUR') + ' ' + (sel + 1) + ' · ' + T('LEER');
   if (!cols) return;
@@ -1859,7 +2085,7 @@ function drawWave() {
   const f = t.state === 'rec' ? (st.master ? (t.rec % st.master) / st.master : 1) : t.pos;
   g.fillStyle = col('--now'); g.fillRect(Math.min(W - 2, f * W), 0, 2, H);
 }
-const USED_BTNS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+const USED_BTNS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 // every button we use glows at the level of K4 on the MIKRO page; what is active lights fully (the firmware
 // lights a glowing LED fully when it is also on in the LED frame)
 function sendGlow() {
@@ -1877,7 +2103,7 @@ function updateLeds() {
   if (st.running) bit(FM1.BTN.PLAY);
   if (st.drumOn) bit(FM1.BTN.ARP);
   bit(PAGES[page].btn);
-  for (let k = 0; k < 16; k++) { let on = !!st.pattern[voice * 16 + k]; if (k === st.step) on = !on; if (on) bit(14 + k); }
+  for (let k = 0; k < 16; k++) { const g = pageStep(k); if (g < 0) continue; let on = !!st.pattern[voice * 256 + g]; if (g === st.step) on = !on; if (on) bit(14 + k); }
   bit(14 + 16 + voice);
   if (m !== lastLed) { lastLed = m; link.leds(m); }
 }
@@ -1890,9 +2116,10 @@ link.onKey = (k, on) => {
     if (!on) return;
     voice = k - 16; send({ t: 'pad', v: voice }); flashPad(voice); renderGrid(); return;
   }
-  if (!on) return;                     // keys 1..16: the 16 steps of the selected drum voice
-  const idx = voice * 16 + k, v = st.pattern[idx] ? 0 : 1;
-  st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s: k, on: v } }); renderGrid(); updateLeds();
+  if (!on) return;                     // keys 1..16: the steps of the selected drum voice on the current page
+  const g = pageStep(k); if (g < 0) return;
+  const idx = voice * 256 + g, v = st.pattern[idx] ? 0 : 1;
+  st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s: g, on: v } }); renderGrid(); updateLeds(); fmWaveDirty = true; drawFmWave(true);
 };
 function reveal(id) {
   const el = document.getElementById(id); if (!el) return;
@@ -1900,21 +2127,29 @@ function reveal(id) {
   if (r.top < 60 || r.top > h * 0.5) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 // ARP (10) jumps nowhere; GLO (7) goes to the settings, where the MIKRO knobs are too
-const BTN_SECTION = { 9: 'secSave', 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secTracks', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks' };
+const BTN_SECTION = { 0: 'secDrums', 1: 'secDrums', 9: 'secSave', 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secHelp', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks' };
 link.onButton = (b, on) => {
   const B = FM1.BTN;
   if (on && BTN_SECTION[b]) reveal(sel === 3 && (b === 12 || b === 13) ? 'secDrums' : BTN_SECTION[b]);
   if (on) held[b] = performance.now();
   const dur = on ? 0 : performance.now() - (held[b] || 0);
   switch (b) {
-    case B.REC: if (on) recPress(); break;
-    case B.PLAY: if (on) send({ t: 'play' }); break;
+    case B.REC:   // press: record / overdub / play (as always); held 1 s: undo (Boss: hold REC/DUB/PLAY)
+      if (on) { recPress(); held.recTimer = setTimeout(() => { held.recTimer = 0; recHold(); }, 1000); }
+      else if (held.recTimer) { clearTimeout(held.recTimer); held.recTimer = 0; }
+      break;
+    case B.PLAY:   // press: start / stop; held 2 s: clear everything (Boss: hold STOP)
+      if (on) { send({ t: 'play' }); held.playTimer = setTimeout(() => { held.playTimer = 0; send({ t: 'clearAll' }); toast(T('Alles geloescht')); fmSay(T('GELOESCHT')); }, 2000); }
+      else if (held.playTimer) { clearTimeout(held.playTimer); held.playTimer = 0; }
+      break;
+    case B.OCTM: if (on) { setStepPage(stepPage - 1); toast('DRUMS ' + stepPageName()); } break;   // the step keys: previous / next page
+    case B.OCTP: if (on) { setStepPage(stepPage + 1); toast('DRUMS ' + stepPageName()); } break;
     case B.SCL: if (on) nextTheme(); break;   // SEL: the design (a hidden feature)
     case B.HOME:   // tap: the main page (SELECT chooses the track), hold: mute / unmute the track
       if (on) held.homeTimer = setTimeout(() => { held.homeTimer = 0; send({ t: 'stop', i: sel }); }, 500);
       else if (held.homeTimer) { clearTimeout(held.homeTimer); held.homeTimer = 0; setPage('SPUR'); }
       break;
-    case B.EDIT: if (on) send({ t: 'undo', i: sel }); break;   // undo / redo
+    case B.EDIT: if (on) { reveal('secHelp'); fmSay(T('LEGENDE')); } break;   // the legend (what every key does)
     case B.ARP:   // tap: drums on / off, hold: click on / off
       if (on) held.arpTimer = setTimeout(() => { held.arpTimer = 0; toggleClick(); }, 450);
       else if (held.arpTimer) { clearTimeout(held.arpTimer); held.arpTimer = 0; toggleDrums(); }
@@ -1923,13 +2158,14 @@ link.onButton = (b, on) => {
       if (on) held.saveTimer = setTimeout(() => { clearSel(); held.saveTimer = 0; }, 800);
       else if (held.saveTimer) { clearTimeout(held.saveTimer); held.saveTimer = 0; if (page === 'SAVE') saveAction(); else { ensureProject().then(() => { setPage('SAVE'); lastSig = ''; drawScreen(); }); } }
       break;
-    case B.LFO:
+    case B.FX:   // tap: the FX page (on it: the next effect); held: stutter while held
       if (on) held.stutTimer = setTimeout(() => { held.stutTimer = 0; stutter(true); }, 220);
-      else if (held.stutTimer) { clearTimeout(held.stutTimer); setPage('STUTTER'); } else stutter(false);
+      else if (held.stutTimer) { clearTimeout(held.stutTimer); held.stutTimer = 0; if (page === 'FX') setFx(S.fxSel + 1); else setPage('FX'); }
+      else stutter(false);
       break;
     default: {
       const pk = PAGE_KEYS.find(k => PAGES[k].btn === b);
-      if (pk && on) { if (pk === 'FX' && page === 'FX') setFx(S.fxSel + 1); else setPage(pk); }
+      if (pk && on) setPage(pk);
     }
   }
 };
@@ -1938,7 +2174,7 @@ link.onEncoder = (e, d) => {
   if (e === 0) { select((sel + (d > 0 ? 1 : 3)) % 4); reveal('secTracks'); return; }
   if (e === 1 || e === 6) reveal('secDrums'); else reveal(page === 'MIKRO' ? 'secSettings' : page === 'SAVE' ? 'secSave' : 'secFx');
   if (e === 6) { setP('pat', (S.pat + (d > 0 ? 1 : PATTERNS.length - 1)) % PATTERNS.length); toast(T('Muster') + ': ' + T(PATTERNS[S.pat].name)); return; }
-  if (e === 1) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); toast('Drum: ' + T(voiceNames()[voice])); return; }
+  if (e === 1) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); renderParams(); fmWaveDirty = true; drawFmWave(true); if (page === 'ENV') { lastSig = ''; drawScreen(); } toast('Drum: ' + T(voiceNames()[voice])); return; }
   const p = PAGES[page].p[e - 2]; if (!p) return;
   const acc = Math.abs(d) > 2 ? 3 : 1;
   setP(p.id, getP(p.id) + Math.sign(d) * p.step * acc);
@@ -1962,7 +2198,7 @@ link.onState = (ok, name, outs) => {
 // ---- saving ----------------------------------------------------------------------------------
 let snapWait = null, changed = false;
 function getSnap() { return new Promise(res => { snapWait = res; send({ t: 'snapshot', id: Date.now() }); }); }
-function settingsOf() { return { tfx: S.tfx, drumVol: S.drumVol, pat: S.pat, kit: S.kit, master: S.master, recToDub: S.recToDub, clickOn: !!(st && st.clickOn) }; }
+function settingsOf() { return { tfx: S.tfx, drumVol: S.drumVol, pat: S.pat, kit: S.kit, master: S.master, recToDub: S.recToDub, clickOn: !!(st && st.clickOn), dsnd: S.dsnd }; }
 async function refreshProjects() {
   try { projList = await Save.listProjects(); } catch (e) { projList = []; }
   const i = projList.findIndex(p => p.id === S.projId); if (i >= 0 && !S.saveProj) S.saveProj = i;
@@ -1991,7 +2227,10 @@ function applyProject(p) {
   S.projId = p.id; S.projName = p.name;
   const g = p.settings || {};
   if (g.tfx) S.tfx = g.tfx;
-  for (const k of ['drumVol', 'pat', 'kit', 'master', 'recToDub']) if (g[k] !== undefined) S[k] = g[k];
+  for (const k of ['drumVol', 'pat', 'kit', 'master', 'recToDub', 'dsnd']) if (g[k] !== undefined) S[k] = g[k];
+  for (const t of S.tfx) for (const k of FX_IDS) if (t[k] === undefined) t[k] = DEF[k];
+  S.drumBars = p.snap.drumBars || 1; S.drumSteps = p.snap.drumSteps || 16; stepPage = 0;
+  if (p.snap.gate) S.dsnd = { gate: p.snap.gate, tune: p.snap.tune, level: p.snap.level.map(x => Math.round(x * 100)) };
   save();
   const snap = p.snap, transfer = snap.tracks.filter(t => t.data).map(t => t.data.buffer);
   node.port.postMessage({ t: 'load', p: snap }, transfer);
@@ -2004,8 +2243,8 @@ function applyProject(p) {
 function freshFx() { return [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, DEF[k]]))); }
 function resetSettings(fxOnly) {
   if (!fxOnly) for (const k of Object.keys(DEF)) if (!KEEP.includes(k) && !['projId', 'projName', 'v', 'bpm'].includes(k)) S[k] = DEF[k];
-  S.tfx = freshFx(); save();
-  if (ctx) { for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k); if (!fxOnly) for (const k of Object.keys(DEF)) if (!FX_IDS.includes(k)) applyParam(k); }
+  S.tfx = freshFx(); if (!fxOnly) S.dsnd = freshSnd(); save();
+  if (ctx) { for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k); if (!fxOnly) { for (const k of Object.keys(DEF)) if (!FX_IDS.includes(k)) applyParam(k); applyParam('dsnd'); } }
   $('#grid').innerHTML = ''; renderGrid(); renderParams(); lastSig = ''; if (st) drawScreen(); changed = true;
 }
 async function newProject(keepFx) {
@@ -2089,6 +2328,7 @@ setInterval(() => { if (node && changed && st && (st.master > 0 || st.drumOn)) s
 
 // ---- actions ---------------------------------------------------------------------------------
 function recPress() { if (sel === 3) send({ t: 'drumRec' }); else send({ t: 'rec', i: sel }); }
+function recHold() { send(sel === 3 ? { t: 'undo', i: 3 } : { t: 'recHold', i: sel }); toast('UNDO'); }
 function toggleDrums() { send({ t: 'stop', i: 3 }); }
 function toggleClick() { const on = !(st && st.clickOn); send({ t: 'set', k: 'clickOn', v: on }); toast(T(on ? 'Klick an' : 'Klick aus')); }
 function clearSel() { send({ t: 'clear', i: sel }); toast(sel === 3 ? T('Drum-Muster geloescht') : T('SPUR') + ' ' + (sel + 1) + ' ' + T('geloescht')); }
@@ -2109,9 +2349,11 @@ function renderTracks() {
     else { const t = st.tracks[i]; cls = st.armed === i ? 'rec armed' : t.state; state = T(st.armed === i ? 'WARTET AUF TAKT' : t.pending ? 'REC BIS TAKTENDE' : STATE_DE[t.state]); }
     const t = st.tracks[i];
     const len = i < 3 && t.len ? (t.len / ctx.sampleRate).toFixed(1) + ' s' : i === 3 ? T(KITS[S.kit]) : '';
+    const bars = i < 3 && t.len && st.master ? t.len / (st.master / st.bars) : i === 3 ? st.drumBars : 0;
+    const barTxt = bars ? (Math.abs(bars - Math.round(bars)) < 0.01 ? Math.round(bars) : bars.toFixed(1)) + ' ' + T(bars > 1 ? 'Takte' : 'Takt') : '';
     return `<button class="track ${cls} ${i === sel ? 'sel' : ''}" data-i="${i}">
       <span class="tn">${i === 3 ? 'DRUMS' : T('SPUR') + ' ' + (i + 1)}</span><span class="ts">${state}</span>
-      <span class="tl">${esc(len)}</span><span class="bar"><i id="pb${i}"></i></span><span class="lv"><i id="lv${i}"></i></span></button>`;
+      <span class="tl">${esc(len)}</span><span class="tl">${esc(barTxt)}</span><span class="bar"><i id="pb${i}"></i></span><span class="lv"><i id="lv${i}"></i></span></button>`;
   }).join('');
   $('#tracks').innerHTML = cards;
   const t = sel < 3 ? st.tracks[sel] : null;
@@ -2122,9 +2364,10 @@ function renderTracks() {
   r.className = 'big rec ' + (sel === 3 ? (st.drumRec ? 'on' : '') : (t.state === 'rec' || t.state === 'dub' || st.armed === sel ? 'on' : ''));
   $('#bPlay').textContent = st.running ? 'STOP' : 'PLAY';
   $('#bPlay').classList.toggle('on', st.running);
-  $('#bUndo').textContent = sel === 3 ? (st.canDrumRedo ? 'REDO' : 'UNDO') : (t.canRedo ? 'REDO' : 'UNDO');
+  const hint = h => `<small>${esc(T(h))}</small>`;
+  $('#bUndo').innerHTML = (sel === 3 ? (st.canDrumRedo ? 'REDO' : 'UNDO') : (t.canRedo ? 'REDO' : 'UNDO')) + hint('REC halten');
   $('#bUndo').disabled = sel === 3 ? !(st.canDrumUndo || st.canDrumRedo) : !(t.canUndo || t.canRedo || t.state === 'rec' || st.armed === sel);
-  $('#bStop').textContent = T(sel === 3 ? (st.drumOn ? 'DRUMS AUS' : 'DRUMS AN') : (t.state === 'stop' ? 'SPUR AN' : 'SPUR STUMM'));
+  $('#bStop').innerHTML = esc(T(sel === 3 ? (st.drumOn ? 'DRUMS AUS' : 'DRUMS AN') : (t.state === 'stop' ? 'SPUR AN' : 'SPUR STUMM'))) + hint(sel === 3 ? 'ARP tippen' : 'HOME halten');
   $('#bClick').classList.toggle('on', !!st.clickOn);
   $('#bpm').textContent = Math.round(st.bpm) + ' BPM' + (st.master ? ' · ' + st.bars + ' ' + T(st.bars > 1 ? 'Takte' : 'Takt') : '');
 }
@@ -2138,7 +2381,7 @@ function updateMeters() {
     if (pb) pb.style.width = (t.state === 'rec' ? (st.master ? (t.rec % st.master) / st.master : Math.min(1, t.rec / (ctx.sampleRate * 8))) : t.pos) * 100 + '%';
     if (l) l.style.width = lv(t.peak);
   });
-  const pb = $('#pb3'); if (pb) pb.style.width = st.step >= 0 ? (st.step + 1) / 16 * 100 + '%' : '0%';
+  const pb = $('#pb3'); if (pb) pb.style.width = st.step >= 0 ? (stepLinear(st.step) + 1) / (st.drumBars * st.drumSteps) * 100 + '%' : '0%';
 }
 
 function paramsHtml(pg) {
@@ -2150,10 +2393,10 @@ function paramsHtml(pg) {
 }
 function renderParams() {
   $('#setParams').innerHTML = paramsHtml(PAGES.MIKRO);
-  $('#pages').innerHTML = WEB_TABS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(k)}</button>`).join('');
+  $('#pages').innerHTML = WEB_TABS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(TAB_NAME[k] || k)}</button>`).join('');
   $('#fxsubs').hidden = page !== 'FX';
   $('#fxsubs').innerHTML = FX_KEYS.map((k, i) => `<button data-fx="${i}" class="${i === S.fxSel ? 'on' : ''}">${k}</button>`).join('');
-  $('#fxFor').textContent = T('fuer') + ' ' + (sel < 3 ? T('SPUR') + ' ' + (sel + 1) : 'DRUMS');
+  $('#fxFor').textContent = page === 'ENV' ? T('fuer') + ' ' + T(voiceNames()[voice]) + ' (ALGORITHM)' : page === 'DRUMS' ? '' : T('fuer') + ' ' + (sel < 3 ? T('SPUR') + ' ' + (sel + 1) : 'DRUMS');
   const pg = PAGES[page];
   $('#params').innerHTML = pg.p.map((p, i) => {
     const disabled = (p.id.startsWith('t') && p.id !== 'tVol' ? sel > 2 : false) || (p.id === 'tVol' && sel > 2) || (p.id === 'bpm' && st && st.master > 0);
@@ -2165,11 +2408,14 @@ function renderParams() {
 function renderGrid() {
   const g = $('#grid');
   if (!g.firstChild) {
-    g.innerHTML = voiceNames().map((v, r) => `<div class="row" data-r="${r}"><button class="pad" data-v="${r}">${esc(T(v))}</button>${
-      Array.from({ length: 16 }, (_, s) => `<button class="st ${s % 4 === 0 ? 'q' : ''}" data-v="${r}" data-s="${s}"></button>`).join('')}</div>`).join('');
+    const keys = Array.from({ length: 16 }, (_, k) => pageStep(k)).filter(x => x >= 0), q = Math.max(1, Math.round(S.drumSteps / 4));
+    g.innerHTML = voiceNames().map((v, r) => `<div class="row" data-r="${r}" style="grid-template-columns:76px repeat(${keys.length},minmax(16px,1fr))"><button class="pad" data-v="${r}">${esc(T(v))}</button>${
+      keys.map(s => `<button class="st ${(s % 64) % q === 0 ? 'q' : ''}" data-v="${r}" data-s="${s}"></button>`).join('')}</div>`).join('');
+    $('#stepPage').textContent = T('Takt') + ' ' + stepPageName().slice(1);
+    $('#bPgPrev').disabled = stepPage <= 0; $('#bPgNext').disabled = stepPage >= nPages() - 1;
   }
-  const pat = st ? st.pattern : patternArray(S.pat);
-  g.querySelectorAll('.st').forEach(b => b.classList.toggle('on', !!pat[b.dataset.v * 16 + +b.dataset.s]));
+  const pat = st ? st.pattern : [];
+  g.querySelectorAll('.st').forEach(b => b.classList.toggle('on', !!pat[b.dataset.v * 256 + +b.dataset.s]));
   g.querySelectorAll('.row').forEach(r => r.classList.toggle('cur', +r.dataset.r === voice));
   $('#selPat').value = S.pat; $('#selKit').value = S.kit;
 }
@@ -2220,10 +2466,12 @@ $('#grid').onpointerdown = e => {
   const b = e.target.closest('button'); if (!b || !st) return;
   voice = +b.dataset.v;
   if (b.classList.contains('pad')) { send({ t: 'pad', v: voice }); flashPad(voice); }
-  else { const s = +b.dataset.s, idx = voice * 16 + s, v = st.pattern[idx] ? 0 : 1; st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s, on: v } }); }
+  else { const s = +b.dataset.s, idx = voice * 256 + s, v = st.pattern[idx] ? 0 : 1; st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s, on: v } }); fmWaveDirty = true; }
   renderGrid(); updateLeds();
 };
 $('#selPat').onchange = e => setP('pat', +e.target.value);
+$('#bPgPrev').onclick = () => setStepPage(stepPage - 1);
+$('#bPgNext').onclick = () => setStepPage(stepPage + 1);
 $('#selKit').onchange = e => setP('kit', +e.target.value);
 $('#projName').onchange = e => { S.projName = e.target.value.trim() || S.projName; save(); changed = true; if (S.projId) saveProject(true); };
 $('#bSaveProj').onclick = () => saveProject(false);
@@ -2253,7 +2501,7 @@ $('#bFolder').onclick = async () => { try { await Save.chooseFolder(); renderSav
 $('#selLoops').innerHTML = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}x</option>`).join('');
 $('#selMic').onchange = e => { S.micId = e.target.value; save(); openMic(); };
 $('#selOut').onchange = e => setOutput(e.target.value);
-$('#bClearAll').onclick = () => { if ($('#bClearAll').dataset.arm) { send({ t: 'clearAll' }); delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); } else { $('#bClearAll').dataset.arm = 1; $('#bClearAll').textContent = T('Wirklich alles loeschen?'); setTimeout(() => { delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); }, 3000); } };
+$('#bClearAll').onclick = () => { const b = $('#bClearAll'), t = $('#bClearAllT'); if (b.dataset.arm) { send({ t: 'clearAll' }); delete b.dataset.arm; t.textContent = T('Alles loeschen'); } else { b.dataset.arm = 1; t.textContent = T('Wirklich alles loeschen?'); setTimeout(() => { delete b.dataset.arm; t.textContent = T('Alles loeschen'); }, 3000); } };
 $('#bFull').onclick = () => { const d = document.documentElement; (document.fullscreenElement ? document.exitFullscreen() : d.requestFullscreen()).catch(() => { }); };
 $('#bRetry').onclick = () => link.access ? link.find() : link.open().catch(e => toast(e.message));
 

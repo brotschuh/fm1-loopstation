@@ -5,11 +5,13 @@ const $ = s => document.querySelector(s);
 const TRACK_NAMES = ['1', '2', '3', 'DR'];
 const DLY_DIV = [['1/16', 0.25], ['1/8', 0.5], ['1/8.', 0.75], ['1/4', 1], ['1/4.', 1.5], ['1/2', 2]];
 const STUT_DIV = [4, 8, 16, 32];
+const LFO_DIV = [['1/16', 0.25], ['1/8', 0.5], ['1/4', 1], ['1/2', 2], ['1 T', 4], ['2 T', 8], ['4 T', 16]];   // beats
+const LFO_TGT = ['AUS', 'LAUTST.', 'FILTER', 'PAN'], LFO_SHAPE = ['SINUS', 'DREIECK', 'RECHTECK', 'SAEGE', 'ZUFALL'];
 const STATE_DE = { empty: 'LEER', rec: 'REC', dub: 'DUB', play: 'PLAY', stop: 'STOP' };
 
 // ---- settings (remembered on this device) ---------------------------------------------
 const DEF = { dlyMix: 0, dlyDiv: 2, dlyFb: 35, dlyTone: 60, rev: 0, revDamp: 40, revPre: 10, choRate: 30, fxSel: 0, filt: 0, res: 10, bits: 16, down: 1, choMix: 0, choDepth: 50,
-  stutDiv: 2, revSize: 50, bpm: 100, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
+  stutDiv: 2, revSize: 50, lfoTgt: 0, lfoRate: 2, lfoDepth: 50, lfoShape: 0, bpm: 100, drumBars: 1, drumSteps: 16, pat: 0, kit: 0, drumVol: 80, inGain: 100, mon: 0, lat: -1, master: 90,
   recToDub: 1, micId: '', outId: '', glow: 3, lang: '', theme: 'dark', saveAct: 0, saveLoops: 4, projId: '', projName: '', v: 4 };
 // kept by a reset: the device, its look and its connections, not the sound
 const KEEP = ['lang', 'theme', 'micId', 'outId', 'glow', 'lat'];
@@ -21,7 +23,10 @@ try {
 } catch (e) { }
 const voiceNames = () => KIT_VOICES[S.kit];
 // effects are per channel: tracks 1-3 and the drums (index 3), each with its own settings
-const FX_IDS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'bits', 'down', 'filt', 'res'];
+const FX_IDS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'bits', 'down', 'filt', 'res', 'lfoTgt', 'lfoRate', 'lfoDepth', 'lfoShape'];
+// per drum sound (the 11 of a kit): length (gate, %), pitch (semitones), level (%)
+const freshSnd = () => ({ gate: Array(11).fill(100), tune: Array(11).fill(0), level: Array(11).fill(100) });
+if (!S.dsnd || !Array.isArray(S.dsnd.gate)) S.dsnd = freshSnd();
 if (!Array.isArray(S.tfx) || S.tfx.length !== 4) S.tfx = [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, S[k] !== undefined ? S[k] : DEF[k]])));
 for (const t of S.tfx) for (const k of FX_IDS) if (t[k] === undefined) t[k] = DEF[k];
 try { if (JSON.parse(localStorage.getItem('fm1loop') || '{}').v !== 4) localStorage.setItem('fm1loop', JSON.stringify(S)); } catch (e) { }
@@ -49,16 +54,21 @@ const FX_SUB = {
   REVERB: { name: 'REVERB', p: [P('rev', 'MIX', 0, 100, 1), P('revSize', 'RAUM', 0, 100, 2), P('revDamp', 'DAEMPFUNG', 0, 100, 1, null, 'DAEMPF'), P('revPre', 'PRE-DELAY', 0, 100, 1, v => v + 'ms', 'PRE')] },
   CHORUS: { name: 'CHORUS', p: [P('choMix', 'MIX', 0, 100, 1), P('choDepth', 'TIEFE', 0, 100, 1), P('choRate', 'TEMPO', 0, 100, 1, v => (0.1 + v / 100 * 4.9).toFixed(1) + 'HZ', 'RATE')] },
   BITCRUSH: { name: 'BITCRUSH', p: [P('bits', 'BITS', 2, 16, 1, v => v >= 16 ? 'AUS' : v + ' BIT'), P('down', 'SAMPLERATE', 1, 32, 1, v => v === 1 ? 'AUS' : '1/' + v, 'RATE')] },
+  FILTER: { name: 'FILTER', p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
+  STUTTER: { name: 'STUTTER', p: [P('stutDiv', 'LAENGE', 0, 3, 1, v => '1/' + STUT_DIV[v])] },   // all tracks; FX held = stutter
 };
 const FX_KEYS = Object.keys(FX_SUB);
 const SAVE_ACTS = ['SPEICHERN', 'LADEN', 'NEU', 'NEU+FX', 'LIVE', 'MIX', 'STEMS DRY', 'STEMS FX'];
 let projList = [];
 const PAGES = {
   FX: { btn: 2, get name() { return chName() + ' ' + FX_SUB[FX_KEYS[S.fxSel]].name + ' ' + (S.fxSel + 1) + '/' + FX_KEYS.length; }, get p() { return FX_SUB[FX_KEYS[S.fxSel]].p; } },
-  FILTER: { get name() { return chName() + ' FILTER'; }, btn: 4, p: [P('filt', 'FILTER', -100, 100, 1, v => v === 0 ? 'AUS' : v < 0 ? 'TP ' + (-v) : 'HP ' + v), P('res', 'RESONANZ', 0, 100, 1, null, 'RESO')] },
-  STUTTER: { name: 'STUTTER', btn: 5, p: [P('stutDiv', 'LAENGE', 0, 3, 1, v => '1/' + STUT_DIV[v])] },
+  LFO: { get name() { return chName() + ' LFO'; }, btn: 5, p: [P('lfoTgt', 'ZIEL', 0, 3, 1, v => LFO_TGT[v]), P('lfoRate', 'TEMPO', 0, 6, 1, v => LFO_DIV[v][0], 'RATE'),
+    P('lfoDepth', 'STAERKE', 0, 100, 1), P('lfoShape', 'FORM', 0, 4, 1, v => LFO_SHAPE[v])] },
+  ENV: { get name() { return 'DRUM: ' + T(voiceNames()[voice]); }, btn: 4, p: [P('dGate', 'LAENGE', 5, 100, 1, v => v >= 100 ? 'VOLL' : v + '%'),
+    P('dTune', 'TONHOEHE', -12, 12, 1, v => (v > 0 ? '+' : '') + v + (LANG === 'en' ? ' ST' : ' HT'), 'TON'), P('dLevel', 'LAUTST.', 0, 100, 1), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0])] },
   SPUR: { name: 'SPUREN', btn: 8, p: [P('tVol', 'LAUTST.', 0, 100, 1), P('tPan', 'PANORAMA', -100, 100, 2, v => v === 0 ? 'MITTE' : (v < 0 ? 'L ' + (-v) : 'R ' + v), 'PAN'), P('tRev', 'RUECKW.', 0, 1, 1, v => v ? 'AN' : 'AUS', 'RUECKW'), P('recToDub', 'NACH REC', 0, 1, 1, v => v ? 'DUB' : 'PLAY', 'N.REC')] },
-  DRUMS: { name: 'DRUMS', btn: 11, p: [P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''), P('pat', 'MUSTER', 0, PATTERNS.length - 1, 1, v => T(PATTERNS[v].name)), P('kit', 'KIT', 0, KITS.length - 1, 1, v => T(KITS[v]).split(' ')[0]), P('drumVol', 'DRUM VOL', 0, 100, 1, null, 'DRUMS')] },
+  DRUMS: { get name() { return 'DRUMS ' + stepPageName(); }, btn: 11, p: [P('drumVol', 'LAUTST.', 0, 100, 1), P('bpm', 'TEMPO', 50, 200, 1, v => Math.round(v) + ''),
+    P('drumBars', 'TAKTE', 1, 4, 1), P('drumSteps', 'SCHRITTE', 1, 64, 1)] },
   SAVE: { btn: 9, get name() { return 'SAVE ' + Save.safe(S.projName).toUpperCase(); },
     p: [P('saveAct', 'AKTION', 0, SAVE_ACTS.length - 1, 1, v => SAVE_ACTS[v]), P('saveLoops', 'LOOPS', 1, 16, 1, v => v + 'X'),
       P('saveProj', 'PROJEKT', 0, 99, 1, v => (projList[v] ? Save.safe(projList[v].name).toUpperCase() : '-'))] },
@@ -66,7 +76,20 @@ const PAGES = {
 };
 function chName() { return sel < 3 ? 'S' + (sel + 1) : 'DR'; }
 const ALL_PARAMS = [...Object.values(FX_SUB).flatMap(g => g.p), ...Object.keys(PAGES).filter(k => k !== 'FX').flatMap(k => PAGES[k].p)];
-const WEB_TABS = ['FX', 'FILTER', 'STUTTER', 'SPUR', 'DRUMS'];   // MIKRO lives in the settings on the phone
+const WEB_TABS = ['FX', 'LFO', 'SPUR', 'DRUMS', 'ENV'];   // MIKRO lives in the settings on the phone
+const TAB_NAME = { ENV: 'DRUM-SOUND' };
+// the 16 step keys show one page: a bar, and within it 16 steps (more than 16 steps: OCT- / OCT+)
+let stepPage = 0;
+const subPages = () => Math.ceil(S.drumSteps / 16), nPages = () => S.drumBars * subPages();
+function pageStep(k) {   // key k on the current page -> pattern index without the voice (bar * 64 + step), or -1
+  const bar = Math.floor(stepPage / subPages()), s = (stepPage % subPages()) * 16 + k;
+  return bar < S.drumBars && s < S.drumSteps ? bar * 64 + s : -1;
+}
+function stepPageName() {
+  const sp = subPages(), bar = Math.floor(stepPage / sp) + 1, a = (stepPage % sp) * 16 + 1, b = Math.min(S.drumSteps, a + 15);
+  return 'T' + bar + '/' + S.drumBars + (sp > 1 ? ' ' + a + '-' + b : '');
+}
+function setStepPage(n) { stepPage = Math.max(0, Math.min(nPages() - 1, n)); $('#grid').innerHTML = ''; renderGrid(); updateLeds(); lastSig = ''; drawScreen(); }
 function setFx(i) { S.fxSel = (i + FX_KEYS.length) % FX_KEYS.length; save(); setPage('FX'); }
 const PAGE_KEYS = Object.keys(PAGES);
 
@@ -77,6 +100,9 @@ function getP(id) {
   if (id === 'tRev') return t && t.rev ? 1 : 0;
   if (id === 'bpm') return st ? Math.round(st.bpm) : S.bpm;
   if (id === 'saveProj') return S.saveProj || 0;
+  if (id === 'dGate') return S.dsnd.gate[voice];
+  if (id === 'dTune') return S.dsnd.tune[voice];
+  if (id === 'dLevel') return S.dsnd.level[voice];
   if (FX_IDS.includes(id)) return S.tfx[sel][id];
   return S[id];
 }
@@ -89,7 +115,13 @@ function setP(id, v) {
     send({ t: 'set', k, v: { i: sel, v: id === 'tRev' ? v : v / 100 } });
     if (st) st.tracks[sel][k] = id === 'tRev' ? !!v : v / 100;
   } else {
-    if (id === 'bpm' && st && st.master > 0) { toast(T('Tempo kommt vom Loop')); return; }
+    if (id === 'bpm' && st && st.master > 0) { toast(T('Tempo ist durch die Aufnahme festgelegt (vor der ersten Aufnahme einstellen)')); return; }
+    if (id === 'dGate' || id === 'dTune' || id === 'dLevel') {
+      const k = { dGate: 'gate', dTune: 'tune', dLevel: 'level' }[id];
+      S.dsnd[k][voice] = v; save(); changed = true;
+      send({ t: 'set', k, v: { v: voice, x: k === 'level' ? v / 100 : v } });
+      renderParams(); drawParam(id); return;
+    }
     if (id === 'saveProj') v = Math.min(v, Math.max(0, projList.length - 1));
     if (FX_IDS.includes(id)) { S.tfx[sel][id] = v; save(); applyFx(sel, id); changed = true; }
     else { S[id] = v; save(); applyParam(id); }
@@ -123,7 +155,7 @@ async function startAudio() {
   // drums
   kits = [await decodeRock(), ...makeKits(ctx.sampleRate)];
   send({ t: 'set', k: 'kits', v: kits });
-  send({ t: 'set', k: 'pattern', v: patternArray(S.pat) });
+  applyParam('dsnd');
   await openMic();
   await listDevices();
   if (S.outId) setOutput(S.outId);
@@ -135,15 +167,19 @@ function applyFx(c, k) {
   if (k === 'bits' || k === 'down') { send({ t: 'set', k, v: { i: c, v: S.tfx[c][k] } }); return; }
   FXChain.set(ctx, fx.ch[c], k, S.tfx[c], st ? st.bpm : S.bpm);
 }
+// the random LFO shape: new values, scheduled a little ahead
+setInterval(() => { if (ctx && fx.ch) for (let c = 0; c < 4; c++) FXChain.tick(ctx, fx.ch[c], S.tfx[c], st ? st.bpm : S.bpm); }, 250);
 
 function applyParam(k) {
   if (!ctx) return;
   const v = S[k], now = ctx.currentTime, set = (prm, x) => prm.setTargetAtTime(x, now, 0.02);
   const beat = () => 60 / (st ? st.bpm : S.bpm);
   switch (k) {
-    case 'bpm': for (let c = 0; c < 4; c++) applyFx(c, 'dlyDiv'); send({ t: 'set', k: 'bpm', v }); break;
+    case 'bpm': for (let c = 0; c < 4; c++) { applyFx(c, 'dlyDiv'); applyFx(c, 'lfoRate'); } send({ t: 'set', k: 'bpm', v }); break;
+    case 'drumBars': case 'drumSteps': send({ t: 'set', k, v }); stepPage = Math.min(stepPage, nPages() - 1); $('#grid').innerHTML = ''; renderGrid(); break;
+    case 'dsnd': for (let i = 0; i < 11; i++) for (const q of ['gate', 'tune', 'level']) send({ t: 'set', k: q, v: { v: i, x: q === 'level' ? S.dsnd[q][i] / 100 : S.dsnd[q][i] } }); break;
     case 'stutDiv': send({ t: 'set', k: 'stutDiv', v: STUT_DIV[v] }); break;
-    case 'pat': send({ t: 'set', k: 'pattern', v: patternArray(v) }); break;
+    case 'pat': send({ t: 'set', k: 'preset', v: patternArray(v) }); break;
     case 'kit': send({ t: 'set', k: 'kit', v }); $('#grid').innerHTML = ''; renderGrid(); break;
     case 'glow': sendGlow(); break;
     case 'drumVol': send({ t: 'set', k: 'drumVol', v: v / 100 }); break;
@@ -212,10 +248,10 @@ function onStatus(s) {
   if (prev && (s.master !== prev.master || s.tracks.some((t, i) => t.state !== prev.tracks[i].state && (t.state === 'play' || t.state === 'dub')))) changed = true;
   if (s.wave) { wave = s.wave; fmWaveDirty = true; }
   for (const ev of s.events) if (ev.t === 'loop') { toast(`Loop: ${ev.bars} ${T(ev.bars > 1 ? 'Takte' : 'Takt')}, ${Math.round(ev.bpm)} BPM`); for (let c = 0; c < 4; c++) applyFx(c, 'dlyDiv'); }
-  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0]);
+  const sig = JSON.stringify([s.tracks.map(t => [t.state, t.pending, t.canUndo, t.canRedo, t.len]), s.running, s.armed, s.drumOn, s.drumRec, s.clickOn, sel, page, Math.round(s.bpm), s.master > 0, s.drumBars, s.drumSteps]);
   if (sig !== lastSig) { lastSig = sig; renderTracks(); drawScreen(); renderParams(); }
   const pat = s.pattern.join('');
-  if (pat !== lastPat) { if (lastPat) changed = true; lastPat = pat; renderGrid(); }
+  if (pat !== lastPat) { if (lastPat) changed = true; lastPat = pat; renderGrid(); fmWaveDirty = true; }
   updateMeters();
   updateLeds();
   const now = performance.now();
@@ -312,7 +348,7 @@ function drawProgress(force) {
   const t = sel < 3 ? st.tracks[sel] : null;
   if (t && t.state === 'rec') { f = st.master ? (t.rec % st.master) / st.master : Math.min(1, t.rec / (ctx.sampleRate * 8)); c = C.rec; }
   else if (t && t.len) { f = t.pos; c = t.state === 'dub' ? C.dub : C.play; }
-  else if (sel === 3 && st.step >= 0) { f = (st.step + 1) / 16; c = C.drum; }
+  else if (sel === 3 && st.step >= 0) { f = (stepLinear(st.step) + 1) / (st.drumBars * st.drumSteps); c = C.drum; }
   const w = Math.round(f * 228), o = FM1.op;
   link.draw([o.rect(6, Y.line, Math.max(1, w), 2, c), o.rect(6 + w, Y.line, Math.max(1, 228 - w), 2, C.dark)], 'prog');
 }
@@ -328,7 +364,19 @@ function waveCols(n) {
   }
   return cols;
 }
+const stepLinear = g => Math.floor(g / 64) * st.drumSteps + (g % 64);
+// DR selected: the selected drum sound over the whole pattern instead of a waveform
+function drumStripOps() {
+  const o = FM1.op, ops = [o.rect(6, Y.wave, 228, Y.waveH, C.bg)], n = st.drumBars * st.drumSteps, w = 228 / n;
+  for (let i = 0; i < n; i++) {
+    const g = Math.floor(i / st.drumSteps) * 64 + i % st.drumSteps, on = st.pattern[voice * 256 + g];
+    const x = 6 + Math.floor(i * w), cw = Math.max(1, Math.floor((i + 1) * w) - Math.floor(i * w) - (w >= 3 ? 1 : 0));
+    ops.push(on ? o.rect(x, Y.wave, cw, Y.waveH, C.drum) : o.rect(x, Y.wave + Y.waveH / 2 - 1, cw, 2, C.dark));
+  }
+  return ops;
+}
 function waveOps() {
+  if (sel === 3 && st) return drumStripOps();
   const o = FM1.op, ops = [o.rect(6, Y.wave, 228, Y.waveH, C.bg)], cols = waveCols(114);
   if (!cols) return ops;
   const t = st.tracks[sel], base = t.state === 'rec' ? C.rec : C.play;
@@ -356,7 +404,21 @@ function drawWave() {
   g.fillStyle = col('--line'); g.fillRect(0, H / 2, W, 1);
   const t = sel < 3 ? st.tracks[sel] : null;
   const label = $('#waveLabel');
-  if (!t) { label.textContent = T('Drums: keine Wellenform'); return; }
+  if (!t) {   // DR: a small read-only view of the whole drum pattern, with the play position
+    const n = st.drumBars * st.drumSteps, cw = W / n, rh = (H - 22) / 11;
+    label.textContent = 'DRUMS · ' + st.drumBars + ' ' + T(st.drumBars > 1 ? 'Takte' : 'Takt') + ' × ' + st.drumSteps;
+    g.clearRect(0, 0, W, H);
+    for (let v = 0; v < 11; v++) for (let i = 0; i < n; i++) {
+      const gi = Math.floor(i / st.drumSteps) * 64 + i % st.drumSteps;
+      if (!st.pattern[v * 256 + gi]) continue;
+      g.fillStyle = v === voice ? col('--drum') : col('--dim');
+      g.fillRect(i * cw + 0.5, 20 + v * rh + 0.5, Math.max(1, cw - 1), Math.max(1, rh - 1));
+    }
+    g.fillStyle = col('--line');
+    for (let b = 1; b < st.drumBars; b++) g.fillRect(b * st.drumSteps * cw, 18, 1, H - 18);
+    if (st.step >= 0) { g.globalAlpha = 0.28; g.fillStyle = col('--now'); g.fillRect(stepLinear(st.step) * cw, 18, Math.max(2, cw), H - 18); g.globalAlpha = 1; }
+    return;
+  }
   const n = Math.max(40, Math.floor(W / 3)), cols = waveCols(n);
   label.textContent = cols ? T('SPUR') + ' ' + (sel + 1) + ' · ' + (wave.span / ctx.sampleRate).toFixed(1) + ' s' : T('SPUR') + ' ' + (sel + 1) + ' · ' + T('LEER');
   if (!cols) return;
@@ -369,7 +431,7 @@ function drawWave() {
   const f = t.state === 'rec' ? (st.master ? (t.rec % st.master) / st.master : 1) : t.pos;
   g.fillStyle = col('--now'); g.fillRect(Math.min(W - 2, f * W), 0, 2, H);
 }
-const USED_BTNS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+const USED_BTNS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 // every button we use glows at the level of K4 on the MIKRO page; what is active lights fully (the firmware
 // lights a glowing LED fully when it is also on in the LED frame)
 function sendGlow() {
@@ -387,7 +449,7 @@ function updateLeds() {
   if (st.running) bit(FM1.BTN.PLAY);
   if (st.drumOn) bit(FM1.BTN.ARP);
   bit(PAGES[page].btn);
-  for (let k = 0; k < 16; k++) { let on = !!st.pattern[voice * 16 + k]; if (k === st.step) on = !on; if (on) bit(14 + k); }
+  for (let k = 0; k < 16; k++) { const g = pageStep(k); if (g < 0) continue; let on = !!st.pattern[voice * 256 + g]; if (g === st.step) on = !on; if (on) bit(14 + k); }
   bit(14 + 16 + voice);
   if (m !== lastLed) { lastLed = m; link.leds(m); }
 }
@@ -400,9 +462,10 @@ link.onKey = (k, on) => {
     if (!on) return;
     voice = k - 16; send({ t: 'pad', v: voice }); flashPad(voice); renderGrid(); return;
   }
-  if (!on) return;                     // keys 1..16: the 16 steps of the selected drum voice
-  const idx = voice * 16 + k, v = st.pattern[idx] ? 0 : 1;
-  st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s: k, on: v } }); renderGrid(); updateLeds();
+  if (!on) return;                     // keys 1..16: the steps of the selected drum voice on the current page
+  const g = pageStep(k); if (g < 0) return;
+  const idx = voice * 256 + g, v = st.pattern[idx] ? 0 : 1;
+  st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s: g, on: v } }); renderGrid(); updateLeds(); fmWaveDirty = true; drawFmWave(true);
 };
 function reveal(id) {
   const el = document.getElementById(id); if (!el) return;
@@ -410,21 +473,29 @@ function reveal(id) {
   if (r.top < 60 || r.top > h * 0.5) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 // ARP (10) jumps nowhere; GLO (7) goes to the settings, where the MIKRO knobs are too
-const BTN_SECTION = { 9: 'secSave', 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secTracks', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks' };
+const BTN_SECTION = { 0: 'secDrums', 1: 'secDrums', 9: 'secSave', 2: 'secFx', 4: 'secFx', 5: 'secFx', 6: 'secHelp', 7: 'secSettings', 11: 'secDrums', 12: 'secTracks', 13: 'secTracks', 8: 'secTracks' };
 link.onButton = (b, on) => {
   const B = FM1.BTN;
   if (on && BTN_SECTION[b]) reveal(sel === 3 && (b === 12 || b === 13) ? 'secDrums' : BTN_SECTION[b]);
   if (on) held[b] = performance.now();
   const dur = on ? 0 : performance.now() - (held[b] || 0);
   switch (b) {
-    case B.REC: if (on) recPress(); break;
-    case B.PLAY: if (on) send({ t: 'play' }); break;
+    case B.REC:   // press: record / overdub / play (as always); held 1 s: undo (Boss: hold REC/DUB/PLAY)
+      if (on) { recPress(); held.recTimer = setTimeout(() => { held.recTimer = 0; recHold(); }, 1000); }
+      else if (held.recTimer) { clearTimeout(held.recTimer); held.recTimer = 0; }
+      break;
+    case B.PLAY:   // press: start / stop; held 2 s: clear everything (Boss: hold STOP)
+      if (on) { send({ t: 'play' }); held.playTimer = setTimeout(() => { held.playTimer = 0; send({ t: 'clearAll' }); toast(T('Alles geloescht')); fmSay(T('GELOESCHT')); }, 2000); }
+      else if (held.playTimer) { clearTimeout(held.playTimer); held.playTimer = 0; }
+      break;
+    case B.OCTM: if (on) { setStepPage(stepPage - 1); toast('DRUMS ' + stepPageName()); } break;   // the step keys: previous / next page
+    case B.OCTP: if (on) { setStepPage(stepPage + 1); toast('DRUMS ' + stepPageName()); } break;
     case B.SCL: if (on) nextTheme(); break;   // SEL: the design (a hidden feature)
     case B.HOME:   // tap: the main page (SELECT chooses the track), hold: mute / unmute the track
       if (on) held.homeTimer = setTimeout(() => { held.homeTimer = 0; send({ t: 'stop', i: sel }); }, 500);
       else if (held.homeTimer) { clearTimeout(held.homeTimer); held.homeTimer = 0; setPage('SPUR'); }
       break;
-    case B.EDIT: if (on) send({ t: 'undo', i: sel }); break;   // undo / redo
+    case B.EDIT: if (on) { reveal('secHelp'); fmSay(T('LEGENDE')); } break;   // the legend (what every key does)
     case B.ARP:   // tap: drums on / off, hold: click on / off
       if (on) held.arpTimer = setTimeout(() => { held.arpTimer = 0; toggleClick(); }, 450);
       else if (held.arpTimer) { clearTimeout(held.arpTimer); held.arpTimer = 0; toggleDrums(); }
@@ -433,13 +504,14 @@ link.onButton = (b, on) => {
       if (on) held.saveTimer = setTimeout(() => { clearSel(); held.saveTimer = 0; }, 800);
       else if (held.saveTimer) { clearTimeout(held.saveTimer); held.saveTimer = 0; if (page === 'SAVE') saveAction(); else { ensureProject().then(() => { setPage('SAVE'); lastSig = ''; drawScreen(); }); } }
       break;
-    case B.LFO:
+    case B.FX:   // tap: the FX page (on it: the next effect); held: stutter while held
       if (on) held.stutTimer = setTimeout(() => { held.stutTimer = 0; stutter(true); }, 220);
-      else if (held.stutTimer) { clearTimeout(held.stutTimer); setPage('STUTTER'); } else stutter(false);
+      else if (held.stutTimer) { clearTimeout(held.stutTimer); held.stutTimer = 0; if (page === 'FX') setFx(S.fxSel + 1); else setPage('FX'); }
+      else stutter(false);
       break;
     default: {
       const pk = PAGE_KEYS.find(k => PAGES[k].btn === b);
-      if (pk && on) { if (pk === 'FX' && page === 'FX') setFx(S.fxSel + 1); else setPage(pk); }
+      if (pk && on) setPage(pk);
     }
   }
 };
@@ -448,7 +520,7 @@ link.onEncoder = (e, d) => {
   if (e === 0) { select((sel + (d > 0 ? 1 : 3)) % 4); reveal('secTracks'); return; }
   if (e === 1 || e === 6) reveal('secDrums'); else reveal(page === 'MIKRO' ? 'secSettings' : page === 'SAVE' ? 'secSave' : 'secFx');
   if (e === 6) { setP('pat', (S.pat + (d > 0 ? 1 : PATTERNS.length - 1)) % PATTERNS.length); toast(T('Muster') + ': ' + T(PATTERNS[S.pat].name)); return; }
-  if (e === 1) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); toast('Drum: ' + T(voiceNames()[voice])); return; }
+  if (e === 1) { voice = (voice + (d > 0 ? 1 : 10)) % 11; renderGrid(); updateLeds(); renderParams(); fmWaveDirty = true; drawFmWave(true); if (page === 'ENV') { lastSig = ''; drawScreen(); } toast('Drum: ' + T(voiceNames()[voice])); return; }
   const p = PAGES[page].p[e - 2]; if (!p) return;
   const acc = Math.abs(d) > 2 ? 3 : 1;
   setP(p.id, getP(p.id) + Math.sign(d) * p.step * acc);
@@ -472,7 +544,7 @@ link.onState = (ok, name, outs) => {
 // ---- saving ----------------------------------------------------------------------------------
 let snapWait = null, changed = false;
 function getSnap() { return new Promise(res => { snapWait = res; send({ t: 'snapshot', id: Date.now() }); }); }
-function settingsOf() { return { tfx: S.tfx, drumVol: S.drumVol, pat: S.pat, kit: S.kit, master: S.master, recToDub: S.recToDub, clickOn: !!(st && st.clickOn) }; }
+function settingsOf() { return { tfx: S.tfx, drumVol: S.drumVol, pat: S.pat, kit: S.kit, master: S.master, recToDub: S.recToDub, clickOn: !!(st && st.clickOn), dsnd: S.dsnd }; }
 async function refreshProjects() {
   try { projList = await Save.listProjects(); } catch (e) { projList = []; }
   const i = projList.findIndex(p => p.id === S.projId); if (i >= 0 && !S.saveProj) S.saveProj = i;
@@ -501,7 +573,10 @@ function applyProject(p) {
   S.projId = p.id; S.projName = p.name;
   const g = p.settings || {};
   if (g.tfx) S.tfx = g.tfx;
-  for (const k of ['drumVol', 'pat', 'kit', 'master', 'recToDub']) if (g[k] !== undefined) S[k] = g[k];
+  for (const k of ['drumVol', 'pat', 'kit', 'master', 'recToDub', 'dsnd']) if (g[k] !== undefined) S[k] = g[k];
+  for (const t of S.tfx) for (const k of FX_IDS) if (t[k] === undefined) t[k] = DEF[k];
+  S.drumBars = p.snap.drumBars || 1; S.drumSteps = p.snap.drumSteps || 16; stepPage = 0;
+  if (p.snap.gate) S.dsnd = { gate: p.snap.gate, tune: p.snap.tune, level: p.snap.level.map(x => Math.round(x * 100)) };
   save();
   const snap = p.snap, transfer = snap.tracks.filter(t => t.data).map(t => t.data.buffer);
   node.port.postMessage({ t: 'load', p: snap }, transfer);
@@ -514,8 +589,8 @@ function applyProject(p) {
 function freshFx() { return [0, 1, 2, 3].map(() => Object.fromEntries(FX_IDS.map(k => [k, DEF[k]]))); }
 function resetSettings(fxOnly) {
   if (!fxOnly) for (const k of Object.keys(DEF)) if (!KEEP.includes(k) && !['projId', 'projName', 'v', 'bpm'].includes(k)) S[k] = DEF[k];
-  S.tfx = freshFx(); save();
-  if (ctx) { for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k); if (!fxOnly) for (const k of Object.keys(DEF)) if (!FX_IDS.includes(k)) applyParam(k); }
+  S.tfx = freshFx(); if (!fxOnly) S.dsnd = freshSnd(); save();
+  if (ctx) { for (let c = 0; c < 4; c++) for (const k of FX_IDS) applyFx(c, k); if (!fxOnly) { for (const k of Object.keys(DEF)) if (!FX_IDS.includes(k)) applyParam(k); applyParam('dsnd'); } }
   $('#grid').innerHTML = ''; renderGrid(); renderParams(); lastSig = ''; if (st) drawScreen(); changed = true;
 }
 async function newProject(keepFx) {
@@ -599,6 +674,7 @@ setInterval(() => { if (node && changed && st && (st.master > 0 || st.drumOn)) s
 
 // ---- actions ---------------------------------------------------------------------------------
 function recPress() { if (sel === 3) send({ t: 'drumRec' }); else send({ t: 'rec', i: sel }); }
+function recHold() { send(sel === 3 ? { t: 'undo', i: 3 } : { t: 'recHold', i: sel }); toast('UNDO'); }
 function toggleDrums() { send({ t: 'stop', i: 3 }); }
 function toggleClick() { const on = !(st && st.clickOn); send({ t: 'set', k: 'clickOn', v: on }); toast(T(on ? 'Klick an' : 'Klick aus')); }
 function clearSel() { send({ t: 'clear', i: sel }); toast(sel === 3 ? T('Drum-Muster geloescht') : T('SPUR') + ' ' + (sel + 1) + ' ' + T('geloescht')); }
@@ -619,9 +695,11 @@ function renderTracks() {
     else { const t = st.tracks[i]; cls = st.armed === i ? 'rec armed' : t.state; state = T(st.armed === i ? 'WARTET AUF TAKT' : t.pending ? 'REC BIS TAKTENDE' : STATE_DE[t.state]); }
     const t = st.tracks[i];
     const len = i < 3 && t.len ? (t.len / ctx.sampleRate).toFixed(1) + ' s' : i === 3 ? T(KITS[S.kit]) : '';
+    const bars = i < 3 && t.len && st.master ? t.len / (st.master / st.bars) : i === 3 ? st.drumBars : 0;
+    const barTxt = bars ? (Math.abs(bars - Math.round(bars)) < 0.01 ? Math.round(bars) : bars.toFixed(1)) + ' ' + T(bars > 1 ? 'Takte' : 'Takt') : '';
     return `<button class="track ${cls} ${i === sel ? 'sel' : ''}" data-i="${i}">
       <span class="tn">${i === 3 ? 'DRUMS' : T('SPUR') + ' ' + (i + 1)}</span><span class="ts">${state}</span>
-      <span class="tl">${esc(len)}</span><span class="bar"><i id="pb${i}"></i></span><span class="lv"><i id="lv${i}"></i></span></button>`;
+      <span class="tl">${esc(len)}</span><span class="tl">${esc(barTxt)}</span><span class="bar"><i id="pb${i}"></i></span><span class="lv"><i id="lv${i}"></i></span></button>`;
   }).join('');
   $('#tracks').innerHTML = cards;
   const t = sel < 3 ? st.tracks[sel] : null;
@@ -632,9 +710,10 @@ function renderTracks() {
   r.className = 'big rec ' + (sel === 3 ? (st.drumRec ? 'on' : '') : (t.state === 'rec' || t.state === 'dub' || st.armed === sel ? 'on' : ''));
   $('#bPlay').textContent = st.running ? 'STOP' : 'PLAY';
   $('#bPlay').classList.toggle('on', st.running);
-  $('#bUndo').textContent = sel === 3 ? (st.canDrumRedo ? 'REDO' : 'UNDO') : (t.canRedo ? 'REDO' : 'UNDO');
+  const hint = h => `<small>${esc(T(h))}</small>`;
+  $('#bUndo').innerHTML = (sel === 3 ? (st.canDrumRedo ? 'REDO' : 'UNDO') : (t.canRedo ? 'REDO' : 'UNDO')) + hint('REC halten');
   $('#bUndo').disabled = sel === 3 ? !(st.canDrumUndo || st.canDrumRedo) : !(t.canUndo || t.canRedo || t.state === 'rec' || st.armed === sel);
-  $('#bStop').textContent = T(sel === 3 ? (st.drumOn ? 'DRUMS AUS' : 'DRUMS AN') : (t.state === 'stop' ? 'SPUR AN' : 'SPUR STUMM'));
+  $('#bStop').innerHTML = esc(T(sel === 3 ? (st.drumOn ? 'DRUMS AUS' : 'DRUMS AN') : (t.state === 'stop' ? 'SPUR AN' : 'SPUR STUMM'))) + hint(sel === 3 ? 'ARP tippen' : 'HOME halten');
   $('#bClick').classList.toggle('on', !!st.clickOn);
   $('#bpm').textContent = Math.round(st.bpm) + ' BPM' + (st.master ? ' · ' + st.bars + ' ' + T(st.bars > 1 ? 'Takte' : 'Takt') : '');
 }
@@ -648,7 +727,7 @@ function updateMeters() {
     if (pb) pb.style.width = (t.state === 'rec' ? (st.master ? (t.rec % st.master) / st.master : Math.min(1, t.rec / (ctx.sampleRate * 8))) : t.pos) * 100 + '%';
     if (l) l.style.width = lv(t.peak);
   });
-  const pb = $('#pb3'); if (pb) pb.style.width = st.step >= 0 ? (st.step + 1) / 16 * 100 + '%' : '0%';
+  const pb = $('#pb3'); if (pb) pb.style.width = st.step >= 0 ? (stepLinear(st.step) + 1) / (st.drumBars * st.drumSteps) * 100 + '%' : '0%';
 }
 
 function paramsHtml(pg) {
@@ -660,10 +739,10 @@ function paramsHtml(pg) {
 }
 function renderParams() {
   $('#setParams').innerHTML = paramsHtml(PAGES.MIKRO);
-  $('#pages').innerHTML = WEB_TABS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(k)}</button>`).join('');
+  $('#pages').innerHTML = WEB_TABS.map(k => `<button data-p="${k}" class="${k === page ? 'on' : ''}">${T(TAB_NAME[k] || k)}</button>`).join('');
   $('#fxsubs').hidden = page !== 'FX';
   $('#fxsubs').innerHTML = FX_KEYS.map((k, i) => `<button data-fx="${i}" class="${i === S.fxSel ? 'on' : ''}">${k}</button>`).join('');
-  $('#fxFor').textContent = T('fuer') + ' ' + (sel < 3 ? T('SPUR') + ' ' + (sel + 1) : 'DRUMS');
+  $('#fxFor').textContent = page === 'ENV' ? T('fuer') + ' ' + T(voiceNames()[voice]) + ' (ALGORITHM)' : page === 'DRUMS' ? '' : T('fuer') + ' ' + (sel < 3 ? T('SPUR') + ' ' + (sel + 1) : 'DRUMS');
   const pg = PAGES[page];
   $('#params').innerHTML = pg.p.map((p, i) => {
     const disabled = (p.id.startsWith('t') && p.id !== 'tVol' ? sel > 2 : false) || (p.id === 'tVol' && sel > 2) || (p.id === 'bpm' && st && st.master > 0);
@@ -675,11 +754,14 @@ function renderParams() {
 function renderGrid() {
   const g = $('#grid');
   if (!g.firstChild) {
-    g.innerHTML = voiceNames().map((v, r) => `<div class="row" data-r="${r}"><button class="pad" data-v="${r}">${esc(T(v))}</button>${
-      Array.from({ length: 16 }, (_, s) => `<button class="st ${s % 4 === 0 ? 'q' : ''}" data-v="${r}" data-s="${s}"></button>`).join('')}</div>`).join('');
+    const keys = Array.from({ length: 16 }, (_, k) => pageStep(k)).filter(x => x >= 0), q = Math.max(1, Math.round(S.drumSteps / 4));
+    g.innerHTML = voiceNames().map((v, r) => `<div class="row" data-r="${r}" style="grid-template-columns:76px repeat(${keys.length},minmax(16px,1fr))"><button class="pad" data-v="${r}">${esc(T(v))}</button>${
+      keys.map(s => `<button class="st ${(s % 64) % q === 0 ? 'q' : ''}" data-v="${r}" data-s="${s}"></button>`).join('')}</div>`).join('');
+    $('#stepPage').textContent = T('Takt') + ' ' + stepPageName().slice(1);
+    $('#bPgPrev').disabled = stepPage <= 0; $('#bPgNext').disabled = stepPage >= nPages() - 1;
   }
-  const pat = st ? st.pattern : patternArray(S.pat);
-  g.querySelectorAll('.st').forEach(b => b.classList.toggle('on', !!pat[b.dataset.v * 16 + +b.dataset.s]));
+  const pat = st ? st.pattern : [];
+  g.querySelectorAll('.st').forEach(b => b.classList.toggle('on', !!pat[b.dataset.v * 256 + +b.dataset.s]));
   g.querySelectorAll('.row').forEach(r => r.classList.toggle('cur', +r.dataset.r === voice));
   $('#selPat').value = S.pat; $('#selKit').value = S.kit;
 }
@@ -730,10 +812,12 @@ $('#grid').onpointerdown = e => {
   const b = e.target.closest('button'); if (!b || !st) return;
   voice = +b.dataset.v;
   if (b.classList.contains('pad')) { send({ t: 'pad', v: voice }); flashPad(voice); }
-  else { const s = +b.dataset.s, idx = voice * 16 + s, v = st.pattern[idx] ? 0 : 1; st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s, on: v } }); }
+  else { const s = +b.dataset.s, idx = voice * 256 + s, v = st.pattern[idx] ? 0 : 1; st.pattern[idx] = v; send({ t: 'set', k: 'step', v: { v: voice, s, on: v } }); fmWaveDirty = true; }
   renderGrid(); updateLeds();
 };
 $('#selPat').onchange = e => setP('pat', +e.target.value);
+$('#bPgPrev').onclick = () => setStepPage(stepPage - 1);
+$('#bPgNext').onclick = () => setStepPage(stepPage + 1);
 $('#selKit').onchange = e => setP('kit', +e.target.value);
 $('#projName').onchange = e => { S.projName = e.target.value.trim() || S.projName; save(); changed = true; if (S.projId) saveProject(true); };
 $('#bSaveProj').onclick = () => saveProject(false);
@@ -763,7 +847,7 @@ $('#bFolder').onclick = async () => { try { await Save.chooseFolder(); renderSav
 $('#selLoops').innerHTML = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}x</option>`).join('');
 $('#selMic').onchange = e => { S.micId = e.target.value; save(); openMic(); };
 $('#selOut').onchange = e => setOutput(e.target.value);
-$('#bClearAll').onclick = () => { if ($('#bClearAll').dataset.arm) { send({ t: 'clearAll' }); delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); } else { $('#bClearAll').dataset.arm = 1; $('#bClearAll').textContent = T('Wirklich alles loeschen?'); setTimeout(() => { delete $('#bClearAll').dataset.arm; $('#bClearAll').textContent = T('Alles loeschen'); }, 3000); } };
+$('#bClearAll').onclick = () => { const b = $('#bClearAll'), t = $('#bClearAllT'); if (b.dataset.arm) { send({ t: 'clearAll' }); delete b.dataset.arm; t.textContent = T('Alles loeschen'); } else { b.dataset.arm = 1; t.textContent = T('Wirklich alles loeschen?'); setTimeout(() => { delete b.dataset.arm; t.textContent = T('Alles loeschen'); }, 3000); } };
 $('#bFull').onclick = () => { const d = document.documentElement; (document.fullscreenElement ? document.exitFullscreen() : d.requestFullscreen()).catch(() => { }); };
 $('#bRetry').onclick = () => link.access ? link.find() : link.open().catch(e => toast(e.message));
 

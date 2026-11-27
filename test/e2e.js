@@ -74,7 +74,7 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.waitForTimeout(300);
   check((await page.textContent('#fxsubs .on')) === 'CHORUS', 'FX again: ' + await page.textContent('#fxsubs .on'));
   s = await S();
-  check(s.texts.some(t => t.startsWith('DR CHORUS 3/4')), 'FM-1 shows the effect and its channel: ' + s.texts.filter(t => /CHORUS/.test(t)).join('|'));
+  check(s.texts.some(t => t.startsWith('DR CHORUS 3/6')), 'FM-1 shows the effect and its channel: ' + s.texts.filter(t => /CHORUS/.test(t)).join('|'));
   // effects are per track: turn up the chorus of the drums, then look at track 1
   await page.evaluate(() => { for (let i = 0; i < 4; i++) window.__fm1.enc(2, 3); });   // K1 = chorus mix on the drums
   await page.waitForTimeout(300);
@@ -91,17 +91,34 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   await page.evaluate(() => { window.__fm1.button(8, true); }); await page.waitForTimeout(700); await page.evaluate(() => window.__fm1.button(8, false));
   await page.evaluate(() => { window.__fm1.tap(8); for (let i = 0; i < 3; i++) window.__fm1.enc(0, 1); });   // back to the drums for the next checks
   await page.waitForTimeout(300);
-  // pages and knobs: ENV -> FILTER page, K1 turned
-  await page.evaluate(() => window.__fm1.tap(4));
+  // the filter is an FX now: FX page, FILTER (5/6), K1 turned
+  await page.evaluate(() => window.__fm1.tap(2)); await page.waitForTimeout(200);
+  await page.click('#fxsubs button[data-fx="4"]');
   await page.evaluate(() => { for (let i = 0; i < 5; i++) window.__fm1.enc(2, -1); });
   await page.waitForTimeout(300);
   const filt = await page.textContent('#params .prm b');
-  check(filt === 'TP 5', 'K1 on the FILTER page sets the filter in steps of 1: ' + filt);
-  // hold LFO = stutter
-  await page.evaluate(() => window.__fm1.button(5, true));
+  check(filt === 'TP 5', 'K1 on FX FILTER sets the filter in steps of 1: ' + filt);
+  // hold FX = stutter, and letting go does not move on to the next effect
+  await page.evaluate(() => window.__fm1.button(2, true));
   await page.waitForTimeout(400);
-  check(await page.evaluate(() => document.querySelector('#stut').classList.contains('on')), 'holding LFO = stutter');
-  await page.evaluate(() => window.__fm1.button(5, false));
+  check(await page.evaluate(() => document.querySelector('#stut').classList.contains('on')), 'holding FX = stutter');
+  await page.evaluate(() => window.__fm1.button(2, false)); await page.waitForTimeout(200);
+  check(!(await page.evaluate(() => document.querySelector('#stut').classList.contains('on'))) && (await page.textContent('#fxsubs .on')) === 'FILTER', 'letting go of FX: stutter off, still FILTER');
+  // LFO page and ENV = drum sound of the voice chosen with ALGORITHM
+  await page.evaluate(() => window.__fm1.tap(5)); await page.waitForTimeout(200);
+  check((await page.textContent('#params .prm span')).includes('ZIEL'), 'LFO page: K1 target');
+  await page.evaluate(() => { window.__fm1.tap(4); window.__fm1.enc(1, 1); }); await page.waitForTimeout(300);
+  s = await S();
+  check(s.texts.some(t => t.startsWith('DRUM: SNARE')), 'ENV shows the drum sound chosen with ALGORITHM: ' + s.texts.filter(t => t.startsWith('DRUM')).join('|'));
+  await page.evaluate(() => { for (let i = 0; i < 5; i++) window.__fm1.enc(2, -1); }); await page.waitForTimeout(300);
+  check(await page.evaluate(() => JSON.parse(localStorage.getItem('fm1loop')).dsnd.gate[1]) === 95, 'K1 on ENV sets the length of the snare');
+  // SEQ: 2 bars of 12 steps; OCT+ shows bar 2
+  await page.evaluate(() => { window.__fm1.tap(11); window.__fm1.enc(4, 1); for (let i = 0; i < 4; i++) window.__fm1.enc(5, -1); }); await page.waitForTimeout(400);
+  check(await page.evaluate(() => document.querySelectorAll('.row[data-r="0"] .st').length) === 12, '12 steps: 12 keys on the grid');
+  await page.evaluate(() => window.__fm1.tap(1)); await page.waitForTimeout(300);
+  check((await page.textContent('#stepPage')).includes('2'), 'OCT+ goes to bar 2: ' + await page.textContent('#stepPage'));
+  check(await page.evaluate(() => document.querySelector('.row[data-r="0"] .st').dataset.s) === '64', 'the grid shows bar 2');
+  await page.evaluate(() => { window.__fm1.tap(0); window.__fm1.enc(4, -1); for (let i = 0; i < 4; i++) window.__fm1.enc(5, 1); }); await page.waitForTimeout(300);
 
   // all four knob rows reach the screen (K4 used to go missing)
   await page.evaluate(() => { window.__fm1.st.texts.length = 0; window.__fm1.tap(7); });
@@ -117,7 +134,7 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   // language switch
   await page.selectOption('#selLang', 'en');
   await page.waitForTimeout(800);
-  check(await page.textContent('#bClearAll') === 'Clear all', 'English UI: ' + await page.textContent('#bClearAll'));
+  check(await page.textContent('#bClearAllT') === 'Clear all' && (await page.textContent('#bUndo')).includes('hold REC'), 'English UI: ' + await page.textContent('#bClearAll') + ' / ' + await page.textContent('#bUndo'));
   s = await S();
   check(s.texts.some(t => t.startsWith('MIC + OUTPUT')), 'English on the FM-1 screen');
   await page.selectOption('#selLang', 'de');
@@ -191,6 +208,14 @@ const check = (ok, msg) => { console.log((ok ? 'ok   ' : 'FAIL ') + msg); if (!o
   check(await page.inputValue('#projName') === 'Session 2', 'new project: ' + await page.inputValue('#projName'));
   await page.setInputFiles('#fileProj', projPath); await page.waitForTimeout(1200);
   check(await page.inputValue('#projName') === 'Session 1' && (await page.textContent('.track[data-i="0"] .ts')) !== 'LEER', 'project file loads back');
+  // the track tile shows its bars; EDIT shows the legend; PLAY held 2 s clears everything
+  check((await page.textContent('.track[data-i="0"]')).includes('Takt'), 'track 1 shows its bars: ' + (await page.textContent('.track[data-i="0"]')).replace(/\s+/g, ' '));
+  await page.evaluate(() => { window.__fm1.st.texts.length = 0; window.__fm1.tap(6); }); await page.waitForTimeout(600);
+  s = await S(); check(s.texts.some(t => t.includes('LEGENDE')), 'EDIT shows the legend');
+  await page.evaluate(() => window.__fm1.button(12, true)); await page.waitForTimeout(2300); await page.evaluate(() => window.__fm1.button(12, false));
+  await page.waitForTimeout(400);
+  check(await page.textContent('.track[data-i="0"] .ts') === 'LEER', 'PLAY held 2 s clears everything');
+  await page.setInputFiles('#fileProj', projPath); await page.waitForTimeout(1200);
   // the reset button, twice tapped
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('fm1loop')); s.tfx[1].choMix = 70; localStorage.setItem('fm1loop', JSON.stringify(s)); });
   await page.reload(); await page.click('#start'); await page.waitForSelector('#app:not([hidden])'); await page.waitForTimeout(1200);

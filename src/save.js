@@ -165,11 +165,24 @@ const Save = (() => {
       return { name: `Track${i + 1}`, ch: i, L, R };
     });
     if (snap.drumOn && kits[snap.kit]) {
-      const D = new Float32Array(n), kit = kits[snap.kit], step = bar / 16, g = opts.fx ? S.drumVol : 1;
+      // the same drum machine as the engine: bars x steps, and per sound its length, pitch and level
+      const D = new Float32Array(n), kit = kits[snap.kit], g = opts.fx ? S.drumVol : 1;
+      const bars = snap.drumBars || 1, steps = snap.drumSteps || 16, old = snap.pattern.length === 11 * 16;
+      const step = bar / steps, sr_ = sr, fade = Math.round(sr_ * 0.006);
       for (let s = 0; s * step < body; s++) {
-        const at = Math.round(s * step), st = s % 16;
-        for (let v = 0; v < 11; v++) if (snap.pattern[v * 16 + st] && kit[v]) {
-          const smp = kit[v]; for (let i = 0; i < smp.length && at + i < n; i++) D[at + i] += smp[i] * g;
+        const at = Math.round(s * step), b = Math.floor(s / steps) % bars, st = s % steps;
+        for (let v = 0; v < 11; v++) {
+          const on = old ? snap.pattern[v * 16 + st] : snap.pattern[v * 256 + b * 64 + st];
+          if (!on || !kit[v]) continue;
+          const smp = kit[v], r = Math.pow(2, (snap.tune ? snap.tune[v] : 0) / 12), lvl = snap.level ? snap.level[v] : 1;
+          const gate = snap.gate ? snap.gate[v] : 100, len = smp.length / r;
+          const end = gate >= 100 ? len : Math.max(sr_ * 0.01, len * gate / 100);
+          for (let i = 0; i < end && at + i < n; i++) {
+            const pos = i * r, j = pos | 0; if (j + 1 >= smp.length) break;
+            let x = smp[j] + (smp[j + 1] - smp[j]) * (pos - j);
+            if (end - i < fade) x *= (end - i) / fade;
+            D[at + i] += x * g * lvl;
+          }
         }
       }
       src.push({ name: 'Drums', ch: 3, L: D, R: D.slice() });
@@ -186,6 +199,7 @@ const Save = (() => {
         const b = oc.createBuffer(2, n, sr); b.copyToChannel(s.L, 0); b.copyToChannel(s.R, 1);
         const node = oc.createBufferSource(); node.buffer = b;
         const f = FXChain.make(oc, m.input); FXChain.setAll(oc, f, set, snap.bpm, true);
+        FXChain.tick(oc, f, set, snap.bpm, n / sr + 1);
         node.connect(f.input); node.start();
       }
       const out = await oc.startRendering();

@@ -130,6 +130,11 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 .note{margin:0;font-size:12px;color:var(--dim)}
 .ask{display:grid;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--dim)}
 .setmeter{display:block;height:8px;margin-top:6px}
+button small{display:block;font-size:10px;font-weight:600;opacity:.72;margin-top:2px;letter-spacing:0}
+.drumbar label{display:grid;gap:3px}.drumbar small{font-size:11px;color:var(--dim)}
+.pgnav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.pgnav span{text-align:center;font-size:13px;color:var(--dim);white-space:nowrap}.pgnav button{min-height:36px;min-width:40px;padding:0 8px;font-size:14px}
+.hint{margin:8px 0 0;font-size:12px;color:var(--dim)}
 .hidden-feature{font-size:12px;color:var(--dim);margin:14px 0 0}
 .credit{font-size:12px;color:var(--dim);margin:4px 0 0}
 .help table{width:100%;border-collapse:collapse}
@@ -215,9 +220,9 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     </div>
     <div class="row2">
       <button id="bStop">SPUR STUMM</button>
-      <button id="bClick" data-t>KLICK</button>
-      <button id="bClear" data-t>LOESCHEN (halten)</button>
-      <button id="bClearAll" data-t>Alles loeschen</button>
+      <button id="bClick"><span data-t>KLICK</span><small data-t>ARP halten</small></button>
+      <button id="bClear"><span data-t>LOESCHEN (halten)</span><small data-t>SAVE halten</small></button>
+      <button id="bClearAll"><span id="bClearAllT" data-t>Alles loeschen</span><small data-t>PLAY 2 s halten</small></button>
     </div>
     </div>
     <div class="meters"><span data-t>Mikro</span><div class="meter"><i id="mIn"></i></div><span data-t>Ausgang</span><div class="meter"><i id="mOut"></i></div></div>
@@ -234,8 +239,10 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
 
   <section id="secDrums">
     <h2 data-t>DRUMS · Tasten 1–16 = Schritte, Tasten 17–27 = Pads</h2>
-    <div class="drumbar"><select id="selPat" aria-label="Muster"></select><select id="selKit" aria-label="Kit"></select></div>
+    <div class="drumbar"><label><small data-t>Muster · Regler PRESETS</small><select id="selPat" aria-label="Muster"></select></label><label><small data-t>Kit · DRUM-SOUND (ENV), K4</small><select id="selKit" aria-label="Kit"></select></label></div>
+    <div class="pgnav"><button id="bPgPrev" aria-label="OCT−" title="OCT−">◀</button><span id="stepPage"></span><button id="bPgNext" aria-label="OCT+" title="OCT+">▶</button></div>
     <div id="grid"></div>
+    <p class="hint" data-t>Regler ALGORITHM waehlt den Sound fuer die Tasten 1–16 und fuer DRUM-SOUND. Takte und Schritte: Seite DRUMS (SEQ), K3 und K4.</p>
     <p class="credit" data-t>ROCK-Kit: Big Rusty Drums von Karoryfer Samples, CC0 (gemeinfrei).</p>
   </section>
 
@@ -269,23 +276,28 @@ section h2{font-size:13px;color:var(--dim);font-weight:600;margin:0 0 10px;lette
     <label id="outRow" hidden><span data-t>Ausgang (am Computer: das FM-1 waehlen)</span><select id="selOut"></select></label>
   </section>
 
-  <section class="help">
+  <section class="help" id="secHelp">
     <h2 data-t>BEDIENUNG AM FM-1</h2>
     <table>
       <tr><td>REC</td><td data-t>Aufnahme → Overdub → Wiedergabe → Overdub … (wie am Loop-Pedal). Auf der Drum-Spur: Pads ins Muster einspielen.</td></tr>
+      <tr><td data-t>REC halten</td><td data-t>Undo / Redo der letzten Aufnahme (1 Sekunde halten)</td></tr>
       <tr><td>PLAY</td><td data-t>Alles starten / stoppen</td></tr>
-      <tr><td>EDIT</td><td data-t>Undo / Redo der letzten Aufnahme</td></tr>
+      <tr><td data-t>PLAY halten</td><td data-t>2 Sekunden: alles loeschen</td></tr>
+      <tr><td>EDIT</td><td data-t>Diese Legende zeigen</td></tr>
       <tr><td>HOME</td><td data-t>Tippen: Hauptseite (SELECT waehlt die Spur). Halten: gewaehlte Spur stumm / an</td></tr>
       <tr><td>SAVE</td><td data-t>Tippen: Seite SPEICHERN. K1 waehlt was (Speichern, Laden, Neu ohne / mit Effekten, Live, Mix, Stems), K2 die Durchlaeufe, K3 das Projekt zum Laden; SAVE nochmal = ausfuehren.</td></tr>
       <tr><td data-t>SAVE halten</td><td data-t>Gewaehlte Spur loeschen</td></tr>
       <tr><td>ARP</td><td data-t>Tippen: Drums an / aus. Halten: Klick an / aus (nur im Kopfhoerer, nie in der Aufnahme)</td></tr>
       <tr><td>SELECT</td><td data-t>Spur waehlen (1, 2, 3, Drums)</td></tr>
       <tr><td>PRESETS</td><td data-t>Drum-Muster waehlen</td></tr>
-      <tr><td>ALGORITHM</td><td data-t>Drum-Instrument fuer die Schritt-Tasten waehlen</td></tr>
-      <tr><td>FX</td><td data-t>Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte.</td></tr>
-      <tr><td>ENV · EDIT · GLO · SEQ</td><td data-t>Seiten FILTER · SPUR · MIKRO (auf dem Handy bei den Einstellungen) · DRUMS</td></tr>
-      <tr><td>LFO</td><td data-t>Tippen: Seite STUTTER. Halten: Stutter</td></tr>
-      <tr><td data-t>Tasten 1–16</td><td data-t>Die 16 Schritte des gewaehlten Drum-Instruments (leuchtet = Schlag)</td></tr>
+      <tr><td>ALGORITHM</td><td data-t>Drum-Sound waehlen (fuer die Schritt-Tasten und DRUM-SOUND)</td></tr>
+      <tr><td>FX</td><td data-t>Effekte der gewaehlten Spur: DELAY, REVERB, CHORUS, BITCRUSH, FILTER, STUTTER. Mit SELECT (oder FX nochmal) blaettern, K1–K4 stellen die Werte. FX halten: Stutter.</td></tr>
+      <tr><td>LFO</td><td data-t>LFO der gewaehlten Spur: K1 Ziel (Lautstaerke, Filter, Panorama), K2 Tempo, K3 Staerke, K4 Form</td></tr>
+      <tr><td>ENV</td><td data-t>DRUM-SOUND: K1 Laenge, K2 Tonhoehe, K3 Lautstaerke des gewaehlten Sounds, K4 Kit</td></tr>
+      <tr><td>SEQ</td><td data-t>DRUMS: K1 Lautstaerke, K2 Tempo (vor der ersten Aufnahme), K3 Takte 1–4, K4 Schritte pro Takt 1–64</td></tr>
+      <tr><td>OCT− · OCT+</td><td data-t>Durch die Drum-Schritte blaettern (Takte, und bei mehr als 16 Schritten die Haelften und Viertel)</td></tr>
+      <tr><td>GLO</td><td data-t>Seite MIKRO (auf dem Handy bei den Einstellungen)</td></tr>
+      <tr><td data-t>Tasten 1–16</td><td data-t>Die Schritte des gewaehlten Drum-Sounds auf der aktuellen Seite (leuchtet = Schlag)</td></tr>
       <tr><td data-t>Tasten 17–27</td><td data-t>Drum-Pads: Kick, Snare, Rimshot/Clap, Hat zu, Hat auf, 3 Toms, Sidestick/Rim, Ride/Cowbell, Crash/Becken</td></tr>
       <tr><td data-t>Tastenlicht</td><td data-t>Seite MIKRO (GLO), K4: Grundhelligkeit der Tasten von AUS bis 8; die aktive Taste leuchtet voll (braucht die Ouroloops-Firmware).</td></tr>
     </table>

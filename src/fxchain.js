@@ -3,6 +3,8 @@
 // or on the samples before the chain (export, FXChain.crush).
 const FXChain = (() => {
   const DLY_DIV = [0.25, 0.5, 0.75, 1, 1.5, 2];   // beats: 1/16, 1/8, 1/8., 1/4, 1/4., 1/2
+  const LFO_DIV = [0.25, 0.5, 1, 2, 4, 8, 16];      // beats: 1/16 ... 4 bars
+  const LFO_WAVE = ['sine', 'triangle', 'square', 'sawtooth'];   // 4 = random (sample & hold)
 
   function impulse(ctx, sec) {
     const n = Math.max(1, Math.floor(ctx.sampleRate * sec)), b = ctx.createBuffer(2, n, ctx.sampleRate);
@@ -19,8 +21,17 @@ const FXChain = (() => {
     f.mix = ctx.createGain();
     f.dSend = ctx.createGain(); f.delay = ctx.createDelay(3); f.dFb = ctx.createGain(); f.dTone = ctx.createBiquadFilter();
     f.rSend = ctx.createGain(); f.conv = ctx.createConvolver(); f.rPre = ctx.createDelay(0.2); f.rDamp = ctx.createBiquadFilter();
-    f.input.connect(f.filter);
-    f.filter.connect(f.choDry); f.filter.connect(f.choDel); f.choDel.connect(f.choWet);
+    // LFO: one oscillator (or random steps) into the volume, the filter or the panorama
+    f.trem = ctx.createGain(); f.pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    f.lfo2 = ctx.createOscillator(); f.lfoRnd = ctx.createConstantSource(); f.lfoRnd.offset.value = 0;
+    f.lfoSrc = ctx.createGain(); f.lfo2.connect(f.lfoSrc); f.lfo2.start(); f.lfoRnd.start();
+    f.toAmp = ctx.createGain(); f.toFil = ctx.createGain(); f.toPan = ctx.createGain();
+    for (const g of [f.toAmp, f.toFil, f.toPan]) { g.gain.value = 0; f.lfoSrc.connect(g); }
+    f.toAmp.connect(f.trem.gain); f.toFil.connect(f.filter.detune); if (f.pan) f.toPan.connect(f.pan.pan);
+    f.rndOn = false; f.rndUntil = 0;
+    f.input.connect(f.filter); f.filter.connect(f.trem);
+    const pre = f.pan ? (f.trem.connect(f.pan), f.pan) : f.trem;
+    pre.connect(f.choDry); pre.connect(f.choDel); f.choDel.connect(f.choWet);
     f.choDry.connect(f.mix); f.choWet.connect(f.mix);
     f.mix.connect(dest);
     f.mix.connect(f.dSend); f.dSend.connect(f.delay); f.delay.connect(f.dTone); f.dTone.connect(f.dFb); f.dFb.connect(f.delay); f.dTone.connect(dest);
@@ -44,6 +55,19 @@ const FXChain = (() => {
       case 'choMix': put(f.choWet.gain, v / 100); put(f.choDry.gain, 1 - v / 200); break;
       case 'choDepth': put(f.lfoAmt.gain, 0.0005 + v / 100 * 0.006); break;
       case 'choRate': put(f.lfo.frequency, 0.1 + v / 100 * 4.9); break;
+      case 'lfoTgt': case 'lfoRate': case 'lfoDepth': case 'lfoShape': {
+        const tgt = S2.lfoTgt || 0, d = (S2.lfoDepth || 0) / 100, hz = bpm / 60 / LFO_DIV[S2.lfoRate || 0], rnd = S2.lfoShape === 4;
+        put(f.lfo2.frequency, hz);
+        if (!rnd) f.lfo2.type = LFO_WAVE[S2.lfoShape || 0];
+        if (rnd !== f.rndOn) {   // switch the source: oscillator or random steps
+          f.rndOn = rnd;
+          if (rnd) { f.lfo2.disconnect(); f.lfoRnd.connect(f.lfoSrc); f.rndUntil = 0; } else { f.lfoRnd.disconnect(); f.lfo2.connect(f.lfoSrc); }
+        }
+        put(f.toAmp.gain, tgt === 1 ? d / 2 : 0); put(f.trem.gain, tgt === 1 ? 1 - d / 2 : 1);   // tremolo: 1 - d .. 1
+        put(f.toFil.gain, tgt === 2 ? d * 3600 : 0);                                         // wah: +-3 octaves
+        put(f.toPan.gain, tgt === 3 ? d : 0);                                                // auto-pan
+        break;
+      }
       case 'filt': case 'res': {
         const fl = S2.filt, q = 0.7 + S2.res / 100 * 14;
         if (fl <= 0) { f.filter.type = 'lowpass'; put(f.filter.frequency, fl === 0 ? 22000 : 20000 * Math.pow(2, fl / 100 * 9)); }
@@ -52,8 +76,17 @@ const FXChain = (() => {
       }
     }
   }
-  const KEYS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'filt'];
+  const KEYS = ['dlyMix', 'dlyDiv', 'dlyFb', 'dlyTone', 'rev', 'revSize', 'revDamp', 'revPre', 'choMix', 'choDepth', 'choRate', 'filt', 'lfoTgt'];
   function setAll(ctx, f, S2, bpm, instant) { for (const k of KEYS) set(ctx, f, k, S2, bpm, instant); }
+  // random LFO: a new value every LFO step, scheduled up to `ahead` seconds (live: called every 250 ms;
+  // offline: once with the whole length)
+  function tick(ctx, f, S2, bpm, ahead = 1) {
+    if (!f.rndOn) return;
+    const step = 60 / bpm * LFO_DIV[S2.lfoRate || 0], now = ctx.currentTime;
+    let t = Math.max(f.rndUntil, now);
+    while (t < now + ahead) { f.lfoRnd.offset.setValueAtTime(Math.random() * 2 - 1, t); t += step; }
+    f.rndUntil = t;
+  }
 
   // the engine's bitcrusher on a block of samples (sample & hold, then quantise), in place
   function crush(arrs, bits, down) {
@@ -75,7 +108,7 @@ const FXChain = (() => {
     return { input: g, gain: g, lim };
   }
 
-  return { make, set, setAll, crush, master, impulse };
+  return { make, set, setAll, tick, crush, master, impulse };
 })();
 
 if (typeof module !== 'undefined') module.exports = FXChain;

@@ -13,6 +13,7 @@ class LoopProcessor extends AudioWorkletProcessor {
       case 'play': e.playButton(); break;
       case 'stop': e.trackStop(m.i); break;
       case 'undo': e.undoButton(m.i); break;
+      case 'recHold': e.recHold(m.i); break;
       case 'clear': e.clear(m.i); break;
       case 'clearAll': e.clearAll(); break;
       case 'pad': e.pad(m.v, m.g || 1); break;

@@ -1,6 +1,6 @@
 // Engine tests: run with `node test/engine.test.js`
 const assert = require('assert');
-const { LoopEngine } = require('../src/engine.js');
+const { LoopEngine, VSTRIDE } = require('../src/engine.js');
 const { makeKits, patternArray, VOICES } = require('../src/drums.js');
 
 const SR = 48000, B = 128;
@@ -101,12 +101,12 @@ test('drum steps fire on the 16th grid and pads overdub into the pattern', () =>
   assert.ok(e.running && e.drumRec);
   run(e, 0.5 + 0.01);                // step 4 starts at 0.5 s (16th = 0.125 s)
   e.pad(1);                          // snare on step 4
-  assert.equal(e.pattern[1 * 16 + 4], 1);
+  assert.equal(e.pattern[1 * VSTRIDE + 4], 1);
   run(e, 0.06);
   e.pad(0);                          // at ~0.57 s: nearest step is 5 (0.625 s)
-  assert.equal(e.pattern[0 * 16 + 5], 1);
+  assert.equal(e.pattern[0 * VSTRIDE + 5], 1);
   e.drumUndoButton();
-  assert.equal(e.pattern[1 * 16 + 4], 0);
+  assert.equal(e.pattern[1 * VSTRIDE + 4], 0);
 });
 
 test('drum kits: all voices are finite and normalised', () => {
@@ -227,6 +227,53 @@ test('snapshot and load bring a session back, offsets and all', () => {
   assert.equal(f.tracks[1].anchor, snap.tracks[1].offset);
   for (let i = 0; i < 2000; i += 97) assert.equal(f.tracks[0].buf[i], e.tracks[0].buf[i]);
   assert.ok(!f.running);
+});
+
+test('drums: 2 bars of 12 steps, a preset fills both bars, steps move to the nearest new step', () => {
+  const e = mk(); e.kits = makeKits(SR); e.bpm = 120;
+  e.set('drumBars', 2); e.set('drumSteps', 12);
+  const a = new Array(11 * 16).fill(0); a[0] = 1; a[8] = 1; e.set('preset', a);   // kick on 1 and 3
+  assert.equal(e.pattern[0], 1); assert.equal(e.pattern[6], 1); assert.equal(e.pattern[64], 1); assert.equal(e.pattern[64 + 6], 1);
+  e.set('drumSteps', 16); assert.equal(e.pattern[8], 1); assert.equal(e.pattern[64 + 8], 1);
+  // timing: bar = 2 s at 120 BPM; at 3.1 s we are in bar 2, step floor(1.1 / 0.125) = 8
+  e.drumOn = true; e.playButton(); run(e, 3.1);
+  assert.equal(e.currentStep(), 64 + 8);
+});
+
+test('drum sound: length (gate), pitch and level change what is played', () => {
+  const e = mk(); e.kits = makeKits(SR);
+  const energy = () => { let s = 0; const L = new Float32Array(B), R = new Float32Array(B); for (let k = 0; k < SR / B; k++) { e.process(null, L, R); for (const x of L) s += x * x; } return s; };
+  e.pad(0); const full = energy();
+  e.set('gate', { v: 0, x: 10 }); e.pad(0); const short = energy();
+  assert.ok(short < full * 0.7, `gate ${short} < ${full}`);
+  e.set('gate', { v: 0, x: 100 }); e.set('level', { v: 0, x: 0.5 }); e.pad(0); const half = energy();
+  assert.ok(Math.abs(half / full - 0.25) < 0.02, 'level ' + half / full);
+  e.set('level', { v: 0, x: 1 }); e.set('tune', { v: 0, x: 12 }); e.pad(0);
+  assert.ok(Math.abs(e.playing[0].end - e.kits[0][0].length / 2) < 2, 'an octave up plays half as long');
+});
+
+test('later tracks: 1 or 2 bars of a 4-bar loop, or multiples', () => {
+  const e = mk(); e.bpm = 120; e.drumOn = true; e.recToDub = false;
+  e.recButton(0); run(e, 2.0 + 8.0 + 0.05); e.recButton(0); run(e, 0.1);   // count-in, then 4 bars of 2 s
+  assert.equal(e.master, 4 * 2 * SR); assert.equal(e.masterBars, 4);
+  e.recButton(1); run(e, 2.0 - 0.3); e.recButton(1); run(e, 0.5);   // about one bar
+  assert.equal(e.tracks[1].len, 2 * SR);
+  e.recButton(2); run(e, 5.7); e.recButton(2); run(e, 3);          // about 3 bars -> 4 (3 is no part of 4)
+  assert.equal(e.tracks[2].len, 8 * SR);
+});
+
+test('REC held: a new layer is dropped and the layer before is undone', () => {
+  const e = mk(); e.recToDub = false;
+  e.recButton(0); run(e, 1.0, () => 0.1); e.recButton(0); run(e, 0.1);
+  e.recButton(0); run(e, 1.0, () => 0.2); e.recButton(0); run(e, 0.1);   // layer A: +0.2
+  assert.ok(Math.abs(e.tracks[0].buf[1000] - 0.3) < 1e-6);
+  e.recButton(0); run(e, 0.3, () => 0.4);                                // a new layer starts with the press ...
+  e.recHold(0);                                                          // ... and REC is held: drop it, undo A
+  assert.equal(e.tracks[0].state, 'play');
+  for (const k of [1000, 20000, 40000]) assert.ok(Math.abs(e.tracks[0].buf[k] - 0.1) < 1e-6, 'back to the first take at ' + k);
+  e.undoButton(0);   // and redo
+  assert.ok(Math.abs(e.tracks[0].buf[1000] - 0.3) < 1e-6);
+  e.recButton(1); run(e, 0.2, () => 0.5); e.recHold(1); assert.equal(e.tracks[1].state, 'empty');   // a held new take is cancelled
 });
 
 if (failures) { console.log(failures + ' failed'); process.exit(1); } else console.log('all passed');

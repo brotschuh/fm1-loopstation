@@ -1,8 +1,9 @@
 // Ouroloops: audio engine.
 // Runs inside an AudioWorklet (one instance), and in Node for the tests.
-// Mono loop tracks (the phone microphone), a 16-step drum machine, bitcrusher and stutter on the sum.
+// Mono loop tracks (the phone microphone), a drum machine (1-4 bars, 1-64 steps per bar), bitcrusher and stutter.
 
 const NTRACKS = 3, NVOICES = 11, NSTEPS = 16, NOUT = 5;
+const MAXBARS = 4, MAXSTEPS = 64, VSTRIDE = MAXBARS * MAXSTEPS;   // pattern[v * VSTRIDE + bar * MAXSTEPS + step]
 const CHUNK = 4096;   // copy-on-write granularity of the undo snapshot
 const PKB = 1024;     // samples per peak bin of the waveform overview
 
@@ -15,7 +16,7 @@ class LoopEngine {
     this.tracks = [];
     for (let i = 0; i < NTRACKS; i++) {
       this.tracks.push({
-        buf: new Float32Array(this.maxLen), undo: null, copied: null, copyNext: 0,
+        buf: new Float32Array(this.maxLen), undo: null, undoB: null, canUndoB: false, press: '', copied: null, copyNext: 0,
         len: 0, hi: 0, anchor: 0, state: 'empty', recEnd: -1, tail: 0,
         vol: 0.8, pan: 0, rev: false, canUndo: false, canRedo: false, peak: 0,
         pk: new Float32Array(Math.ceil(this.maxLen / PKB)),   // waveform overview: max |sample| per bin
@@ -33,12 +34,15 @@ class LoopEngine {
     this.armed = -1; this.armAt = 0; this.armGrid = false;
     // drums
     this.bpm = 100; this.drumOn = false; this.drumVol = 0.8; this.drumRec = false;
-    this.pattern = new Uint8Array(NVOICES * NSTEPS);
+    this.pattern = new Uint8Array(NVOICES * VSTRIDE);
+    this.drumBars = 1; this.drumSteps = 16;
+    // per drum sound: length (gate, % of the sample), pitch (semitones), level (0..1)
+    this.gate = new Float32Array(NVOICES).fill(100); this.tune = new Float32Array(NVOICES); this.level = new Float32Array(NVOICES).fill(1);
     this.drumUndo = null; this.drumRedo = null;
     this.kits = [];           // kits[k][v] = Float32Array
     this.kit = 0;
-    this.playing = [];        // {s: Float32Array, i, g}
-    this.lastStep = -1; this.skip = new Uint8Array(NVOICES * NSTEPS);
+    this.playing = [];        // {s: Float32Array, i (position, may be fractional), r (rate), g, end}
+    this.lastStep = -1; this.skip = new Uint8Array(NVOICES * VSTRIDE);
     // metronome: only in the output, never in a recording (the loops record the microphone only)
     this.clickOn = false; this.clickVol = 0.5; this.lastBeat = -1;
     this.monCh = 4;   // the output the microphone monitor goes to: a track (its effects) or 4 (dry)
@@ -61,14 +65,20 @@ class LoopEngine {
 
   // ---- timing ------------------------------------------------------------------
   barLen() { return this.master > 0 ? this.master / this.masterBars : this.sr * 240 / this.bpm; }
-  stepLen() { return this.barLen() / NSTEPS; }
-  currentStep() { return Math.floor(mod(this.p, this.barLen()) / this.stepLen()) % NSTEPS; }
+  stepLen() { return this.barLen() / this.drumSteps; }
+  // the drum step at position p: bar * MAXSTEPS + step (the pattern index without the voice)
+  stepAt(p) {
+    const bl = this.barLen(), pos = mod(p, bl * this.drumBars), bar = Math.floor(pos / bl);
+    return Math.min(bar, this.drumBars - 1) * MAXSTEPS + Math.min(this.drumSteps - 1, Math.floor((pos - bar * bl) / (bl / this.drumSteps)));
+  }
+  currentStep() { return this.stepAt(this.p); }
 
   // ---- commands from the UI ----------------------------------------------------
   // REC button on track i (Boss cycle: empty -> REC -> DUB (or PLAY) -> PLAY -> DUB ...)
   recButton(i) {
     const t = this.tracks[i];
     if (this.armed === i) { this.armed = -1; this.dirty = true; return; }   // second press while waiting: cancel
+    t.press = t.state;   // what this press did, for REC hold (= undo)
     switch (t.state) {
       case 'empty': this.startRec(i); break;
       case 'rec': this.finishRecPress(i); break;
@@ -101,9 +111,11 @@ class LoopEngine {
       if (this.armAt - this.p < 1) this.armAt = this.p;
       return;
     }
-    // a loop exists: record now, the length becomes a multiple of the loop
+    // a loop exists: record now from the start of this bar; the length becomes a whole-bar part
+    // of the loop (1, 2 bars of a 4-bar loop) or a multiple of it
     if (!this.running) { this.running = true; this.p = 0; this.lastStep = -1; }
-    this.beginRec(i, Math.floor(this.p / this.master) * this.master);
+    const bl = this.barLen();
+    this.beginRec(i, Math.floor(this.p / bl + 1e-9) * bl);
     t.gridRec = false;
   }
 
@@ -133,22 +145,32 @@ class LoopEngine {
       this.events.push({ t: 'loop', len, bars, bpm: this.bpm });
       return;
     }
-    const unit = this.master > 0 ? this.master : this.barLen();
-    const k = Math.max(1, Math.round(n / unit));
-    len = Math.round(k * unit);
     if (this.master === 0) {   // first loop on the drum grid
+      const bl = this.barLen(), k = Math.max(1, Math.round(n / bl));
+      len = Math.round(k * bl);
       this.masterBars = k; this.master = len;
       this.events.push({ t: 'loop', len, bars: k, bpm: this.bpm });
-    }
+    } else len = this.fitLen(n);
     if (n >= len) this.setLen(i, len);
     else { t.recEnd = t.anchor + len; t.pendingLen = len; }   // keep recording to the end of the bar / loop
+  }
+
+  // the allowed length nearest to n: whole-bar divisions of the loop (1, 2 of 4 bars) or multiples of it
+  fitLen(n) {
+    const M = this.master, B = this.masterBars, cand = [];
+    for (let d = 1; d < B; d++) if (B % d === 0) cand.push(M * d / B);
+    for (let k = 1; k * M <= this.maxLen; k++) cand.push(k * M);
+    let best = cand[0];
+    for (const c of cand) if (Math.abs(Math.log(c / Math.max(1, n))) < Math.abs(Math.log(best / Math.max(1, n)))) best = c;
+    return Math.round(best);
   }
 
   setLen(i, len) {
     const t = this.tracks[i];
     t.len = len; t.recEnd = -1;
     if (t.hi > len) { t.buf.fill(0, len, t.hi); t.hi = len; this.repeak(t); }
-    t.undo = new Float32Array(len); t.copied = new Uint8Array(Math.ceil(len / CHUNK)); t.copied.fill(1); t.copyNext = 0;
+    t.undo = new Float32Array(len); t.undoB = new Float32Array(len); t.canUndoB = false;
+    t.copied = new Uint8Array(Math.ceil(len / CHUNK)); t.copied.fill(1); t.copyNext = 0;
     t.canUndo = false; t.canRedo = false;
     if (this.recToDub) this.startDub(i, true);
     else { t.state = 'play'; t.tail = this.latency; }
@@ -158,7 +180,10 @@ class LoopEngine {
   startDub(i, fromRec) {
     const t = this.tracks[i];
     if (t.len === 0) return;
-    // snapshot for UNDO: copy-on-write, chunk by chunk, the rest in the background
+    // snapshot for UNDO: copy-on-write, chunk by chunk, the rest in the background.
+    // The one before stays in undoB, so a held REC can cancel this new layer and undo the last one.
+    this.ensureSnapshot(t);
+    const keep = t.undo; t.undo = t.undoB; t.undoB = keep; t.canUndoB = t.canUndo && !t.canRedo;
     t.copied.fill(0); t.copyNext = 0; t.canUndo = true; t.canRedo = false;
     if (!fromRec) { t.dk.fill(0); t.pkVer++; }
     t.state = 'dub'; t.tail = 0; this.dirty = true;
@@ -192,12 +217,30 @@ class LoopEngine {
     t.tail = 0; this.dirty = true;
   }
 
+  // REC held: undo what the press before it led to (Boss: hold REC/DUB/PLAY = undo)
+  recHold(i) {
+    const t = this.tracks[i], did = t.press; t.press = '';
+    if (did === 'empty' || did === 'rec' || t.state === 'rec' || this.armed === i) { this.clear(i); return; }   // a new take: cancel it
+    if (did === 'play' || did === 'stop') {
+      // the press started a new layer: drop it (back to undoB's partner), then undo the layer before
+      if (t.state === 'dub') {
+        this.ensureSnapshot(t); t.buf.set(t.undo); t.state = 'play'; t.tail = 0;
+        const x = t.undo; t.undo = t.undoB; t.undoB = x; t.copied.fill(1); t.copyNext = t.copied.length;
+        t.canUndo = t.canUndoB; t.canRedo = false; t.canUndoB = false;
+        t.dk.fill(0); this.repeak(t);
+      }
+      if (t.canUndo) this.undoButton(i);
+      this.dirty = true; return;
+    }
+    this.undoButton(i);   // the press ended a layer: undo it
+  }
+
   clear(i) {
     if (i === 3) { this.pattern.fill(0); this.dirty = true; return; }
     const t = this.tracks[i];
     if (this.armed === i) this.armed = -1;
     t.buf.fill(0, 0, Math.max(t.hi, t.len)); t.pk.fill(0); t.dk.fill(0); t.pkVer++;
-    t.state = 'empty'; t.len = 0; t.hi = 0; t.recEnd = -1; t.tail = 0; t.undo = null; t.copied = null;
+    t.state = 'empty'; t.len = 0; t.hi = 0; t.recEnd = -1; t.tail = 0; t.undo = null; t.undoB = null; t.canUndoB = false; t.copied = null;
     t.canUndo = t.canRedo = false;
     if (this.tracks.every(x => x.state === 'empty')) { this.master = 0; this.masterBars = 1; }
     this.dirty = true;
@@ -231,7 +274,8 @@ class LoopEngine {
   snapshot() {
     return {
       master: this.master, masterBars: this.masterBars, bpm: this.bpm, drumOn: this.drumOn, kit: this.kit,
-      pattern: Array.from(this.pattern),
+      pattern: Array.from(this.pattern), drumBars: this.drumBars, drumSteps: this.drumSteps,
+      gate: Array.from(this.gate), tune: Array.from(this.tune), level: Array.from(this.level),
       tracks: this.tracks.map(t => ({
         len: t.len, offset: t.len ? mod(t.anchor, t.len) : 0, vol: t.vol, pan: t.pan, rev: t.rev, muted: t.state === 'stop',
         data: t.len ? t.buf.slice(0, t.len) : null,
@@ -250,11 +294,17 @@ class LoopEngine {
       t.len = n; t.hi = n; t.anchor = n ? (s.offset || 0) % n : 0; t.recEnd = -1; t.tail = 0;
       t.vol = s.vol !== undefined ? s.vol : 0.8; t.pan = s.pan || 0; t.rev = !!s.rev;
       t.state = n ? (s.muted ? 'stop' : 'play') : 'empty';
-      t.undo = n ? new Float32Array(n) : null; t.copied = n ? new Uint8Array(Math.ceil(n / CHUNK)).fill(1) : null; t.copyNext = 0;
+      t.undo = n ? new Float32Array(n) : null; t.undoB = n ? new Float32Array(n) : null; t.canUndoB = false; t.copied = n ? new Uint8Array(Math.ceil(n / CHUNK)).fill(1) : null; t.copyNext = 0;
       t.canUndo = t.canRedo = false; t.dk.fill(0); this.repeak(t);
     }
     this.master = p.master || 0; this.masterBars = p.masterBars || 1; this.bpm = p.bpm || this.bpm;
-    if (p.pattern) this.pattern.set(p.pattern);
+    this.drumBars = p.drumBars || 1; this.drumSteps = p.drumSteps || 16;
+    if (p.pattern) {
+      this.pattern.fill(0);
+      if (p.pattern.length === NVOICES * VSTRIDE) this.pattern.set(p.pattern);
+      else for (let v = 0; v < NVOICES; v++) for (let s = 0; s < NSTEPS; s++) this.pattern[v * VSTRIDE + s] = p.pattern[v * NSTEPS + s] || 0;   // older projects: 16 steps
+    }
+    for (const k of ['gate', 'tune', 'level']) if (p[k]) this[k].set(p[k]);
     if (p.drumOn !== undefined) this.drumOn = !!p.drumOn;
     if (p.kit !== undefined) this.kit = p.kit;
     this.dirty = true;
@@ -287,16 +337,12 @@ class LoopEngine {
   // ---- drums --------------------------------------------------------------------
   pad(v, vel = 1) {
     const s = this.kits[this.kit] && this.kits[this.kit][v];
-    if (s) this.trigger(s, vel);
+    if (s) this.triggerVoice(v, s, vel);
     if (this.drumRec && this.running) {
-      const sl = this.stepLen();
-      const pos = mod(this.p - this.latencyPad(), this.barLen());
-      let st = Math.round(pos / sl) % NSTEPS;
-      const idx = v * NSTEPS + st;
+      const sl = this.stepLen(), p = this.p - this.latencyPad();
+      const near = this.stepAt(p + sl / 2), idx = v * VSTRIDE + near;   // the nearest step
       if (!this.pattern[idx]) { this.pattern[idx] = 1; this.dirty = true; }
-      // the step is about to play: don't sound it twice
-      const cur = Math.floor(pos / sl) % NSTEPS;
-      if (st !== cur) this.skip[idx] = 1;
+      if (near !== this.stepAt(p)) this.skip[idx] = 1;   // the step is about to play: don't sound it twice
     }
   }
   latencyPad() { return 0; }   // the pads arrive over MIDI with ~1 ms; nothing to take back
@@ -310,9 +356,43 @@ class LoopEngine {
     else if (this.drumRedo) { const cur = this.pattern.slice(); this.pattern.set(this.drumRedo); this.drumUndo = cur; this.drumRedo = null; }
     this.dirty = true;
   }
-  trigger(s, g) {
+  trigger(s, g) { this.triggerVoice(-1, s, g); }
+  // a drum sound with its length (gate), pitch and level
+  triggerVoice(v, s, g) {
     if (this.playing.length > 24) this.playing.shift();
-    this.playing.push({ s, i: 0, g });
+    const r = v >= 0 ? Math.pow(2, this.tune[v] / 12) : 1;
+    const lvl = v >= 0 ? this.level[v] : 1, gate = v >= 0 ? this.gate[v] : 100;
+    const len = s.length / r, end = gate >= 100 ? len : Math.max(this.sr * 0.01, len * gate / 100);
+    this.playing.push({ s, i: 0, r, g: g * lvl, end, fade: Math.round(this.sr * 0.006) });
+  }
+  // a new number of steps per bar: every beat moves to the nearest new step
+  setSteps(m) {
+    m = Math.max(1, Math.min(MAXSTEPS, Math.round(m)));
+    const old = this.drumSteps; if (m === old) return;
+    const np = new Uint8Array(this.pattern.length);
+    for (let v = 0; v < NVOICES; v++) for (let b = 0; b < MAXBARS; b++) for (let s = 0; s < old; s++) {
+      if (!this.pattern[v * VSTRIDE + b * MAXSTEPS + s]) continue;
+      let ns = Math.round(s * m / old), nb = b;
+      if (ns >= m) { ns -= m; nb = (b + 1) % this.drumBars; }
+      np[v * VSTRIDE + nb * MAXSTEPS + ns] = 1;
+    }
+    this.pattern = np; this.drumSteps = m; this.skip.fill(0);
+  }
+  // more bars: the new bars start as copies of the first one
+  setBars(b) {
+    b = Math.max(1, Math.min(MAXBARS, Math.round(b)));
+    for (let k = this.drumBars; k < b; k++) for (let v = 0; v < NVOICES; v++)
+      this.pattern.copyWithin(v * VSTRIDE + k * MAXSTEPS, v * VSTRIDE, v * VSTRIDE + MAXSTEPS);
+    this.drumBars = b;
+  }
+  // a 16-step preset (11 x 16) into every bar at the current resolution
+  setPreset(a) {
+    this.pattern.fill(0);
+    for (let v = 0; v < NVOICES; v++) for (let s = 0; s < NSTEPS; s++) if (a[v * NSTEPS + s]) {
+      const ns = Math.round(s * this.drumSteps / NSTEPS);
+      if (ns >= this.drumSteps) continue;
+      for (let b = 0; b < this.drumBars; b++) this.pattern[v * VSTRIDE + b * MAXSTEPS + ns] = 1;
+    }
   }
 
   // ---- parameters ---------------------------------------------------------------
@@ -333,7 +413,11 @@ class LoopEngine {
         } else if (!v) this.stut = false;
         break;
       case 'pattern': this.pattern.set(v); break;
-      case 'step': this.pattern[v.v * NSTEPS + v.s] = v.on ? 1 : 0; break;
+      case 'preset': this.setPreset(v); break;
+      case 'step': this.pattern[v.v * VSTRIDE + v.s] = v.on ? 1 : 0; break;   // v.s: bar * 64 + step
+      case 'drumBars': this.setBars(v); break;
+      case 'drumSteps': this.setSteps(v); break;
+      case 'gate': case 'tune': case 'level': this[k][v.v] = v.x; break;   // { v: sound, x }
       case 'kits': this.kits = v; break;
       default: this[k] = v;
     }
@@ -349,7 +433,7 @@ class LoopEngine {
     for (const t of tr) if (t.copied && t.copyNext < t.copied.length) {
       for (let c = 0; c < 48 && t.copyNext < t.copied.length; c++, t.copyNext++) if (!t.copied[t.copyNext]) this.copyChunk(t, t.copyNext);
     }
-    const bl = this.barLen(), sl = bl / NSTEPS;
+    const bl = this.barLen();
     const crushQ = this.bits.map(b => (b < 16 ? Math.pow(2, b - 1) : 0));
     for (let s = 0; s < n; s++) {
       oL.fill(0); oR.fill(0);
@@ -398,14 +482,14 @@ class LoopEngine {
         }
         // drum sequencer
         if (this.drumOn) {
-          const st = Math.floor(mod(this.p, bl) / sl) % NSTEPS;
+          const st = this.stepAt(this.p);
           if (st !== this.lastStep) {
             this.lastStep = st;
             const kit = this.kits[this.kit];
             if (kit) for (let v = 0; v < NVOICES; v++) {
-              const idx = v * NSTEPS + st;
+              const idx = v * VSTRIDE + st;
               if (this.skip[idx]) { this.skip[idx] = 0; continue; }
-              if (this.pattern[idx] && kit[v]) this.trigger(kit[v], 1);
+              if (this.pattern[idx] && kit[v]) this.triggerVoice(v, kit[v], 1);
             }
             this.dirty = true;
           }
@@ -415,9 +499,11 @@ class LoopEngine {
       // drum voices -> channel 3, click -> channel 4
       let d = 0;
       for (let k = this.playing.length - 1; k >= 0; k--) {
-        const pv = this.playing[k];
-        d += pv.s[pv.i++] * pv.g;
-        if (pv.i >= pv.s.length) this.playing.splice(k, 1);
+        const pv = this.playing[k], pos = pv.i * pv.r, j = pos | 0;
+        if (j + 1 >= pv.s.length || pv.i >= pv.end) { this.playing.splice(k, 1); continue; }
+        let x = pv.r === 1 ? pv.s[j] : pv.s[j] + (pv.s[j + 1] - pv.s[j]) * (pos - j);   // pitched: linear interpolation
+        const left = pv.end - pv.i; if (left < pv.fade) x *= left / pv.fade;              // gate: a short fade, no click
+        d += x * pv.g; pv.i++;
       }
       d *= this.drumVol; oL[3] += d; oR[3] += d;
       for (let k = this.clicks.length - 1; k >= 0; k--) {
@@ -471,7 +557,8 @@ class LoopEngine {
     return {
       wave,
       running: this.running, p: this.p, master: this.master, bars: this.masterBars, bpm: this.bpm,
-      armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1,
+      armed: this.armed, step: this.running && this.drumOn ? this.lastStep : -1, drumBars: this.drumBars, drumSteps: this.drumSteps,
+      gate: Array.from(this.gate), tune: Array.from(this.tune), level: Array.from(this.level),
       drumOn: this.drumOn, drumRec: this.drumRec, kit: this.kit, clickOn: this.clickOn,
       canDrumUndo: !!this.drumUndo, canDrumRedo: !!this.drumRedo,
       pattern: Array.from(this.pattern), latency: Math.round(this.latency * 1000 / this.sr),
@@ -487,4 +574,4 @@ class LoopEngine {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT };
+if (typeof module !== 'undefined') module.exports = { LoopEngine, NTRACKS, NVOICES, NSTEPS, NOUT, MAXBARS, MAXSTEPS, VSTRIDE };
